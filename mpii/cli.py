@@ -111,6 +111,26 @@ def cmd_news(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_telegram(args: argparse.Namespace) -> int:
+    import csv as _csv
+
+    from .telegram import update_telegram
+
+    members_csv = os.path.join(args.data, "members.csv")
+    if args.all:
+        with open(members_csv, encoding="utf-8") as fh:
+            ids = [int(r["member_id"]) for r in _csv.DictReader(fh)]
+    else:
+        ids = [int(x) for x in (args.ids or "").split(",") if x.strip()]
+    out_csv = os.path.join(args.data, "telegram.csv")
+    print(f"fetching Telegram posts for {len(ids)} MPs (public channels, display-only)…")
+    counts = update_telegram(members_csv, out_csv, ids, per_mp=args.per_mp)
+    for mid, n in counts.items():
+        print(f"  MP {mid}: {n} posts")
+    print(f"wrote → {out_csv}")
+    return 0
+
+
 def cmd_web(args: argparse.Namespace) -> int:
     html = build_html(args.data)
     os.makedirs(args.out, exist_ok=True)
@@ -178,6 +198,13 @@ def main(argv=None) -> int:
     p_news.add_argument("--per-mp", type=int, default=6, help="max headlines per MP")
     p_news.add_argument("--data", default="data")
     p_news.set_defaults(func=cmd_news)
+
+    p_tg = sub.add_parser("telegram", help="fetch public Telegram channel posts per MP (display-only)")
+    p_tg.add_argument("--ids", help="comma-separated member ids")
+    p_tg.add_argument("--all", action="store_true", help="all MPs that have a telegram channel set")
+    p_tg.add_argument("--per-mp", type=int, default=6, help="max posts per MP")
+    p_tg.add_argument("--data", default="data")
+    p_tg.set_defaults(func=cmd_telegram)
 
     args = parser.parse_args(argv)
     return args.func(args)

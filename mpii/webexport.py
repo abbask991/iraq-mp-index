@@ -214,11 +214,28 @@ def _mentions(data_dir: str) -> dict:
     return out
 
 
+def _telegram(data_dir: str) -> dict:
+    """Telegram posts per MP (display-only), auto-classified. Keyed by member_id."""
+    from .news import classify
+
+    path = os.path.join(data_dir, "telegram.csv")
+    if not os.path.exists(path):
+        return {}
+    out: dict = {}
+    with open(path, encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            rec = {k: r.get(k, "") for k in ("date", "channel", "text")}
+            rec["sentiment"] = classify(rec["text"])["sentiment"]
+            out.setdefault(str(r["mp_id"]), []).append(rec)
+    return out
+
+
 def build_payload(data_dir: str) -> dict:
     members = pd.read_csv(os.path.join(data_dir, "members.csv"))
     raw = pd.read_csv(os.path.join(data_dir, "raw_indicators.csv"))
     return {
         "mentions": _mentions(data_dir),
+        "telegram": _telegram(data_dir),
         "shanghai": _dataset("config.shanghai.yaml", members, raw),
         "objective": _dataset("config.objective.yaml", members, raw),
         "full": _dataset("config.yaml", members, raw),

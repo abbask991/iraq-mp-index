@@ -672,6 +672,16 @@ function openProfile(name){
       </div>
     </div>`).join("") : `<div style="color:var(--muted)">لا توجد أخبار مجموعة لهذا النائب بعد.</div>`;
 
+  // Telegram public-channel posts (display-only)
+  const tposts = (PAYLOAD.telegram && PAYLOAD.telegram[m.member_id]) || [];
+  const tgHtml = tposts.length ? tposts.map(p=>`
+    <div style="border-top:1px solid var(--line);padding:9px 0">
+      <div style="font-size:13px">${p.text}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">@${p.channel} · ${p.date}
+        <span style="color:${sentColor(p.sentiment)};border:1px solid ${sentColor(p.sentiment)}55;border-radius:6px;padding:1px 7px;margin-right:6px">${p.sentiment}</span>
+      </div>
+    </div>`).join("") : "";
+
   document.getElementById("modalBody").innerHTML = `
     <div class="pf-head">
       ${photo}
@@ -713,6 +723,9 @@ function openProfile(name){
 
     <div class="pf-sec">النشاط الإعلامي <span style="text-transform:none;letter-spacing:0;color:var(--muted)">· ${mentions.length} خبر · للعرض فقط، غير مُدرج بالدرجة (نموذج أولي · Google News)</span></div>
     <div class="chartbox">${mediaHtml}</div>
+
+    ${tposts.length ? `<div class="pf-sec">منشورات تليغرام <span style="text-transform:none;letter-spacing:0;color:var(--muted)">· ${tposts.length} منشور · قناة عامة، للعرض فقط</span></div>
+    <div class="chartbox">${tgHtml}</div>` : ""}
 
     <div class="pf-sec">تفاصيل الأداء حسب المحور (الدرجة + القيم الخام للمؤشرات)</div>
     ${perf}`;
