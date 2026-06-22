@@ -20,16 +20,46 @@ MENTION_COLUMNS = ["mp_id", "date", "source", "title", "link"]
 WATCH_COLUMNS = ["term", "date", "source", "title", "link"]
 
 
+def _supabase_env():
+    p = os.path.join("platform", ".env.local")
+    url = key = None
+    if os.path.exists(p):
+        for line in open(p, encoding="utf-8"):
+            if line.startswith("NEXT_PUBLIC_SUPABASE_URL="):
+                url = line.split("=", 1)[1].strip()
+            elif line.startswith("NEXT_PUBLIC_SUPABASE_ANON_KEY="):
+                key = line.split("=", 1)[1].strip()
+    return url, key
+
+
 def load_settings(path: str = "settings.yaml") -> dict:
-    """Read the `news:` block from settings.yaml (sources / keywords / watch)."""
-    if not os.path.exists(path):
-        return {}
-    try:
-        import yaml
-        with open(path, encoding="utf-8") as f:
-            return (yaml.safe_load(f) or {}).get("news", {}) or {}
-    except Exception:
-        return {}
+    """Settings from settings.yaml, OVERLAID by the admin's Supabase settings
+    (so changes in the admin panel drive the news pipeline)."""
+    cfg = {}
+    if os.path.exists(path):
+        try:
+            import yaml
+            cfg = (yaml.safe_load(open(path, encoding="utf-8")) or {}).get("news", {}) or {}
+        except Exception:
+            cfg = {}
+    url, key = _supabase_env()
+    if url and key:
+        try:
+            import json as _json
+            req = urllib.request.Request(
+                f"{url}/rest/v1/app_settings?select=key,value",
+                headers={"apikey": key, "Authorization": f"Bearer {key}", "User-Agent": "Mozilla/5.0"})
+            data = _json.loads(urllib.request.urlopen(req, timeout=15, context=_ctx()).read())
+            m = {r["key"]: r["value"] for r in data}
+            if m.get("news_sources"):
+                cfg["sources"] = m["news_sources"]
+            if m.get("news_keywords"):
+                cfg["extra_keywords"] = m["news_keywords"]
+            if m.get("news_hashtags"):
+                cfg["watch_terms"] = m["news_hashtags"]
+        except Exception:
+            pass
+    return cfg
 
 
 def build_query(name: str, settings: dict) -> str:

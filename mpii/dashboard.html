@@ -428,6 +428,22 @@ async function loadRating(mpId, el){
     loadRating(mpId, el);
   });
 }
+// pull photo + social links LIVE from Supabase (so admin edits show on the public site)
+async function patchFromSupabase(mpId){
+  const sb = await ensureAuth(); if(!sb) return;
+  const { data } = await sb.from("mps").select("photo,facebook,x,instagram,telegram,website").eq("id",mpId).maybeSingle();
+  if(!data) return;
+  if(data.photo){
+    const cur = document.querySelector("#modalBody .pf-photo, #modalBody .pf-avatar");
+    if(cur) cur.outerHTML = `<img class="pf-photo" src="${data.photo}" alt="">`;
+  }
+  const SOC=[["facebook","Facebook"],["x","X / تويتر"],["instagram","Instagram"],["telegram","Telegram"],["website","الموقع"]];
+  const links = SOC.filter(([k])=>data[k]).map(([k,l])=>`<a class="slink" href="${data[k]}" target="_blank" rel="noopener">${l}</a>`).join("");
+  if(links){
+    const idEl = document.querySelector("#modalBody .pf-id");
+    if(idEl){ let s=idEl.querySelector(".social"); if(!s){ s=document.createElement("div"); s.className="social"; idEl.appendChild(s); } s.innerHTML=links; }
+  }
+}
 async function loadComments(mpId, el){
   const sb = await ensureAuth(); if(!sb){ el.innerHTML=""; return; }
   const { data } = await sb.from("comments").select("body,created_at,status").eq("mp_id",mpId).order("created_at",{ascending:false}).limit(50);
@@ -802,6 +818,7 @@ function openProfile(name){
     const r=document.getElementById("pf-rate"), c=document.getElementById("pf-comments");
     if(r) loadRating(m.member_id, r);
     if(c) loadComments(m.member_id, c);
+    patchFromSupabase(m.member_id);
   }
 }
 

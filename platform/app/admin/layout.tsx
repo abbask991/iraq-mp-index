@@ -23,6 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <span style={{ display: "flex", gap: 14 }}>
           <Link href="/admin/settings" className="muted">الإعدادات</Link>
           <Link href="/admin/mps" className="muted">النواب</Link>
+          <Link href="/admin/comments" className="muted">التعليقات</Link>
           <Link href="/admin/import" className="muted">استيراد</Link>
           <Link href="/" className="muted">الموقع</Link>
         </span>
