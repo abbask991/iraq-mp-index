@@ -230,12 +230,29 @@ def _telegram(data_dir: str) -> dict:
     return out
 
 
+def _watch(data_dir: str) -> list:
+    """Watched-topic news (settings.watch_terms), auto-classified."""
+    from .news import classify
+
+    path = os.path.join(data_dir, "watch.csv")
+    if not os.path.exists(path):
+        return []
+    out = []
+    with open(path, encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            rec = {k: r.get(k, "") for k in ("term", "date", "source", "title", "link")}
+            rec["sentiment"] = classify(rec["title"])["sentiment"]
+            out.append(rec)
+    return out
+
+
 def build_payload(data_dir: str) -> dict:
     members = pd.read_csv(os.path.join(data_dir, "members.csv"))
     raw = pd.read_csv(os.path.join(data_dir, "raw_indicators.csv"))
     return {
         "mentions": _mentions(data_dir),
         "telegram": _telegram(data_dir),
+        "watch": _watch(data_dir),
         "shanghai": _dataset("config.shanghai.yaml", members, raw),
         "objective": _dataset("config.objective.yaml", members, raw),
         "full": _dataset("config.yaml", members, raw),

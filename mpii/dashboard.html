@@ -242,6 +242,7 @@
     <button data-tab="ranking" class="on">Ranking</button>
     <button data-tab="unranked">غير المصنّفين</button>
     <button data-tab="buzz">الأكثر ذكراً</button>
+    <button data-tab="watch">مواضيع مرصودة</button>
     <button data-tab="presidency">هيئة الرئاسة</button>
     <button data-tab="cats">الفئات</button>
     <button data-tab="stats">Statistics</button>
@@ -287,6 +288,14 @@
       </select>
     </div>
     <div class="card"><div id="groupTable"></div></div>
+  </div>
+
+  <!-- WATCHED TOPICS TAB -->
+  <div id="tab-watch" class="hidden" dir="rtl">
+    <div class="card"><div id="watchBody" style="padding:6px 4px"></div></div>
+    <p class="muted" style="color:var(--muted);font-size:12px;margin-top:10px">
+      مواضيع/هاشتاغات تُرصد من <code>settings.yaml</code> (watch_terms) · أضف/احذف بحرية ثم شغّل <code>mpii news</code>.
+    </p>
   </div>
 
   <!-- MOST-MENTIONED (BUZZ) TAB -->
@@ -963,10 +972,25 @@ function renderBuzz(){
   el.querySelectorAll(".row").forEach(rw=>rw.onclick=()=>openProfile(rw.dataset.name));
 }
 
-function renderAll(){ renderKpis(); renderList(); renderUnranked(); renderBuzz(); renderGroups(); renderStats(); renderCats(); renderMethodology(); renderPresidency(); renderCharts(); }
+function renderWatch(){
+  const watch = PAYLOAD.watch || [];
+  const el = document.getElementById("watchBody");
+  if(!watch.length){ el.innerHTML = `<div class="empty">لا مواضيع مرصودة بعد. أضف watch_terms في settings.yaml وشغّل mpii news.</div>`; return; }
+  const byTerm = {};
+  watch.forEach(w=>{ (byTerm[w.term] = byTerm[w.term] || []).push(w); });
+  el.innerHTML = Object.entries(byTerm).map(([term,items])=>`
+    <div class="pf-sec" style="margin:8px 18px">${term} <span style="text-transform:none;letter-spacing:0;color:var(--muted)">· ${items.length} خبر</span></div>
+    ${items.map(x=>`<div style="border-top:1px solid var(--line);padding:9px 18px">
+      <a href="${x.link}" target="_blank" rel="noopener" style="font-size:13px">${x.title}</a>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">${x.source} · ${x.date}
+        <span style="color:${sentColor(x.sentiment)};border:1px solid ${sentColor(x.sentiment)}55;border-radius:6px;padding:1px 7px;margin-right:6px">${x.sentiment}</span>
+      </div></div>`).join("")}`).join("");
+}
+
+function renderAll(){ renderKpis(); renderList(); renderUnranked(); renderBuzz(); renderWatch(); renderGroups(); renderStats(); renderCats(); renderMethodology(); renderPresidency(); renderCharts(); }
 
 // events — both filter rows (ranking + stats tabs) write to the same state
-const TABS = ["ranking","unranked","buzz","presidency","cats","stats","groups","method"];
+const TABS = ["ranking","unranked","buzz","watch","presidency","cats","stats","groups","method"];
 document.querySelectorAll("#buzzNav button").forEach(b=>b.onclick=()=>{
   state.period=b.dataset.period;
   document.querySelectorAll("#buzzNav button").forEach(x=>x.classList.toggle("on",x===b));

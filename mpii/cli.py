@@ -108,6 +108,13 @@ def cmd_news(args: argparse.Namespace) -> int:
     for mid, n in counts.items():
         print(f"  MP {mid}: {n} mentions")
     print(f"wrote → {out_csv}")
+
+    from .news import update_watch
+    wcounts = update_watch(os.path.join(args.data, "watch.csv"), per_term=args.per_mp)
+    if wcounts:
+        print("watch terms:")
+        for term, n in wcounts.items():
+            print(f"  «{term}»: {n}")
     return 0
 
 
