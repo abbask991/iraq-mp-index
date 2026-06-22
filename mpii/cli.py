@@ -91,6 +91,20 @@ def cmd_template(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_news(args: argparse.Namespace) -> int:
+    from .news import update_mentions
+
+    ids = [int(x) for x in args.ids.split(",") if x.strip()]
+    members_csv = os.path.join(args.data, "members.csv")
+    out_csv = os.path.join(args.data, "mentions.csv")
+    print(f"fetching Google News mentions for {len(ids)} MPs (display-only, not scored)…")
+    counts = update_mentions(members_csv, out_csv, ids, per_mp=args.per_mp)
+    for mid, n in counts.items():
+        print(f"  MP {mid}: {n} mentions")
+    print(f"wrote → {out_csv}")
+    return 0
+
+
 def cmd_web(args: argparse.Namespace) -> int:
     html = build_html(args.data)
     os.makedirs(args.out, exist_ok=True)
@@ -151,6 +165,12 @@ def main(argv=None) -> int:
     p_tpl.add_argument("--out", default="mpii_template.xlsx")
     p_tpl.add_argument("--data", default="data")
     p_tpl.set_defaults(func=cmd_template)
+
+    p_news = sub.add_parser("news", help="fetch Google News mentions per MP (display-only, not scored)")
+    p_news.add_argument("--ids", required=True, help="comma-separated member ids, e.g. 185,227,312")
+    p_news.add_argument("--per-mp", type=int, default=6, help="max headlines per MP")
+    p_news.add_argument("--data", default="data")
+    p_news.set_defaults(func=cmd_news)
 
     args = parser.parse_args(argv)
     return args.func(args)

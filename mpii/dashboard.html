@@ -642,6 +642,14 @@ function openProfile(name){
   const cmpBars = refs.map(([l,v,c])=>`<div class="cmp"><div class="lab"><span>${l}</span><b>${v.toFixed(1)}</b></div>
     <div class="track"><i style="width:${Math.max(0,Math.min(100,v))}%;background:${c}"></i></div></div>`).join("");
 
+  // news mentions (display-only, fetched from Google News — NOT scored)
+  const mentions = (PAYLOAD.mentions && PAYLOAD.mentions[m.member_id]) || [];
+  const mediaHtml = mentions.length ? mentions.map(x=>`
+    <div style="border-top:1px solid var(--line);padding:9px 0">
+      <a href="${x.link}" target="_blank" rel="noopener" style="font-size:13px">${x.title}</a>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${x.source} · ${x.date}</div>
+    </div>`).join("") : `<div style="color:var(--muted)">لا توجد أخبار مجموعة لهذا النائب بعد.</div>`;
+
   document.getElementById("modalBody").innerHTML = `
     <div class="pf-head">
       ${photo}
@@ -680,6 +688,9 @@ function openProfile(name){
 
     <div class="pf-sec">التحسّن عبر الأشهر <span style="text-transform:none;letter-spacing:0;color:${trendC}">(${trend>=0?"+":""}${trend.toFixed(1)} خلال ${PAYLOAD.history.labels.length} أشهر)</span></div>
     <div class="chartbox">${line}</div>
+
+    <div class="pf-sec">النشاط الإعلامي <span style="text-transform:none;letter-spacing:0;color:var(--muted)">· ${mentions.length} خبر · للعرض فقط، غير مُدرج بالدرجة (نموذج أولي · Google News)</span></div>
+    <div class="chartbox">${mediaHtml}</div>
 
     <div class="pf-sec">تفاصيل الأداء حسب المحور (الدرجة + القيم الخام للمؤشرات)</div>
     ${perf}`;

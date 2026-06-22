@@ -7,6 +7,7 @@ serve the folder.
 
 from __future__ import annotations
 
+import csv
 import datetime
 import json
 import os
@@ -196,10 +197,24 @@ def _history(members: pd.DataFrame, months: int = 8) -> dict:
     return {"labels": labels, "scores": scores}
 
 
+def _mentions(data_dir: str) -> dict:
+    """News mentions per MP (display-only, not scored). Keyed by member_id (str)."""
+    path = os.path.join(data_dir, "mentions.csv")
+    if not os.path.exists(path):
+        return {}
+    out: dict = {}
+    with open(path, encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            out.setdefault(str(r["mp_id"]), []).append(
+                {k: r.get(k, "") for k in ("date", "source", "title", "link")})
+    return out
+
+
 def build_payload(data_dir: str) -> dict:
     members = pd.read_csv(os.path.join(data_dir, "members.csv"))
     raw = pd.read_csv(os.path.join(data_dir, "raw_indicators.csv"))
     return {
+        "mentions": _mentions(data_dir),
         "shanghai": _dataset("config.shanghai.yaml", members, raw),
         "objective": _dataset("config.objective.yaml", members, raw),
         "full": _dataset("config.yaml", members, raw),
