@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MPII · Iraq Parliament Impact Index</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg:#0a0e17; --panel:#111726; --panel2:#0e1421; --line:#1f2a3d;
@@ -168,6 +169,12 @@
   .pf-score .v{font-size:40px;font-weight:800;line-height:1}
   .pf-score .g{font-weight:800;font-size:13px;padding:3px 10px;border-radius:8px;margin-top:6px;display:inline-block}
 
+  .rstar{font-size:30px;cursor:pointer;color:#2b3650;transition:.1s}
+  .rstar:hover,.rstar.on{color:#facc15}
+  .cbtn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04121a;border:0;
+    border-radius:9px;padding:7px 16px;font-weight:700;cursor:pointer;margin-top:6px}
+  .ctext{width:100%;background:#0c1320;border:1px solid var(--line);color:var(--text);
+    border-radius:9px;padding:9px;font:inherit}
   .social{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
   .slink{font-size:11.5px;padding:4px 11px;border-radius:8px;background:#0e1626;border:1px solid var(--line);
     color:var(--accent2);text-decoration:none}
@@ -392,6 +399,50 @@ const dimLabel = c => c.replace("dim_","").replace(/_/g," ").replace(/\b\w/g,m=>
 const gradeColor = g => cssv(GRADE_C[g] || "--muted");
 const gradeOf = s => s>=90?"A+":s>=80?"A":s>=70?"B":s>=60?"C":s>=50?"D":"F";
 const sentColor = s => s==="سلبي"?cssv("--f"):s==="إيجابي"?cssv("--a"):cssv("--muted");
+const escapeHtml = s => (s||"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ---- live ratings & comments (Supabase, anonymous auth) ----
+let SB=null, SBUSER=null;
+async function ensureAuth(){
+  if(!PAYLOAD.supabase || !window.supabase) return null;
+  if(!SB) SB = window.supabase.createClient(PAYLOAD.supabase.url, PAYLOAD.supabase.anonKey);
+  if(!SBUSER){
+    const { data:{ session } } = await SB.auth.getSession();
+    if(!session) await SB.auth.signInAnonymously();
+    const { data:{ user } } = await SB.auth.getUser();
+    SBUSER = user;
+  }
+  return SBUSER ? SB : null;
+}
+async function loadRating(mpId, el){
+  const sb = await ensureAuth(); if(!sb){ el.innerHTML=""; return; }
+  const { data:stat } = await sb.from("mp_rating_stats").select("*").eq("mp_id",mpId).maybeSingle();
+  const { data:mine } = await sb.from("ratings").select("stars").eq("mp_id",mpId).eq("user_id",SBUSER.id).maybeSingle();
+  const n=stat?.n_ratings||0, avg=stat?.avg_stars||0, my=mine?.stars||0;
+  const avgTxt = n>=30 ? `⭐ ${avg} / 5 <span class="muted">(${n} تقييم)</span>` : `<span class="muted">${n} تقييم — يظهر المتوسط بعد 30</span>`;
+  el.innerHTML = `<div style="margin-bottom:6px">${avgTxt}</div>
+    <div>${[1,2,3,4,5].map(v=>`<span class="rstar ${v<=my?'on':''}" data-v="${v}">★</span>`).join("")}</div>
+    <div class="muted" style="font-size:11px;margin-top:4px">للعرض فقط — لا يؤثّر على الترتيب الرسمي</div>`;
+  el.querySelectorAll(".rstar").forEach(s=>s.onclick=async()=>{
+    await sb.from("ratings").upsert({mp_id:mpId,user_id:SBUSER.id,stars:+s.dataset.v},{onConflict:"mp_id,user_id"});
+    loadRating(mpId, el);
+  });
+}
+async function loadComments(mpId, el){
+  const sb = await ensureAuth(); if(!sb){ el.innerHTML=""; return; }
+  const { data } = await sb.from("comments").select("body,created_at,status").eq("mp_id",mpId).order("created_at",{ascending:false}).limit(50);
+  const list = (data||[]).map(c=>`<div style="border-top:1px solid var(--line);padding:8px 0;font-size:13px">${escapeHtml(c.body)}
+    ${c.status!=='approved'?'<span class="muted" style="font-size:11px"> · بانتظار المراجعة</span>':''}</div>`).join("") || `<div class="muted">لا تعليقات بعد.</div>`;
+  el.innerHTML = `<textarea class="ctext" id="cbody" rows="2" placeholder="اكتب رأيك…"></textarea>
+    <button class="cbtn" id="csend">إرسال</button>
+    <span class="muted" style="font-size:11px;margin-right:8px">تُراجَع قبل النشر</span>
+    <div style="margin-top:8px">${list}</div>`;
+  el.querySelector("#csend").onclick=async()=>{
+    const body=el.querySelector("#cbody").value.trim(); if(body.length<2) return;
+    const { error } = await sb.from("comments").insert({mp_id:mpId,user_id:SBUSER.id,body});
+    if(!error) loadComments(mpId, el); else alert(error.message);
+  };
+}
 
 const mean = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : 0;
 const median = a => { if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); const m=s.length>>1;
@@ -712,6 +763,12 @@ function openProfile(name){
     </div>
     <div class="pf-meta">${meta}</div>
 
+    ${PAYLOAD.supabase ? `<div class="pf-sec">⭐ قيّم هذا النائب وشارك رأيك <span style="text-transform:none;letter-spacing:0;color:var(--muted)">· رأي المواطنين</span></div>
+    <div class="pf-charts">
+      <div class="chartbox"><h4>تقييمك بالنجوم</h4><div id="pf-rate" class="muted">جارٍ التحميل…</div></div>
+      <div class="chartbox"><h4>التعليقات</h4><div id="pf-comments" class="muted">جارٍ التحميل…</div></div>
+    </div>` : ""}
+
     <div class="pf-sec">أرقام رئيسية</div>
     <div class="pf-strip">${headStrip}</div>
 
@@ -739,6 +796,13 @@ function openProfile(name){
     <div class="pf-sec">تفاصيل الأداء حسب المحور (الدرجة + القيم الخام للمؤشرات)</div>
     ${perf}`;
   document.getElementById("profileModal").classList.remove("hidden");
+
+  // live ratings + comments (async, after the modal renders)
+  if(PAYLOAD.supabase){
+    const r=document.getElementById("pf-rate"), c=document.getElementById("pf-comments");
+    if(r) loadRating(m.member_id, r);
+    if(c) loadComments(m.member_id, c);
+  }
 }
 
 function closeProfile(){ document.getElementById("profileModal").classList.add("hidden"); }
