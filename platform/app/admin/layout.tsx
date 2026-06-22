@@ -1,10 +1,23 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { isAdmin } from "@/lib/admin";
+import { supabase } from "@/lib/supabaseClient";
+
+const NAV = [
+  { grp: "عام", items: [["🏠", "لوحة التحكم", "/admin"]] },
+  { grp: "المحتوى", items: [
+    ["👤", "النواب", "/admin/mps"],
+    ["⚙️", "الإعدادات", "/admin/settings"],
+    ["📤", "استيراد", "/admin/import"],
+  ] },
+  { grp: "المجتمع", items: [["💬", "التعليقات", "/admin/comments"]] },
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<"loading" | "ok" | "denied">("loading");
+  const path = usePathname();
   useEffect(() => { isAdmin().then((ok) => setState(ok ? "ok" : "denied")); }, []);
 
   if (state === "loading") return <p className="muted">جارٍ التحقق…</p>;
@@ -17,18 +30,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
 
   return (
-    <div>
-      <div className="topbar" style={{ borderBottom: 0, paddingBottom: 0 }}>
-        <b>لوحة الإدارة</b>
-        <span style={{ display: "flex", gap: 14 }}>
-          <Link href="/admin/settings" className="muted">الإعدادات</Link>
-          <Link href="/admin/mps" className="muted">النواب</Link>
-          <Link href="/admin/comments" className="muted">التعليقات</Link>
-          <Link href="/admin/import" className="muted">استيراد</Link>
-          <Link href="/" className="muted">الموقع</Link>
-        </span>
-      </div>
-      <div style={{ marginTop: 18 }}>{children}</div>
+    <div className="admin-shell">
+      <div className="admin-main">{children}</div>
+      <aside className="admin-side">
+        {NAV.map((g) => (
+          <div key={g.grp}>
+            <div className="grp">{g.grp}</div>
+            {g.items.map(([icon, label, href]) => (
+              <Link key={href} href={href} className={path === href ? "active" : ""}>
+                <span>{icon}</span> {label}
+              </Link>
+            ))}
+          </div>
+        ))}
+        <div className="grp">أخرى</div>
+        <Link href="/">🌐 الموقع العام</Link>
+        <a href="#" onClick={async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = "/login"; }}>
+          ↩︎ تسجيل الخروج
+        </a>
+      </aside>
     </div>
   );
 }
