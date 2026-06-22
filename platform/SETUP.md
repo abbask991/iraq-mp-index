@@ -49,6 +49,30 @@ until approved. To approve: Supabase → **Table editor → comments** → set
 Push `platform/` to Vercel (vercel.com), set the two env vars in the Vercel
 dashboard, and you get a permanent public URL.
 
+## Admin panel
+
+After `schema.sql` + `seed_mps.sql`, also run **`supabase/schema_admin.sql`**
+(SQL Editor). It adds an admin role, a settings table, and admin-only write
+access. Then:
+
+1. **Sign in once** at `/login` with your email.
+2. **Make yourself admin** — Supabase → SQL Editor:
+   ```sql
+   update public.profiles set is_admin = true
+   where id = (select id from auth.users where email = 'YOUR_EMAIL');
+   ```
+   (If no profile row exists yet, insert one: `insert into public.profiles(id,display_name) select id,'admin' from auth.users where email='YOUR_EMAIL';`)
+3. **Photo uploads:** Supabase → Storage → create a **public** bucket named
+   `photos`.
+4. Go to **`/admin`**. You can now:
+   - **Settings** — add/remove news sources, keywords, hashtags
+   - **النواب** — edit each MP's photo (URL or upload), social links, search name
+   - **استيراد** — paste a Google Sheet link to import MP names/data
+
+> Bridging to the scoring engine: the admin edits live in Supabase. To feed the
+> Python news pipeline, export `app_settings` → `settings.yaml` and the `mps`
+> table → `data/members.csv` (a small sync script — next step).
+
 ## Phase 2 (not built yet)
 - Phone-OTP verification (one real person = one vote)
 - Anomaly/abuse detection (spike & IP-cluster quarantine)
