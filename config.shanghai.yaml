@@ -1,0 +1,82 @@
+# =============================================================================
+# MPII — SHANGHAI / ARWU-style preset
+# Mirrors the Academic Ranking of World Universities methodology:
+#   1. each indicator scored relative to the TOP performer (best = 100)
+#   2. skewed count indicators are sqrt-transformed first
+#   3. final total is rescaled so the #1 MP = 100, everyone else relative
+# Run with:  python -m mpii score --config config.shanghai.yaml
+# =============================================================================
+
+normalization_default: top100        # best MP on each indicator = 100
+rescale_final_to_top: true           # #1 MP's total rescaled to exactly 100
+tenure_normalization: true
+full_term_months: 48
+
+dimensions:
+
+  legislative:
+    label: Legislative Performance
+    weight: 0.30
+    # LES-style bill-stage funnel: escalating weight the further a bill advances,
+    # plus a significance weight so big laws outweigh trivial ones.
+    indicators:
+      bills_introduced:          { weight: 0.10, rate: true, sqrt: true }
+      bills_to_committee:        { weight: 0.15, rate: true, sqrt: true }
+      bills_passed_chamber:      { weight: 0.25, rate: true, sqrt: true }
+      bills_enacted:             { weight: 0.30, rate: true, sqrt: true }
+      significant_bills_enacted: { weight: 0.20, rate: true, sqrt: true }
+
+  attendance:
+    label: Attendance & Participation
+    weight: 0.15
+    indicators:
+      parliament_attendance_pct: { weight: 0.40 }
+      committee_attendance_pct:  { weight: 0.30 }
+      voting_participation_pct:  { weight: 0.20 }
+      speeches_count:            { weight: 0.10, rate: true, sqrt: true }
+
+  oversight:
+    label: Oversight & Accountability
+    weight: 0.20
+    indicators:
+      questions_submitted:      { weight: 0.40, rate: true, sqrt: true }
+      investigations_initiated: { weight: 0.30, rate: true, sqrt: true }
+      ministers_summoned:       { weight: 0.20, rate: true, sqrt: true }
+      audit_requests:           { weight: 0.10, rate: true, sqrt: true }
+
+  constituency:
+    label: Constituency Service
+    weight: 0.15
+    indicators:
+      issues_resolved:     { weight: 0.40, rate: true, sqrt: true }
+      citizen_engagements: { weight: 0.30, rate: true, sqrt: true }
+      local_projects:      { weight: 0.20, rate: true, sqrt: true }
+      communication_score: { weight: 0.10 }
+
+  # Voter Evaluation — scored relative to the best-rated MP (ARWU style).
+  voter:
+    label: Voter Evaluation
+    weight: 0.10
+    indicators:
+      voter_rating:           { weight: 0.60 }
+      voter_satisfaction_pct: { weight: 0.40 }
+
+integrity:
+  label: Integrity & Transparency
+  weight: 0.10
+  base: 100
+  penalties:
+    minor_ethics_violations: -10
+    conflict_of_interest:    -20
+    confirmed_corruption:    -40
+    court_convictions:       -70
+  bonuses:
+    asset_disclosure_filed:   5
+
+grades:
+  - { min: 90, label: "A+", note: Outstanding }
+  - { min: 80, label: "A",  note: Strong }
+  - { min: 70, label: "B",  note: Good }
+  - { min: 60, label: "C",  note: Average }
+  - { min: 50, label: "D",  note: Weak }
+  - { min: 0,  label: "F",  note: Poor }

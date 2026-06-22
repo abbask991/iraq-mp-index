@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MPII · Iraq Parliament Impact Index</title>
+<style>
+  :root{
+    --bg:#0a0e17; --panel:#111726; --panel2:#0e1421; --line:#1f2a3d;
+    --text:#e8eef9; --muted:#8a97ad; --accent:#34d6c6; --accent2:#4f9dff;
+    --aplus:#22c55e; --a:#4ade80; --b:#a3e635; --c:#facc15; --d:#fb923c; --f:#f43f5e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:"SF Pro Text",-apple-system,Segoe UI,Roboto,Inter,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .wrap{max-width:1280px;margin:0 auto;padding:28px 24px 60px}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;
+    padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-size:22px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04121a}
+  h1{font-size:20px;margin:0;letter-spacing:.3px}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .toggle{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+  .toggle button{background:none;border:0;color:var(--muted);padding:7px 14px;border-radius:8px;
+    font-size:12.5px;cursor:pointer;font-weight:600;transition:.15s}
+  .toggle button.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04121a}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0}
+  .kpi{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:14px;padding:16px 18px}
+  .kpi .v{font-size:26px;font-weight:700;letter-spacing:.5px}
+  .kpi .l{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
+
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .controls input,.controls select{background:var(--panel);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:10px 12px;font-size:13px;outline:none}
+  .controls input{flex:1;min-width:200px}
+  .controls input:focus,.controls select:focus{border-color:var(--accent2)}
+  .tabbar{display:flex;gap:6px;margin-bottom:14px}
+  .tabbar button{background:var(--panel);border:1px solid var(--line);color:var(--muted);
+    padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+  .tabbar button.on{color:var(--text);border-color:var(--accent2)}
+
+  .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:18px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:16px;overflow:hidden}
+  .card h3{margin:0;padding:15px 18px;font-size:13px;letter-spacing:.6px;text-transform:uppercase;
+    color:var(--muted);border-bottom:1px solid var(--line)}
+
+  .row{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;
+    padding:12px 18px;border-bottom:1px solid var(--line);cursor:pointer;transition:.12s}
+  .row:last-child{border-bottom:0}
+  .row:hover{background:#16203200}
+  .row:hover,.row.sel{background:#172033}
+  .rank{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:700;font-size:13px;text-align:right}
+  .who .n{font-weight:600;font-size:14.5px}
+  .who .m{color:var(--muted);font-size:12px;margin-top:2px}
+  .scorebox{display:flex;align-items:center;gap:10px}
+  .bar{width:120px;height:8px;border-radius:6px;background:#0c1320;overflow:hidden}
+  .bar > i{display:block;height:100%;border-radius:6px}
+  .score{font-weight:700;font-variant-numeric:tabular-nums;width:42px;text-align:right}
+  .grade{font-weight:800;font-size:12px;padding:3px 8px;border-radius:7px;min-width:30px;text-align:center}
+
+  .detail{padding:18px}
+  .detail .big{font-size:54px;font-weight:800;line-height:1;letter-spacing:-1px}
+  .detail .gname{font-size:18px;font-weight:700;margin-bottom:2px}
+  .detail .meta{color:var(--muted);font-size:13px;margin:10px 0 4px}
+  .ranks{display:flex;gap:10px;margin:14px 0 6px}
+  .rankchip{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+  .rankchip .v{font-size:18px;font-weight:700}
+  .rankchip .l{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+  .dimrow{margin:13px 0}
+  .dimrow .t{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px}
+  .dimrow .t span:last-child{color:var(--muted);font-variant-numeric:tabular-nums}
+  .dbar{height:9px;border-radius:6px;background:#0c1320;overflow:hidden}
+  .dbar > i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+  .empty{padding:40px 18px;text-align:center;color:var(--muted);font-size:13px}
+
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:11px 18px;font-size:13px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .foot{color:var(--muted);font-size:12px;margin-top:24px;text-align:center}
+  .hidden{display:none}
+  .banner{background:linear-gradient(90deg,#7c2d12,#9a3412);border:1px solid #c2410c;color:#fed7aa;
+    padding:11px 16px;border-radius:12px;margin-bottom:18px;font-size:13px;text-align:center;font-weight:600}
+
+  .statcards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:6px}
+  @media(max-width:900px){.statcards{grid-template-columns:repeat(2,1fr)}}
+  .statcard{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:14px;padding:16px 18px}
+  .statcard .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+  .statcard .l{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-top:4px}
+  .statcard .h{color:var(--muted);font-size:11.5px;margin-top:6px}
+
+  .histo{display:flex;align-items:flex-end;gap:7px;height:170px;padding:20px 18px 12px}
+  .histo .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
+  .histo .col i{width:100%;border-radius:6px 6px 0 0;min-height:2px;
+    background:linear-gradient(180deg,var(--accent),var(--accent2));transition:.2s}
+  .histo .col b{font-size:11px;font-variant-numeric:tabular-nums}
+  .histo .col span{font-size:9.5px;color:var(--muted)}
+
+  .gdrow{display:grid;grid-template-columns:34px 1fr 70px;align-items:center;gap:10px;margin:9px 0}
+  .gdrow .bar{height:14px}
+  .gdrow .cnt{text-align:right;font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted)}
+  .dperf{display:grid;grid-template-columns:150px 1fr 56px 1fr;align-items:center;gap:12px;margin:11px 0;font-size:13px}
+  .dperf .lead{color:var(--muted);font-size:12px;text-align:right}
+  .dperf .val{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  @media(max-width:680px){.dperf{grid-template-columns:120px 1fr 48px}.dperf .lead{display:none}}
+
+  .row{position:relative}
+  .row .chev{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);opacity:0;transition:.12s}
+  .row:hover .chev{opacity:1}
+
+  /* Shanghai-style ranking table: one column per factor */
+  .rkwrap{overflow-x:auto}
+  table.rk{width:100%;border-collapse:collapse;min-width:820px}
+  table.rk th,table.rk td{padding:10px 9px;font-size:12.5px;border-bottom:1px solid var(--line);
+    text-align:center;white-space:nowrap}
+  table.rk th{color:var(--muted);font-size:10.5px;font-weight:700;position:sticky;top:0;
+    background:#0f1626;letter-spacing:.2px}
+  table.rk th.f{color:var(--accent2)}
+  table.rk tr.rkrow{cursor:pointer;transition:.1s}
+  table.rk tr.rkrow:hover td{background:#16203299}
+  table.rk td.rkn{color:var(--muted);font-variant-numeric:tabular-nums;font-weight:700}
+  table.rk td.nm{text-align:right;font-weight:600}
+  table.rk td.nm .sub{color:var(--muted);font-size:11px;font-weight:400;margin-top:2px}
+  table.rk td.dim{font-variant-numeric:tabular-nums;font-weight:600}
+  table.rk td.tot{font-weight:800;font-variant-numeric:tabular-nums;font-size:14px}
+  table.rk .gchip{font-weight:800;font-size:11px;padding:2px 8px;border-radius:6px}
+
+  /* profile modal */
+  .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+  .modal.hidden{display:none}
+  .modal-bg{position:fixed;inset:0;background:rgba(4,8,16,.72);backdrop-filter:blur(4px)}
+  .modal-card{position:relative;z-index:1;width:100%;max-width:980px;background:linear-gradient(180deg,#121a2b,#0c1320);
+    border:1px solid var(--line);border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.6);padding:26px 28px 30px}
+
+  .pf-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
+  @media(max-width:680px){.pf-charts{grid-template-columns:1fr}}
+  .chartbox{background:#0e1626;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .chartbox h4{margin:0 0 10px;font-size:12px;color:var(--muted);font-weight:600}
+  .cmp{margin:11px 0}
+  .cmp .lab{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+  .cmp .lab b{font-variant-numeric:tabular-nums}
+  .cmp .track{position:relative;height:10px;background:#0c1320;border-radius:6px}
+  .cmp .track i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+  .cmp .avg{position:absolute;top:-3px;width:2px;height:16px;background:#e8eef9;opacity:.6;border-radius:2px}
+  .modal-x{position:absolute;left:16px;top:16px;background:#0c1320;border:1px solid var(--line);color:var(--muted);
+    width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:14px}
+  .modal-x:hover{color:var(--text)}
+
+  .pf-head{display:flex;gap:18px;align-items:center}
+  .pf-photo{width:84px;height:84px;border-radius:18px;object-fit:cover;flex:none;border:1px solid var(--line)}
+  .pf-avatar{width:84px;height:84px;border-radius:18px;flex:none;display:grid;place-items:center;font-size:30px;font-weight:800;
+    color:#04121a;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .pf-id{flex:1}
+  .pf-id .nm{font-size:21px;font-weight:800}
+  .pf-id .rl{color:var(--muted);font-size:13px;margin-top:4px}
+  .pf-badges{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .pf-badge{font-size:12px;padding:4px 10px;border-radius:8px;background:#0e1626;border:1px solid var(--line);color:var(--muted)}
+  .pf-score{text-align:center;flex:none;padding:0 6px}
+  .pf-score .v{font-size:40px;font-weight:800;line-height:1}
+  .pf-score .g{font-weight:800;font-size:13px;padding:3px 10px;border-radius:8px;margin-top:6px;display:inline-block}
+
+  .pf-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}
+  @media(max-width:620px){.pf-meta{grid-template-columns:repeat(2,1fr)}.pf-head{flex-wrap:wrap}}
+  .pf-cell{background:#0e1626;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .pf-cell .l{color:var(--muted);font-size:11px;margin-bottom:4px}
+  .pf-cell .v{font-size:14.5px;font-weight:600}
+  .pf-cell .v.num{font-variant-numeric:tabular-nums}
+
+  .pf-sec{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:22px 0 12px;
+    border-top:1px solid var(--line);padding-top:18px}
+  .pf-dim{margin:14px 0}
+  .pf-dim-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .pf-dim-h .nm{font-weight:700;font-size:14px}
+  .pf-dim-h .sc{font-weight:800;font-variant-numeric:tabular-nums}
+  .pf-tbl{width:100%;border-collapse:collapse;margin-top:8px}
+  .pf-tbl td{padding:7px 4px;font-size:13px;border-bottom:1px solid #18202f;color:var(--text)}
+  .pf-tbl td.l{color:var(--muted)}
+  .pf-tbl td.num{text-align:left;font-variant-numeric:tabular-nums;font-weight:600;width:70px}
+
+  /* presidency board */
+  .board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:820px){.board{grid-template-columns:1fr}}
+  .bcard{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:18px;padding:20px;cursor:pointer;transition:.15s}
+  .bcard:hover{border-color:var(--accent2);transform:translateY(-2px)}
+  .bcard .bhead{display:flex;gap:14px;align-items:center}
+  .bcard .role{color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.4px}
+  .bcard .bnm{font-size:15.5px;font-weight:700;margin-top:3px;line-height:1.3}
+  .bcard .bmeta{color:var(--muted);font-size:12px;margin-top:3px}
+  .bcard .bscore{display:flex;align-items:flex-end;gap:10px;margin:16px 0 6px}
+  .bcard .bscore .v{font-size:38px;font-weight:800;line-height:1}
+  .bcard .bg{font-weight:800;font-size:12px;padding:3px 10px;border-radius:8px}
+  .bcard .brow{display:flex;justify-content:space-between;font-size:12px;margin:10px 0 5px;color:var(--muted)}
+  .bcard .bdim{margin:9px 0}
+  .bcard .bdim .t{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px}
+  .bcard .bdim .t span:last-child{font-variant-numeric:tabular-nums;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner" dir="rtl">⚠️ نموذج أوّلي للعرض التقني — مؤشرات الأداء الحالية <b>بيانات تجريبية مولّدة وليست تقييمات حقيقية للنواب</b>. الأسماء والمحافظات والكتل حقيقية فقط.</div>
+  <header>
+    <div class="brand">
+      <div class="logo">🏛️</div>
+      <div>
+        <h1>IRAQ · MPII</h1>
+        <div class="sub">Member of Parliament Impact Index — live from compiled records</div>
+      </div>
+    </div>
+    <div class="toggle" id="modeToggle">
+      <button data-mode="shanghai" class="on">Shanghai-style</button>
+      <button data-mode="objective">Objective v1</button>
+      <button data-mode="full">Full model</button>
+    </div>
+  </header>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="tabbar">
+    <button data-tab="ranking" class="on">Ranking</button>
+    <button data-tab="presidency">هيئة الرئاسة</button>
+    <button data-tab="cats">الفئات</button>
+    <button data-tab="stats">Statistics</button>
+    <button data-tab="groups">Group rankings</button>
+    <button data-tab="method">المنهجية</button>
+  </div>
+
+  <!-- RANKING TAB -->
+  <div id="tab-ranking">
+    <div class="controls">
+      <input id="search" placeholder="Search MP name…" />
+      <select id="fGov"></select>
+      <select id="fBloc"></select>
+      <select id="fCommittee"></select>
+    </div>
+    <div class="card">
+      <h3 id="listTitle">Ranked members</h3>
+      <div id="list"></div>
+    </div>
+  </div>
+
+  <!-- GROUPS TAB -->
+  <div id="tab-groups" class="hidden">
+    <div class="controls">
+      <select id="groupBy">
+        <option value="governorate">By governorate</option>
+        <option value="bloc">By bloc</option>
+        <option value="committee">By committee</option>
+      </select>
+    </div>
+    <div class="card"><div id="groupTable"></div></div>
+  </div>
+
+  <!-- PRESIDENCY BOARD TAB -->
+  <div id="tab-presidency" class="hidden" dir="rtl">
+    <div class="statcards" id="boardSummary" style="grid-template-columns:repeat(3,1fr)"></div>
+    <div class="board" id="boardCards" style="margin-top:18px"></div>
+  </div>
+
+  <!-- CATEGORIES TAB -->
+  <div id="tab-cats" class="hidden">
+    <div class="tabbar" id="catNav">
+      <button data-cat="top50" class="on">أفضل 50 (عام)</button>
+      <button data-cat="bottom50">أسوأ 50 (عام)</button>
+      <button data-cat="topMonth">أفضل 10 هذا الشهر</button>
+      <button data-cat="bottomMonth">أسوأ 10 هذا الشهر</button>
+    </div>
+    <div class="card">
+      <h3 id="catTitle">أفضل 50</h3>
+      <div id="catList"></div>
+    </div>
+  </div>
+
+  <!-- STATS TAB -->
+  <div id="tab-stats" class="hidden">
+    <div class="controls">
+      <input id="search2" placeholder="Search MP name…" />
+      <select id="fGov2"></select>
+      <select id="fBloc2"></select>
+      <select id="fCommittee2"></select>
+    </div>
+    <div class="statcards" id="statSummary"></div>
+    <div class="grid" style="margin-top:18px">
+      <div class="card"><h3>Score distribution</h3><div id="histo"></div></div>
+      <div class="card"><h3>Grade distribution</h3><div id="gradeDist" style="padding:16px 18px"></div></div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3>Dimension performance — parliament strengths &amp; weaknesses</h3>
+      <div id="dimPerf" style="padding:16px 18px"></div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3>What drives the overall score <span style="text-transform:none;letter-spacing:0">· correlation of each dimension with MPII</span></h3>
+      <div id="drivers" style="padding:16px 18px"></div>
+    </div>
+
+    <div class="pf-charts" style="margin-top:18px" dir="rtl">
+      <div class="chartbox"><h4>توزيع التقديرات</h4><div id="chGrades"></div></div>
+      <div class="chartbox"><h4>الدرجة الفعلية مقابل المتوقعة <span style="color:var(--muted)">(فوق الخط = يفوق المتوقع)</span></h4><div id="chScatter"></div></div>
+    </div>
+    <div class="pf-charts" style="margin-top:16px" dir="rtl">
+      <div class="chartbox"><h4>متوسط الدرجة حسب المحافظة</h4><div id="chGov"></div></div>
+      <div class="chartbox"><h4>متوسط الدرجة حسب الكتلة (أكبر 12)</h4><div id="chBloc"></div></div>
+    </div>
+  </div>
+
+  <!-- METHODOLOGY TAB -->
+  <div id="tab-method" class="hidden">
+    <div class="card" dir="rtl" style="padding:6px 4px"><div id="methodBody" style="padding:18px 20px;line-height:1.8"></div></div>
+  </div>
+
+  <div class="foot">Scores recompute from <code>data/*.csv</code>. Per-dimension scores shown so the index stays auditable. · انقر على أي نائب لعرض ملفه الكامل.</div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div id="profileModal" class="modal hidden">
+  <div class="modal-bg" data-close></div>
+  <div class="modal-card" dir="rtl">
+    <button class="modal-x" data-close>✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const PAYLOAD = /*__DATA__*/;
+const GRADE_C = {"A+":"--aplus","A":"--a","B":"--b","C":"--c","D":"--d","F":"--f"};
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const dimLabel = c => c.replace("dim_","").replace(/_/g," ").replace(/\b\w/g,m=>m.toUpperCase());
+const gradeColor = g => cssv(GRADE_C[g] || "--muted");
+const gradeOf = s => s>=90?"A+":s>=80?"A":s>=70?"B":s>=60?"C":s>=50?"D":"F";
+
+const mean = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : 0;
+const median = a => { if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); const m=s.length>>1;
+  return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+const std = a => { if(a.length<2) return 0; const m=mean(a); return Math.sqrt(mean(a.map(x=>(x-m)**2))); };
+const pearson = (a,b) => { const n=a.length; if(n<2) return 0; const ma=mean(a), mb=mean(b);
+  let num=0,da=0,db=0; for(let i=0;i<n;i++){const x=a[i]-ma,y=b[i]-mb; num+=x*y; da+=x*x; db+=y*y;}
+  return (da&&db) ? num/Math.sqrt(da*db) : 0; };
+
+let state = {mode:"shanghai", tab:"ranking", sel:null, cat:"top50",
+             search:"", gov:"", bloc:"", committee:"", groupBy:"governorate"};
+
+// Shanghai/ARWU display: exact rank for the top 100, banded ranges below.
+function rankDisplay(rank){
+  if(state.mode!=="shanghai" || rank<=100) return rank;
+  const lo = Math.floor((rank-1)/50)*50+1;
+  return lo+"–"+(lo+49);
+}
+
+function data(){ return PAYLOAD[state.mode]; }
+function filtered(){
+  return data().mps.filter(m =>
+    (!state.search || (m.name||"").toLowerCase().includes(state.search.toLowerCase())) &&
+    (!state.gov || m.governorate===state.gov) &&
+    (!state.bloc || m.bloc===state.bloc) &&
+    (!state.committee || m.committee===state.committee));
+}
+
+function renderKpis(){
+  const rows = filtered();
+  const avg = rows.length ? rows.reduce((s,m)=>s+m.mpii,0)/rows.length : 0;
+  const top = rows.length ? Math.max(...rows.map(m=>m.mpii)) : 0;
+  const pass = rows.length ? rows.filter(m=>m.mpii>=60).length/rows.length*100 : 0;
+  const k = [["MPs shown",rows.length],["Average MPII",avg.toFixed(1)],
+             ["Top score",top.toFixed(1)],["Pass rate ≥60",pass.toFixed(0)+"%"]];
+  document.getElementById("kpis").innerHTML = k.map(([l,v])=>
+    `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+}
+
+function renderList(){
+  const rows = filtered();
+  const dm = data().dim_meta;
+  document.getElementById("listTitle").textContent =
+    `النواب المرتّبون · ${rows.length}` + (state.mode==="shanghai" ? "  ·  الدرجة نسبةً للأول = 100" : "");
+  const list = document.getElementById("list");
+  if(!rows.length){ list.innerHTML = `<div class="empty">لا نواب مطابقون للفلاتر.</div>`; return; }
+
+  // header: # · name · one column per factor (with its weight) · total · grade
+  const head = `<tr><th>#</th><th style="text-align:right">النائب</th>` +
+    dm.map(d=>`<th class="f">${d.label}<br><span style="font-weight:400;color:var(--muted)">${Math.round(d.weight*100)}%</span></th>`).join("") +
+    `<th>الدرجة</th><th>التقدير</th></tr>`;
+
+  const body = rows.map(m=>{
+    const gc = gradeColor(m.grade);
+    const cells = dm.map(d=>{
+      const v = m[d.key] ?? 0;
+      return `<td class="dim" style="color:${gradeColor(gradeOf(v))}">${v.toFixed(1)}</td>`;
+    }).join("");
+    return `<tr class="rkrow" data-name="${m.name}">
+      <td class="rkn">${rankDisplay(m.rank_overall)}</td>
+      <td class="nm">${m.name}<div class="sub">${m.governorate} · ${m.bloc}</div></td>
+      ${cells}
+      <td class="tot" style="color:${gc}">${m.mpii.toFixed(1)}</td>
+      <td><span class="gchip" style="color:${gc};background:${gc}22">${m.grade}</span></td></tr>`;
+  }).join("");
+
+  list.innerHTML = `<div class="rkwrap"><table class="rk"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  list.querySelectorAll(".rkrow").forEach(r=>r.onclick=()=>openProfile(r.dataset.name));
+}
+
+const ROLE_AR = {member:"عضو", speaker:"رئيس مجلس النواب",
+  deputy_speaker:"نائب رئيس مجلس النواب", first_deputy_speaker:"النائب الأول لرئيس مجلس النواب"};
+const STATUS_AR = {active:"نشط", replacement:"بديل"};
+function initials(name){ const p=(name||"").trim().split(/\s+/); return ((p[0]||"")[0]||"")+((p[1]||"")[0]||""); }
+
+const SHORT_DIM = {dim_legislative:"تشريع", dim_attendance:"حضور", dim_oversight:"رقابة",
+  dim_constituency:"خدمة", dim_voter:"ناخبون", dim_integrity:"نزاهة"};
+
+function svgRadar(labels, values, size=250){
+  const cx=size/2, cy=size/2, R=size/2-30, N=labels.length;
+  const ang=i=>(-90 + i*360/N)*Math.PI/180;
+  const pt=(i,r)=>[cx+Math.cos(ang(i))*r, cy+Math.sin(ang(i))*r];
+  let g="";
+  [0.25,0.5,0.75,1].forEach(f=>{
+    g+=`<polygon points="${labels.map((_,i)=>pt(i,R*f).map(n=>n.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="#1f2a3d"/>`;
+  });
+  labels.forEach((l,i)=>{
+    const [x,y]=pt(i,R), [lx,ly]=pt(i,R+15);
+    g+=`<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#1f2a3d"/>`;
+    const anc=Math.abs(lx-cx)<8?"middle":(lx>cx?"start":"end");
+    g+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#8a97ad" font-size="10" text-anchor="${anc}" dominant-baseline="middle">${l}</text>`;
+  });
+  const cl=v=>Math.max(0,Math.min(100,v));
+  g+=`<polygon points="${values.map((v,i)=>pt(i,R*cl(v)/100).map(n=>n.toFixed(1)).join(",")).join(" ")}" fill="rgba(52,214,198,.22)" stroke="#34d6c6" stroke-width="2"/>`;
+  values.forEach((v,i)=>{const [x,y]=pt(i,R*cl(v)/100);g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="#34d6c6"/>`;});
+  return `<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:${size}px;display:block;margin:0 auto">${g}</svg>`;
+}
+
+function svgLine(labels, values, w=560, h=210){
+  if(!values.length) return `<div class="empty">لا بيانات شهرية.</div>`;
+  const pL=30,pR=12,pT=14,pB=24, iw=w-pL-pR, ih=h-pT-pB;
+  const X=i=>pL + (labels.length<=1?iw/2:i*iw/(labels.length-1));
+  const Y=v=>pT + ih - Math.max(0,Math.min(100,v))/100*ih;
+  let g="";
+  [0,50,100].forEach(v=>{const y=Y(v);g+=`<line x1="${pL}" y1="${y.toFixed(1)}" x2="${w-pR}" y2="${y.toFixed(1)}" stroke="#18202f"/><text x="${pL-6}" y="${(y+3).toFixed(1)}" fill="#8a97ad" font-size="9" text-anchor="end">${v}</text>`;});
+  const ln=values.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+  g+=`<polyline points="${X(0).toFixed(1)},${Y(0)} ${ln} ${X(values.length-1).toFixed(1)},${Y(0)}" fill="rgba(79,157,255,.13)" stroke="none"/>`;
+  g+=`<polyline points="${ln}" fill="none" stroke="#4f9dff" stroke-width="2.5"/>`;
+  values.forEach((v,i)=>{g+=`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="3" fill="#4f9dff"/>`;});
+  labels.forEach((l,i)=>{g+=`<text x="${X(i).toFixed(1)}" y="${h-7}" fill="#8a97ad" font-size="9" text-anchor="middle">${l}</text>`;});
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%">${g}</svg>`;
+}
+
+function svgDonut(segs, size=210){
+  const cx=size/2, cy=size/2, R=size/2-6, r=R*0.58;
+  const total=segs.reduce((s,x)=>s+x.value,0)||1;
+  let a0=-Math.PI/2, g="";
+  segs.forEach(s=>{
+    if(s.value<=0) return;
+    const a1=a0 + s.value/total*Math.PI*2, large=(a1-a0)>Math.PI?1:0;
+    const P=(ang,rad)=>[(cx+Math.cos(ang)*rad).toFixed(1),(cy+Math.sin(ang)*rad).toFixed(1)];
+    const [x0,y0]=P(a0,R),[x1,y1]=P(a1,R),[xi1,yi1]=P(a1,r),[xi0,yi0]=P(a0,r);
+    g+=`<path d="M${x0},${y0} A${R},${R} 0 ${large} 1 ${x1},${y1} L${xi1},${yi1} A${r},${r} 0 ${large} 0 ${xi0},${yi0} Z" fill="${s.color}"/>`;
+    a0=a1;
+  });
+  g+=`<text x="${cx}" y="${cy-1}" fill="#e8eef9" font-size="22" font-weight="800" text-anchor="middle">${total}</text>`;
+  g+=`<text x="${cx}" y="${cy+15}" fill="#8a97ad" font-size="10" text-anchor="middle">نائب</text>`;
+  return `<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:${size}px;display:block;margin:0 auto">${g}</svg>`;
+}
+
+function svgScatter(points, w=560, h=320, xlab="", ylab=""){
+  if(!points.length) return "";
+  const pad=38, iw=w-pad*2, ih=h-pad*2;
+  const vals=points.flatMap(p=>[p.x,p.y]);
+  const lo=Math.min(...vals), hi=Math.max(...vals), span=(hi-lo)||1;
+  const X=v=>pad+(v-lo)/span*iw, Y=v=>pad+ih-(v-lo)/span*ih;
+  let g="";
+  g+=`<line x1="${pad}" y1="${pad+ih}" x2="${pad+iw}" y2="${pad+ih}" stroke="#1f2a3d"/>`;
+  g+=`<line x1="${pad}" y1="${pad}" x2="${pad}" y2="${pad+ih}" stroke="#1f2a3d"/>`;
+  g+=`<line x1="${X(lo).toFixed(1)}" y1="${Y(lo).toFixed(1)}" x2="${X(hi).toFixed(1)}" y2="${Y(hi).toFixed(1)}" stroke="#3a4a63" stroke-dasharray="4 4"/>`;
+  points.forEach(p=>{g+=`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="3" fill="${p.color}" fill-opacity="0.75"/>`;});
+  g+=`<text x="${pad+iw/2}" y="${h-6}" fill="#8a97ad" font-size="10" text-anchor="middle">${xlab}</text>`;
+  g+=`<text x="13" y="${pad+ih/2}" fill="#8a97ad" font-size="10" text-anchor="middle" transform="rotate(-90 13 ${pad+ih/2})">${ylab}</text>`;
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%">${g}</svg>`;
+}
+
+function barList(items){
+  const mx=Math.max(...items.map(i=>i.v),1);
+  return items.map(i=>`<div class="dperf" style="grid-template-columns:130px 1fr 52px">
+    <div>${i.label}</div>
+    <div class="bar" style="width:auto"><i style="width:${i.v/mx*100}%;background:linear-gradient(90deg,var(--accent2),var(--accent))"></i></div>
+    <div class="val">${i.v.toFixed(1)}</div></div>`).join("");
+}
+
+function renderCharts(){
+  const ds = data();
+  // 1. grade donut
+  const order=["A+","A","B","C","D","F"];
+  const segs=order.map(gr=>({label:gr, value:ds.mps.filter(m=>m.grade===gr).length, color:gradeColor(gr)}));
+  const legend=segs.map(s=>`<span class="pf-badge" style="color:${s.color};border-color:${s.color}55">${s.label}: ${s.value}</span>`).join(" ");
+  document.getElementById("chGrades").innerHTML = svgDonut(segs) + `<div class="pf-badges" style="justify-content:center;margin-top:12px">${legend}</div>`;
+  // 2. actual vs expected scatter
+  const pts=ds.mps.map(m=>({x:m.expected_mpii, y:m.mpii,
+    color: m.expected_label==="يفوق المتوقع"?cssv("--a"):m.expected_label==="دون المتوقع"?cssv("--f"):cssv("--muted")}));
+  document.getElementById("chScatter").innerHTML = svgScatter(pts,560,320,"الدرجة المتوقعة","الدرجة الفعلية");
+  // 3. by governorate
+  document.getElementById("chGov").innerHTML =
+    barList((ds.groups.governorate||[]).map(r=>({label:r.governorate, v:r.mpii_mean})));
+  // 4. by bloc (top 12)
+  document.getElementById("chBloc").innerHTML =
+    barList((ds.groups.bloc||[]).slice(0,12).map(r=>({label:r.bloc, v:r.mpii_mean})));
+}
+
+function openProfile(name){
+  const ds = data();
+  const m = ds.mps.find(x=>x.name===name);
+  if(!m) return;
+  const gc = gradeColor(m.grade);
+  const beats = Math.round(ds.mps.filter(x=>x.mpii < m.mpii).length / ds.mps.length * 100);
+  const photo = m.photo ? `<img class="pf-photo" src="${m.photo}" alt="">` : `<div class="pf-avatar">${initials(m.name)}</div>`;
+
+  const meta = [
+    ["الرقم الانتخابي", m.voting_number ?? "—"],
+    ["المحافظة", m.governorate],
+    ["الكتلة", m.bloc],
+    ["اللجنة", m.committee],
+    ["الصفة", ROLE_AR[m.role] || "عضو"],
+    ["الحالة", STATUS_AR[m.status] || m.status || "—"],
+    ["الترتيب العام", "#"+rankDisplay(m.rank_overall)],
+    ["الترتيب بالمحافظة", "#"+m.rank_in_governorate],
+    ["الترتيب بالكتلة", "#"+m.rank_in_bloc],
+    ["الدرجة المتوقعة", m.expected_mpii ?? "—"],
+    ["مقابل المتوقع", (m.vs_expected>=0?"+":"")+m.vs_expected],
+  ].map(([l,v])=>`<div class="pf-cell"><div class="l">${l}</div><div class="v num">${v}</div></div>`).join("");
+
+  const expC = m.expected_label==="يفوق المتوقع" ? cssv("--a")
+             : m.expected_label==="دون المتوقع" ? cssv("--f") : cssv("--muted");
+
+  // performance details: each dimension's score + its raw indicator values
+  const perf = ds.dim_meta.map(dim=>{
+    const score = m[dim.key] ?? 0;
+    const rowsHtml = dim.indicators.map(ind=>{
+      const v = m[ind.key];
+      return `<tr><td class="l">${ind.label}</td><td class="num">${v===null||v===undefined?"—":v}</td></tr>`;
+    }).join("");
+    return `<div class="pf-dim">
+      <div class="pf-dim-h"><span class="nm">${dim.label}</span><span class="sc" style="color:${gc}">${score.toFixed(1)}</span></div>
+      <div class="dbar"><i style="width:${score}%"></i></div>
+      <table class="pf-tbl">${rowsHtml}</table></div>`;
+  }).join("");
+
+  // charts: radar of dimensions, vs-parliament-average bars, monthly trend
+  const radar = svgRadar(ds.dim_meta.map(d=>SHORT_DIM[d.key]||d.label), ds.dim_meta.map(d=>m[d.key]??0));
+  const cmp = ds.dim_meta.map(d=>{
+    const v=m[d.key]??0, avg=mean(ds.mps.map(x=>x[d.key]??0)), delta=v-avg;
+    const dc=delta>=0?cssv("--a"):cssv("--f");
+    return `<div class="cmp"><div class="lab"><span>${d.label}</span>
+        <b>${v.toFixed(1)} <em style="color:${dc};font-style:normal">${delta>=0?"+":""}${delta.toFixed(0)}</em></b></div>
+      <div class="track"><i style="width:${Math.max(0,Math.min(100,v))}%"></i>
+        <div class="avg" style="left:${Math.max(0,Math.min(100,avg))}%" title="متوسط البرلمان"></div></div></div>`;
+  }).join("");
+  const hist = PAYLOAD.history.scores[m.member_id] || [];
+  const trend = hist.length>=2 ? (hist[hist.length-1]-hist[0]) : 0;
+  const trendC = trend>=0?cssv("--a"):cssv("--f");
+  const line = svgLine(PAYLOAD.history.labels, hist);
+
+  document.getElementById("modalBody").innerHTML = `
+    <div class="pf-head">
+      ${photo}
+      <div class="pf-id">
+        <div class="nm">${m.name}</div>
+        <div class="rl">${ROLE_AR[m.role] || "عضو"} · ${m.governorate}</div>
+        <div class="pf-badges">
+          <span class="pf-badge">${m.bloc}</span>
+          <span class="pf-badge">يتفوّق على ${beats}% من النواب</span>
+          <span class="pf-badge" style="color:${expC};border-color:${expC}55">${m.expected_label}</span>
+        </div>
+      </div>
+      <div class="pf-score">
+        <div class="v" style="color:${gc}">${m.mpii.toFixed(1)}</div>
+        <div class="g" style="color:${gc};background:${gc}22">${m.grade}</div>
+      </div>
+    </div>
+    <div class="pf-meta">${meta}</div>
+
+    <div class="pf-sec">نظرة عامة على المحاور</div>
+    <div class="pf-charts">
+      <div class="chartbox"><h4>الرادار — توازن المحاور</h4>${radar}</div>
+      <div class="chartbox"><h4>مقارنة بمتوسط البرلمان <span style="color:var(--muted)">(العلامة البيضاء = المتوسط)</span></h4>${cmp}</div>
+    </div>
+
+    <div class="pf-sec">التحسّن عبر الأشهر <span style="text-transform:none;letter-spacing:0;color:${trendC}">(${trend>=0?"+":""}${trend.toFixed(1)} خلال ${PAYLOAD.history.labels.length} أشهر)</span></div>
+    <div class="chartbox">${line}</div>
+
+    <div class="pf-sec">تفاصيل الأداء حسب المحور (الدرجة + القيم الخام للمؤشرات)</div>
+    ${perf}`;
+  document.getElementById("profileModal").classList.remove("hidden");
+}
+
+function closeProfile(){ document.getElementById("profileModal").classList.add("hidden"); }
+
+function renderGroups(){
+  const rows = data().groups[state.groupBy] || [];
+  const by = state.groupBy;
+  const head = `<tr><th>#</th><th>${by[0].toUpperCase()+by.slice(1)}</th><th class="num">MPs</th>
+    <th class="num">Mean</th><th class="num">Spread</th><th class="num">Min</th><th class="num">Max</th><th>Top MP</th></tr>`;
+  const body = rows.map(r=>{
+    const gc = gradeColor(gradeOf(r.mpii_mean));
+    return `<tr><td>${r.rank}</td><td><b>${r[by]}</b></td><td class="num">${r.members}</td>
+      <td class="num" style="color:${gc};font-weight:700">${r.mpii_mean.toFixed(1)}</td>
+      <td class="num">±${(r.mpii_std??0).toFixed(1)}</td>
+      <td class="num">${r.mpii_min.toFixed(1)}</td><td class="num">${r.mpii_max.toFixed(1)}</td>
+      <td>${r.top_mp}</td></tr>`;
+  }).join("");
+  document.getElementById("groupTable").innerHTML = `<table>${head}${body}</table>`;
+}
+
+function fillFilters(){
+  const uniq = key => [...new Set(data().mps.map(m=>m[key]).filter(Boolean))].sort();
+  const opt = (cur,key,label)=>`<option value="">${label}</option>`+
+    uniq(key).map(v=>`<option ${cur===v?'selected':''}>${v}</option>`).join("");
+  ["","2"].forEach(s=>{
+    document.getElementById("fGov"+s).innerHTML = opt(state.gov,"governorate","All governorates");
+    document.getElementById("fBloc"+s).innerHTML = opt(state.bloc,"bloc","All blocs");
+    document.getElementById("fCommittee"+s).innerHTML = opt(state.committee,"committee","All committees");
+  });
+}
+
+function syncControls(){
+  ["search","search2"].forEach(id=>document.getElementById(id).value = state.search);
+}
+
+function renderStats(){
+  const rows = filtered();
+  const scores = rows.map(m=>m.mpii);
+
+  // summary cards
+  const cards = [
+    ["Mean", mean(scores).toFixed(1), "average score"],
+    ["Median", median(scores).toFixed(1), "midpoint MP"],
+    ["Std dev", std(scores).toFixed(1), "score spread"],
+    ["Range", rows.length ? `${Math.min(...scores).toFixed(0)}–${Math.max(...scores).toFixed(0)}` : "—", "lowest → highest"],
+  ];
+  document.getElementById("statSummary").innerHTML = cards.map(([l,v,h])=>
+    `<div class="statcard"><div class="v">${v}</div><div class="l">${l}</div><div class="h">${h}</div></div>`).join("");
+
+  // histogram (10-point bins)
+  const bins = Array.from({length:10},(_,i)=>({lo:i*10, c:0}));
+  scores.forEach(s=>{ bins[Math.min(9,Math.max(0,Math.floor(s/10)))].c++; });
+  const peak = Math.max(1, ...bins.map(b=>b.c));
+  document.getElementById("histo").innerHTML =
+    `<div class="histo">` + bins.map(b=>
+      `<div class="col"><b>${b.c||""}</b><i style="height:${b.c/peak*100}%;${b.c?'':'opacity:.25'}"></i>
+       <span>${b.lo}</span></div>`).join("") + `</div>`;
+
+  // grade distribution
+  const order=["A+","A","B","C","D","F"];
+  const total = rows.length || 1;
+  document.getElementById("gradeDist").innerHTML = order.map(g=>{
+    const c = rows.filter(m=>m.grade===g).length, gc=gradeColor(g);
+    return `<div class="gdrow"><div class="grade" style="color:${gc};background:${gc}22">${g}</div>
+      <div class="bar"><i style="width:${c/total*100}%;background:${gc}"></i></div>
+      <div class="cnt">${c} · ${(c/total*100).toFixed(0)}%</div></div>`;
+  }).join("");
+
+  // dimension performance (mean per dimension, who leads)
+  const dimStats = data().dims.map(d=>{
+    const vals = rows.map(m=>m[d]??0);
+    const leader = rows.reduce((best,m)=> (m[d]??0) > (best ? (best[d]??-1) : -1) ? m : best, null);
+    return {key:d, label:dimLabel(d), mu:mean(vals), r:pearson(vals, scores), leader:leader?leader.name:"—"};
+  });
+  document.getElementById("dimPerf").innerHTML = [...dimStats].sort((a,b)=>b.mu-a.mu).map(s=>
+    `<div class="dperf"><div>${s.label}</div>
+      <div class="bar" style="width:auto"><i style="width:${s.mu}%;background:linear-gradient(90deg,var(--accent2),var(--accent))"></i></div>
+      <div class="val">${s.mu.toFixed(1)}</div>
+      <div class="lead">leader: ${s.leader}</div></div>`).join("");
+
+  // drivers (|correlation| with overall score)
+  document.getElementById("drivers").innerHTML = [...dimStats].sort((a,b)=>Math.abs(b.r)-Math.abs(a.r)).map(s=>{
+    const strong = Math.abs(s.r)>=0.7 ? "strong" : Math.abs(s.r)>=0.4 ? "moderate" : "weak";
+    return `<div class="dperf"><div>${s.label}</div>
+      <div class="bar" style="width:auto"><i style="width:${Math.abs(s.r)*100}%;background:linear-gradient(90deg,var(--accent2),var(--accent))"></i></div>
+      <div class="val">${s.r.toFixed(2)}</div><div class="lead">${strong}</div></div>`;
+  }).join("");
+}
+
+function scoreRow(pos, m, score){
+  const grade = gradeOf(score), gc = gradeColor(grade);
+  return `<div class="row" data-name="${m.name}">
+    <div class="rank">${pos}</div>
+    <div class="who"><div class="n">${m.name}</div><div class="m">${m.governorate} · ${m.bloc}</div></div>
+    <div class="scorebox">
+      <div class="bar"><i style="width:${score}%;background:${gc}"></i></div>
+      <div class="score">${score.toFixed(1)}</div>
+      <div class="grade" style="color:${gc};background:${gc}22">${grade}</div>
+    </div><div class="chev">›</div></div>`;
+}
+
+const CAT_TITLES = {
+  top50:"أفضل 50 نائب (الدرجة الكلية)", bottom50:"أسوأ 50 نائب (الدرجة الكلية)",
+  topMonth:"أفضل 10 نواب هذا الشهر", bottomMonth:"أسوأ 10 نواب هذا الشهر",
+};
+function renderCats(){
+  let html, title = CAT_TITLES[state.cat];
+  if(state.cat==="top50" || state.cat==="bottom50"){
+    const sorted = [...data().mps].sort((a,b)=> state.cat==="top50" ? b.mpii-a.mpii : a.mpii-b.mpii).slice(0,50);
+    html = sorted.map(m=>scoreRow(rankDisplay(m.rank_overall), m, m.mpii)).join("");
+  } else {
+    const mm = [...PAYLOAD.monthly.mps].sort((a,b)=> state.cat==="topMonth" ? b.score-a.score : a.score-b.score).slice(0,10);
+    html = mm.map((m,i)=>scoreRow(i+1, m, m.score)).join("");
+    title += `  ·  شهر ${PAYLOAD.monthly.label}`;
+  }
+  document.getElementById("catTitle").textContent = title;
+  const el = document.getElementById("catList");
+  el.innerHTML = html;
+  el.querySelectorAll(".row").forEach(r=>r.onclick=()=>openProfile(r.dataset.name));
+}
+
+const NORM_AR = {
+  shanghai:"على طراز شنغهاي (ARWU): كل مؤشر يُقاس نسبةً لأفضل نائب فيه (الأفضل=100)، مع تحويل الجذر التربيعي √ لبيانات الأعداد، ثم تُعاد معايرة المجموع بحيث النائب الأول = 100 بالضبط.",
+  objective:"الأبعاد الموضوعية الثلاثة فقط (تشريع، حضور، رقابة) باستخدام الترتيب المئوي (percentile) — كل نائب يُقارن بموقعه بين بقية النواب.",
+  full:"النموذج الكامل بستة أبعاد: النِسب المئوية تُستعمل كما هي (absolute)، والأعداد تُحوّل لترتيب مئوي (percentile).",
+};
+function renderMethodology(){
+  const ds = data();
+  const wrows = ds.dim_meta.map(d=>`<tr>
+      <td><b>${d.label}</b></td>
+      <td class="num">${Math.round(d.weight*100)}%</td>
+      <td class="l">${d.indicators.map(i=>i.label).join("، ")}</td></tr>`).join("");
+  document.getElementById("methodBody").innerHTML = `
+    <h2 style="margin:0 0 6px">منهجية مؤشر أداء النائب (MPII)</h2>
+    <p style="color:var(--muted);margin:0 0 18px">مؤشر مركّب يقيّم ويرتّب نواب مجلس النواب العراقي على مقياس 0–100 من بيانات مجمّعة، مع عرض درجة كل محور حتى يبقى المؤشر قابلاً للتدقيق.</p>
+
+    <div class="pf-sec" style="margin-top:0">١. المعايير وأوزانها (المنهجية الحالية: ${({shanghai:"شنغهاي",objective:"موضوعي",full:"كامل"})[state.mode]})</div>
+    <table class="pf-tbl"><tr><td class="l"><b>المعيار</b></td><td class="num l"><b>الوزن</b></td><td class="l"><b>المؤشرات</b></td></tr>${wrows}</table>
+
+    <div class="pf-sec">٢. كيف تُحسب الدرجة (التطبيع)</div>
+    <p style="margin:0">${NORM_AR[state.mode]}</p>
+    <p style="margin:8px 0 0">درجة كل محور = متوسط مرجّح لمؤشراته بعد تطبيع كلٍّ منها إلى 0–100. الدرجة النهائية = مجموع (وزن المحور × درجته).</p>
+
+    <div class="pf-sec">٣. الأداء التشريعي على طراز LES (قمع مراحل القانون)</div>
+    <p style="margin:0">لا نسأل "هل أُقرّ القانون؟" بل <b>كم تقدّم</b>. كل قانون يعبر مراحل بأوزان متصاعدة: مُقدَّم (10%) ← وصل للجنة (15%) ← مُرِّر بالمجلس (25%) ← صار قانوناً (30%)، إضافةً لوزن <b>القوانين المهمة</b> (20%) حتى لا يتساوى قانون ضخم مع قانون شكلي. مستوحى من Legislative Effectiveness Score (Volden & Wiseman).</p>
+
+    <div class="pf-sec">٤. الإنصاف: الدرجة المتوقعة (Expected Score)</div>
+    <p style="margin:0">نتوقّع درجة كل نائب من ظروفه البنيوية (حجم كتلته كمؤشر نفوذ، وموقعه القيادي)، ثم نقارن: هل <b>تجاوز المتوقّع</b> أم <b>دونه</b>؟ هذا يقيس الجهد الحقيقي لا مجرّد المنصب. تظهر داخل ملف كل نائب. كما تُطبَّع الأعداد بحسب مدة الخدمة حتى لا يُظلم النائب البديل.</p>
+
+    <div class="pf-sec">٥. تنبيه حول البيانات</div>
+    <p style="margin:0;color:var(--muted)">الأسماء والمحافظات والكتل حقيقية (329 نائب). أمّا مؤشرات الأداء الحالية فهي <b>بيانات تجريبية مولّدة</b> لإثبات عمل النظام — تُستبدل بالأرقام الحقيقية عبر الاستيراد من Excel / Google Sheets. أي استنتاج عن نائب بعينه الآن غير دقيق.</p>`;
+}
+
+const BOARD = [
+  {role:"speaker", title:"رئيس مجلس النواب"},
+  {role:"first_deputy_speaker", title:"النائب الأول للرئيس"},
+  {role:"deputy_speaker", title:"النائب الثاني للرئيس"},
+];
+function renderPresidency(){
+  const ds = data();
+  const members = BOARD.map(b=>({...b, mp: ds.mps.find(x=>x.role===b.role)})).filter(b=>b.mp);
+
+  // summary cards
+  const scores = members.map(b=>b.mp.mpii);
+  const avg = scores.length ? scores.reduce((a,c)=>a+c,0)/scores.length : 0;
+  const best = members.length ? members.reduce((a,b)=>b.mp.mpii>a.mp.mpii?b:a) : null;
+  const sum = [
+    ["متوسط درجة الهيئة", avg.toFixed(1), "الأعضاء الثلاثة"],
+    ["الأعلى في الهيئة", best ? best.mp.mpii.toFixed(1) : "—", best ? best.title : ""],
+    ["عدد الأعضاء", members.length, "الرئيس + النائبان"],
+  ];
+  document.getElementById("boardSummary").innerHTML = sum.map(([l,v,h])=>
+    `<div class="statcard"><div class="v">${v}</div><div class="l">${l}</div><div class="h">${h}</div></div>`).join("");
+
+  // member cards
+  document.getElementById("boardCards").innerHTML = members.map(b=>{
+    const m=b.mp, gc=gradeColor(m.grade);
+    const photo = m.photo ? `<img class="pf-photo" src="${m.photo}" alt="">` : `<div class="pf-avatar">${initials(m.name)}</div>`;
+    const expC = m.expected_label==="يفوق المتوقع"?cssv("--a"):m.expected_label==="دون المتوقع"?cssv("--f"):cssv("--muted");
+    const dims = ds.dim_meta.map(d=>{
+      const v=m[d.key]??0;
+      return `<div class="bdim"><div class="t"><span>${d.label}</span><span>${v.toFixed(1)}</span></div>
+        <div class="dbar"><i style="width:${v}%"></i></div></div>`;
+    }).join("");
+    return `<div class="bcard" data-name="${m.name}">
+      <div class="bhead">${photo}<div>
+        <div class="role">${b.title}</div>
+        <div class="bnm">${m.name}</div>
+        <div class="bmeta">${m.governorate} · ${m.bloc}</div></div></div>
+      <div class="bscore"><div class="v" style="color:${gc}">${m.mpii.toFixed(1)}</div>
+        <div class="bg" style="color:${gc};background:${gc}22">${m.grade}</div></div>
+      <div class="brow"><span>الترتيب العام</span><span>#${rankDisplay(m.rank_overall)} من ${ds.mps.length}</span></div>
+      <div class="brow"><span>مقابل المتوقع</span><span style="color:${expC};font-weight:700">${m.vs_expected>=0?"+":""}${m.vs_expected} · ${m.expected_label}</span></div>
+      <div style="color:var(--muted);font-size:11px;margin:14px 0 8px;border-top:1px solid var(--line);padding-top:12px">المحاور</div>
+      ${dims}</div>`;
+  }).join("");
+  document.querySelectorAll("#boardCards .bcard").forEach(c=>c.onclick=()=>openProfile(c.dataset.name));
+}
+
+function renderAll(){ renderKpis(); renderList(); renderGroups(); renderStats(); renderCats(); renderMethodology(); renderPresidency(); renderCharts(); }
+
+// events — both filter rows (ranking + stats tabs) write to the same state
+const TABS = ["ranking","presidency","cats","stats","groups","method"];
+document.querySelectorAll("#catNav button").forEach(b=>b.onclick=()=>{
+  state.cat=b.dataset.cat;
+  document.querySelectorAll("#catNav button").forEach(x=>x.classList.toggle("on",x===b));
+  renderCats();
+});
+["search","search2"].forEach(id=>document.getElementById(id).oninput = e=>{
+  state.search=e.target.value; syncControls(); renderKpis(); renderList(); renderStats(); });
+[["fGov","gov"],["fBloc","bloc"],["fCommittee","committee"]].forEach(([base,key])=>{
+  ["","2"].forEach(s=>document.getElementById(base+s).onchange = e=>{
+    state[key]=e.target.value; fillFilters(); renderAll(); });
+});
+document.getElementById("groupBy").onchange = e=>{state.groupBy=e.target.value;renderGroups();};
+document.querySelectorAll("#modeToggle button").forEach(b=>b.onclick=()=>{
+  state.mode=b.dataset.mode; state.sel=null;
+  document.querySelectorAll("#modeToggle button").forEach(x=>x.classList.toggle("on",x===b));
+  fillFilters(); renderAll();
+});
+document.querySelectorAll(".tabbar button").forEach(b=>b.onclick=()=>{
+  state.tab=b.dataset.tab;
+  document.querySelectorAll(".tabbar button").forEach(x=>x.classList.toggle("on",x===b));
+  TABS.forEach(t=>document.getElementById("tab-"+t).classList.toggle("hidden",state.tab!==t));
+});
+document.querySelectorAll("#profileModal [data-close]").forEach(el=>el.onclick=closeProfile);
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeProfile(); });
+
+fillFilters(); renderAll();
+</script>
+</body>
+</html>

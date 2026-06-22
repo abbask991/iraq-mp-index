@@ -85,6 +85,44 @@ def test_tenure_normalization_helps_partial_term():
     assert res.loc[2, "dim_legislative"] >= res.loc[1, "dim_legislative"]
 
 
+def test_shanghai_top_scores_100_and_rescales():
+    cfg = Config(
+        {
+            "normalization_default": "top100",
+            "rescale_final_to_top": True,
+            "tenure_normalization": False,
+            "dimensions": {
+                "legislative": {
+                    "label": "Legislative",
+                    "weight": 1.0,
+                    "indicators": {"bills_passed": {"weight": 1.0, "sqrt": True}},
+                }
+            },
+            "integrity": {"weight": 0.0},
+        }
+    )
+    members = _members(
+        [
+            {"member_id": 1, "name": "Lead", "governorate": "X", "bloc": "A", "served_months": 48},
+            {"member_id": 2, "name": "Mid", "governorate": "X", "bloc": "A", "served_months": 48},
+            {"member_id": 3, "name": "Low", "governorate": "Y", "bloc": "B", "served_months": 48},
+        ]
+    )
+    raw = pd.DataFrame(
+        [
+            {"member_id": 1, "bills_passed": 16},
+            {"member_id": 2, "bills_passed": 4},
+            {"member_id": 3, "bills_passed": 1},
+        ]
+    )
+    res = compute_scores(cfg, members, raw)
+    assert res["mpii"].max() == 100.0           # #1 rescaled to exactly 100
+    assert res.loc[1, "mpii"] == 100.0
+    # sqrt transform: member 2 = sqrt(4)/sqrt(16) = 50, member 3 = 25
+    assert res.loc[2, "mpii"] == 50.0
+    assert res.loc[3, "mpii"] == 25.0
+
+
 def test_integrity_penalty_lowers_score():
     cfg_dict = {
         **BASE_CFG,

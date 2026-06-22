@@ -14,6 +14,7 @@ import pandas as pd
 from .config import Config
 from .report import GROUPINGS, aggregate
 from .scoring import compute_scores
+from .webexport import build_html
 
 
 def _load_inputs(data_dir: str):
@@ -66,6 +67,50 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_import(args: argparse.Namespace) -> int:
+    from .dataio import import_data
+
+    log = import_data(data_dir=args.data, excel=args.excel,
+                      members_src=args.members, indicators_src=args.indicators)
+    for line in log:
+        print(line)
+    if args.rebuild:
+        os.makedirs(args.out, exist_ok=True)
+        with open(os.path.join(args.out, "index.html"), "w", encoding="utf-8") as fh:
+            fh.write(build_html(args.data))
+        print(f"rebuilt dashboard → {args.out}/index.html")
+    return 0
+
+
+def cmd_template(args: argparse.Namespace) -> int:
+    from .dataio import write_template
+
+    path = write_template(out=args.out, data_dir=args.data)
+    print(f"wrote Excel template → {path}")
+    print("Fill the 'indicators' sheet, then:  mpii import --excel " + path + " --rebuild")
+    return 0
+
+
+def cmd_web(args: argparse.Namespace) -> int:
+    html = build_html(args.data)
+    os.makedirs(args.out, exist_ok=True)
+    path = os.path.join(args.out, "index.html")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(html)
+    print(f"Wrote {path}")
+    if args.serve:
+        import functools
+        import http.server
+        import socketserver
+
+        handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=args.out)
+        socketserver.TCPServer.allow_reuse_address = True
+        with socketserver.TCPServer(("", args.port), handler) as httpd:
+            print(f"Serving dashboard at http://localhost:{args.port}  (Ctrl-C to stop)")
+            httpd.serve_forever()
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="mpii", description="Member of Parliament Impact Index")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -84,6 +129,28 @@ def main(argv=None) -> int:
         "--by", choices=GROUPINGS, default=None, help="single grouping (default: all)"
     )
     p_report.set_defaults(func=cmd_report)
+
+    p_web = sub.add_parser("web", help="build (and optionally serve) the HTML dashboard")
+    p_web.add_argument("--config", default="config.yaml")  # accepted for symmetry; web builds both presets
+    p_web.add_argument("--data", default="data")
+    p_web.add_argument("--out", default="web", help="output dir for index.html")
+    p_web.add_argument("--serve", action="store_true", help="serve the dashboard over HTTP")
+    p_web.add_argument("--port", type=int, default=8501)
+    p_web.set_defaults(func=cmd_web)
+
+    p_imp = sub.add_parser("import", help="import members/indicators from Excel, CSV, or Google Sheets")
+    p_imp.add_argument("--excel", help="single .xlsx workbook with 'members' and 'indicators' sheets")
+    p_imp.add_argument("--members", help="members source: .xlsx / .csv / Google Sheets URL")
+    p_imp.add_argument("--indicators", help="indicators source: .xlsx / .csv / Google Sheets URL")
+    p_imp.add_argument("--data", default="data")
+    p_imp.add_argument("--rebuild", action="store_true", help="rebuild the dashboard after import")
+    p_imp.add_argument("--out", default="web", help="dashboard output dir (with --rebuild)")
+    p_imp.set_defaults(func=cmd_import)
+
+    p_tpl = sub.add_parser("template", help="write an Excel template pre-filled with the current roster")
+    p_tpl.add_argument("--out", default="mpii_template.xlsx")
+    p_tpl.add_argument("--data", default="data")
+    p_tpl.set_defaults(func=cmd_template)
 
     args = parser.parse_args(argv)
     return args.func(args)

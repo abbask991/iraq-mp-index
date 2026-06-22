@@ -21,6 +21,8 @@ class Config:
         self.normalization_default = data.get("normalization_default", "percentile")
         self.tenure_normalization = bool(data.get("tenure_normalization", True))
         self.full_term_months = float(data.get("full_term_months", 48))
+        # Shanghai/ARWU: rescale the final total so the #1 MP = 100, others relative.
+        self.rescale_final_to_top = bool(data.get("rescale_final_to_top", False))
         self.dimensions = data.get("dimensions", {})
         self.integrity = data.get("integrity", {"weight": 0.0})
         self.grades = sorted(

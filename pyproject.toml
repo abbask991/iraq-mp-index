@@ -13,10 +13,12 @@ dependencies = [
     "pandas>=2.0",
     "numpy>=1.24",
     "pyyaml>=6.0",
+    "openpyxl>=3.1",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+dashboard = ["streamlit>=1.30"]
 
 [project.scripts]
 mpii = "mpii.cli:main"

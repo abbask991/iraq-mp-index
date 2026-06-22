@@ -15,11 +15,13 @@ dimensions:
   legislative:
     label: Legislative Performance
     weight: 0.4286            # 30 / 70
+    # LES-style bill-stage funnel (introduced → committee → passed → enacted).
     indicators:
-      bills_passed:        { weight: 0.40, rate: true }
-      bills_proposed:      { weight: 0.30, rate: true }
-      committee_reports:   { weight: 0.20, rate: true }
-      amendments_proposed: { weight: 0.10, rate: true }
+      bills_introduced:          { weight: 0.10, rate: true }
+      bills_to_committee:        { weight: 0.15, rate: true }
+      bills_passed_chamber:      { weight: 0.25, rate: true }
+      bills_enacted:             { weight: 0.30, rate: true }
+      significant_bills_enacted: { weight: 0.20, rate: true }
 
   attendance:
     label: Attendance & Participation

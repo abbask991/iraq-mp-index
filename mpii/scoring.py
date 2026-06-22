@@ -62,6 +62,9 @@ def compute_scores(cfg: Config, members: pd.DataFrame, raw: pd.DataFrame) -> pd.
             values = _column(df, ind_key)
             if ind.get("rate"):
                 values = values / factor
+            if ind.get("sqrt"):
+                # ARWU-style transform: tame skewed count data before scaling.
+                values = values.clip(lower=0.0) ** 0.5
             method = ind.get("normalization", cfg.normalization_default)
             score = normalize_series(values, method, ind.get("direction", "up"))
             w = float(ind["weight"])
@@ -78,6 +81,10 @@ def compute_scores(cfg: Config, members: pd.DataFrame, raw: pd.DataFrame) -> pd.
         final += integ * cfg.integrity_weight
 
     # ---- final index, grade, rankings -----------------------------------
+    if cfg.rescale_final_to_top:
+        top = final.max()
+        if top and top > 0:
+            final = final / top * 100.0
     out["mpii"] = final.round(2)
     out["grade"] = out["mpii"].map(cfg.grade_for)
     out["rank_overall"] = out["mpii"].rank(ascending=False, method="min").astype(int)

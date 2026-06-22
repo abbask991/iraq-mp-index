@@ -69,6 +69,29 @@ mpii report --by bloc
 member count, mean/median/min/max MPII, per-dimension means, and the group's top
 MP, ranked by mean score.
 
+## Importing data (Excel / Google Sheets / CSV)
+
+You don't have to edit the CSVs by hand. Round-trip through Excel or a Google
+Sheet:
+
+```bash
+# 1. export an Excel template pre-filled with the current 329 MPs
+mpii template                       # writes mpii_template.xlsx (members + indicators sheets)
+
+# 2. fill the 'indicators' sheet in Excel / Google Sheets, then import + rebuild
+mpii import --excel mpii_template.xlsx --rebuild
+
+# import indicators from a Google Sheet (share it "anyone with the link can view")
+mpii import --indicators "https://docs.google.com/spreadsheets/d/<ID>/edit#gid=0" --rebuild
+
+# or separate sources (any mix of .xlsx / .csv / Google Sheets URL)
+mpii import --members members.xlsx --indicators indicators.csv --rebuild
+```
+
+Import validates required columns, fills sensible defaults for missing member
+fields, keeps only known indicator columns, and warns if member ↔ indicator IDs
+don't line up. `--rebuild` regenerates the dashboard so the site updates at once.
+
 ## Compiling your data
 
 Two files in `data/` (sample rows included — replace with real data):

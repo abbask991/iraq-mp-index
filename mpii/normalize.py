@@ -26,6 +26,10 @@ def normalize_series(series: pd.Series, method: str, direction: str = "up") -> p
     elif method == "absolute":
         # Value is already a 0-100 figure (e.g. attendance %); just clip.
         out = s.clip(lower=0.0, upper=100.0)
+    elif method == "top100":
+        # Shanghai/ARWU style: best performer = 100, others = value/best * 100.
+        hi = s.max()
+        out = (s / hi * 100.0) if hi and hi > 0 else pd.Series(0.0, index=s.index)
     else:
         raise ValueError(f"unknown normalization method: {method!r}")
 

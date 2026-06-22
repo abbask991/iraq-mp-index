@@ -23,6 +23,7 @@ def aggregate(results: pd.DataFrame, by: str) -> pd.DataFrame:
         {
             "members": grouped.size(),
             "mpii_mean": grouped["mpii"].mean().round(2),
+            "mpii_std": grouped["mpii"].std(ddof=0).fillna(0).round(2),
             "mpii_median": grouped["mpii"].median().round(2),
             "mpii_min": grouped["mpii"].min().round(2),
             "mpii_max": grouped["mpii"].max().round(2),

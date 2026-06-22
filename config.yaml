@@ -32,15 +32,18 @@ dimensions:
   legislative:
     label: Legislative Performance
     weight: 0.30
+    # LES-style bill-stage funnel: escalating weight the further a bill advances,
+    # plus a significance weight so big laws outweigh trivial ones.
     indicators:
-      bills_passed:        { weight: 0.40, rate: true }
-      bills_proposed:      { weight: 0.30, rate: true }
-      committee_reports:   { weight: 0.20, rate: true }
-      amendments_proposed: { weight: 0.10, rate: true }
+      bills_introduced:          { weight: 0.10, rate: true }
+      bills_to_committee:        { weight: 0.15, rate: true }
+      bills_passed_chamber:      { weight: 0.25, rate: true }
+      bills_enacted:             { weight: 0.30, rate: true }
+      significant_bills_enacted: { weight: 0.20, rate: true }
 
   attendance:
     label: Attendance & Participation
-    weight: 0.20
+    weight: 0.15
     indicators:
       parliament_attendance_pct: { weight: 0.40, normalization: absolute }
       committee_attendance_pct:  { weight: 0.30, normalization: absolute }
@@ -67,11 +70,19 @@ dimensions:
       local_projects:      { weight: 0.20, rate: true }
       communication_score: { weight: 0.10, normalization: absolute }
 
+  # Voter Evaluation — the electorate's own rating of the MP (subjective).
+  voter:
+    label: Voter Evaluation
+    weight: 0.10
+    indicators:
+      voter_rating:           { weight: 0.60, normalization: absolute }
+      voter_satisfaction_pct: { weight: 0.40, normalization: absolute }
+
 # Integrity is penalty-based: every MP starts at `base` and loses points per
 # confirmed issue (penalty counts are columns in raw_indicators.csv).
 integrity:
   label: Integrity & Transparency
-  weight: 0.15
+  weight: 0.10
   base: 100
   penalties:                    # points removed per occurrence (counts)
     minor_ethics_violations: -10
