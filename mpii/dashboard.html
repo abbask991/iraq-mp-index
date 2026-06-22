@@ -168,6 +168,19 @@
   .pf-score .v{font-size:40px;font-weight:800;line-height:1}
   .pf-score .g{font-weight:800;font-size:13px;padding:3px 10px;border-radius:8px;margin-top:6px;display:inline-block}
 
+  .social{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+  .slink{font-size:11.5px;padding:4px 11px;border-radius:8px;background:#0e1626;border:1px solid var(--line);
+    color:var(--accent2);text-decoration:none}
+  .slink:hover{border-color:var(--accent2);color:var(--accent)}
+  .pf-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:6px 0 2px}
+  @media(max-width:680px){.pf-strip{grid-template-columns:repeat(3,1fr)}}
+  .hs{background:#0e1626;border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center}
+  .hs .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+  .hs .l{color:var(--muted);font-size:10.5px;margin-top:3px}
+  .qa{display:flex;flex-wrap:wrap;gap:8px}
+  .qa .pill{background:#0e1626;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12.5px}
+  .qa .pill b{font-variant-numeric:tabular-nums}
+
   .pf-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}
   @media(max-width:620px){.pf-meta{grid-template-columns:repeat(2,1fr)}.pf-head{flex-wrap:wrap}}
   .pf-cell{background:#0e1626;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
@@ -227,6 +240,7 @@
 
   <div class="tabbar">
     <button data-tab="ranking" class="on">Ranking</button>
+    <button data-tab="unranked">غير المصنّفين</button>
     <button data-tab="presidency">هيئة الرئاسة</button>
     <button data-tab="cats">الفئات</button>
     <button data-tab="stats">Statistics</button>
@@ -245,6 +259,20 @@
     <div class="card">
       <h3 id="listTitle">Ranked members</h3>
       <div id="list"></div>
+    </div>
+  </div>
+
+  <!-- UNRANKED TAB -->
+  <div id="tab-unranked" class="hidden">
+    <div class="controls">
+      <input id="search3" placeholder="بحث باسم النائب…" />
+      <select id="fGov3"></select>
+      <select id="fBloc3"></select>
+      <select id="fCommittee3"></select>
+    </div>
+    <div class="card">
+      <h3 id="unrankedTitle">غير مصنّفين</h3>
+      <div id="unrankedList"></div>
     </div>
   </div>
 
@@ -366,11 +394,11 @@ function filtered(){
 
 function renderKpis(){
   const rows = filtered();
-  const avg = rows.length ? rows.reduce((s,m)=>s+m.mpii,0)/rows.length : 0;
-  const top = rows.length ? Math.max(...rows.map(m=>m.mpii)) : 0;
-  const pass = rows.length ? rows.filter(m=>m.mpii>=60).length/rows.length*100 : 0;
-  const k = [["MPs shown",rows.length],["Average MPII",avg.toFixed(1)],
-             ["Top score",top.toFixed(1)],["Pass rate ≥60",pass.toFixed(0)+"%"]];
+  const ranked = rows.filter(m=>m.eligible);
+  const avg = ranked.length ? ranked.reduce((s,m)=>s+m.mpii,0)/ranked.length : 0;
+  const top = ranked.length ? Math.max(...ranked.map(m=>m.mpii)) : 0;
+  const k = [["المصنّفون",ranked.length],["غير المصنّفين",rows.length-ranked.length],
+             ["متوسط المصنّفين",avg.toFixed(1)],["أعلى درجة",top.toFixed(1)]];
   document.getElementById("kpis").innerHTML = k.map(([l,v])=>
     `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
 }
@@ -378,32 +406,53 @@ function renderKpis(){
 function renderList(){
   const rows = filtered();
   const dm = data().dim_meta;
+  const ranked = rows.filter(m=>m.eligible).sort((a,b)=>(a.rank_overall||1e9)-(b.rank_overall||1e9));
+
+  // ---- RANKED: Shanghai-style factor table ----
   document.getElementById("listTitle").textContent =
-    `النواب المرتّبون · ${rows.length}` + (state.mode==="shanghai" ? "  ·  الدرجة نسبةً للأول = 100" : "");
+    `النواب المصنّفون · ${ranked.length}` + (state.mode==="shanghai" ? "  ·  الدرجة نسبةً للأول = 100" : "");
   const list = document.getElementById("list");
-  if(!rows.length){ list.innerHTML = `<div class="empty">لا نواب مطابقون للفلاتر.</div>`; return; }
-
-  // header: # · name · one column per factor (with its weight) · total · grade
-  const head = `<tr><th>#</th><th style="text-align:right">النائب</th>` +
-    dm.map(d=>`<th class="f">${d.label}<br><span style="font-weight:400;color:var(--muted)">${Math.round(d.weight*100)}%</span></th>`).join("") +
-    `<th>الدرجة</th><th>التقدير</th></tr>`;
-
-  const body = rows.map(m=>{
-    const gc = gradeColor(m.grade);
-    const cells = dm.map(d=>{
-      const v = m[d.key] ?? 0;
-      return `<td class="dim" style="color:${gradeColor(gradeOf(v))}">${v.toFixed(1)}</td>`;
+  if(!ranked.length){
+    list.innerHTML = `<div class="empty">لا نواب مصنّفون مطابقون للفلاتر.</div>`;
+  } else {
+    const head = `<tr><th>#</th><th style="text-align:right">النائب</th>` +
+      dm.map(d=>`<th class="f">${d.label}<br><span style="font-weight:400;color:var(--muted)">${Math.round(d.weight*100)}%</span></th>`).join("") +
+      `<th>الدرجة</th><th>التقدير</th></tr>`;
+    const body = ranked.map(m=>{
+      const gc = gradeColor(m.grade);
+      const cells = dm.map(d=>{
+        const v = m[d.key] ?? 0;
+        return `<td class="dim" style="color:${gradeColor(gradeOf(v))}">${v.toFixed(1)}</td>`;
+      }).join("");
+      return `<tr class="rkrow" data-name="${m.name}">
+        <td class="rkn">${rankDisplay(m.rank_overall)}</td>
+        <td class="nm">${m.name}<div class="sub">${m.governorate} · ${m.bloc}</div></td>
+        ${cells}
+        <td class="tot" style="color:${gc}">${m.mpii.toFixed(1)}</td>
+        <td><span class="gchip" style="color:${gc};background:${gc}22">${m.grade}</span></td></tr>`;
     }).join("");
-    return `<tr class="rkrow" data-name="${m.name}">
-      <td class="rkn">${rankDisplay(m.rank_overall)}</td>
-      <td class="nm">${m.name}<div class="sub">${m.governorate} · ${m.bloc}</div></td>
-      ${cells}
-      <td class="tot" style="color:${gc}">${m.mpii.toFixed(1)}</td>
-      <td><span class="gchip" style="color:${gc};background:${gc}22">${m.grade}</span></td></tr>`;
-  }).join("");
+    list.innerHTML = `<div class="rkwrap"><table class="rk"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+    list.querySelectorAll(".rkrow").forEach(r=>r.onclick=()=>openProfile(r.dataset.name));
+  }
+}
 
-  list.innerHTML = `<div class="rkwrap"><table class="rk"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
-  list.querySelectorAll(".rkrow").forEach(r=>r.onclick=()=>openProfile(r.dataset.name));
+// ---- UNRANKED tab: listed alphabetically, no rank, activity score only ----
+function renderUnranked(){
+  const unranked = filtered().filter(m=>!m.eligible).sort((a,b)=>(a.name>b.name?1:-1));
+  document.getElementById("unrankedTitle").textContent =
+    `غير مصنّفين — نشاط غير كافٍ للتصنيف · ${unranked.length}`;
+  const el = document.getElementById("unrankedList");
+  if(!unranked.length){ el.innerHTML = `<div class="empty">لا نواب غير مصنّفين ضمن الفلاتر الحالية.</div>`; return; }
+  el.innerHTML = unranked.map(m=>`
+    <div class="row" data-name="${m.name}">
+      <div class="rank" style="color:var(--muted)">—</div>
+      <div class="who"><div class="n">${m.name}</div><div class="m">${m.governorate} · ${m.bloc}</div></div>
+      <div class="scorebox">
+        <span style="color:var(--muted);font-size:11px">مؤشر النشاط</span>
+        <div class="bar" style="width:96px"><i style="width:${m.activity_score||0}%;background:var(--muted)"></i></div>
+        <div class="score" style="color:var(--muted)">${(m.activity_score||0).toFixed(0)}</div>
+      </div><div class="chev">›</div></div>`).join("");
+  el.querySelectorAll(".row").forEach(r=>r.onclick=()=>openProfile(r.dataset.name));
 }
 
 const ROLE_AR = {member:"عضو", speaker:"رئيس مجلس النواب",
@@ -523,10 +572,11 @@ function openProfile(name){
     ["الكتلة", m.bloc],
     ["اللجنة", m.committee],
     ["الصفة", ROLE_AR[m.role] || "عضو"],
-    ["الحالة", STATUS_AR[m.status] || m.status || "—"],
-    ["الترتيب العام", "#"+rankDisplay(m.rank_overall)],
-    ["الترتيب بالمحافظة", "#"+m.rank_in_governorate],
-    ["الترتيب بالكتلة", "#"+m.rank_in_bloc],
+    ["حالة التصنيف", m.eligible ? "مصنّف" : "غير مصنّف"],
+    ["مؤشر النشاط", m.activity_score ?? "—"],
+    ["الترتيب العام", m.eligible ? "#"+rankDisplay(m.rank_overall) : "—"],
+    ["الترتيب بالمحافظة", m.rank_in_governorate==null ? "—" : "#"+m.rank_in_governorate],
+    ["الترتيب بالكتلة", m.rank_in_bloc==null ? "—" : "#"+m.rank_in_bloc],
     ["الدرجة المتوقعة", m.expected_mpii ?? "—"],
     ["مقابل المتوقع", (m.vs_expected>=0?"+":"")+m.vs_expected],
   ].map(([l,v])=>`<div class="pf-cell"><div class="l">${l}</div><div class="v num">${v}</div></div>`).join("");
@@ -562,6 +612,36 @@ function openProfile(name){
   const trendC = trend>=0?cssv("--a"):cssv("--f");
   const line = svgLine(PAYLOAD.history.labels, hist);
 
+  // social links (shown only if present)
+  const SOCIALS=[["facebook","Facebook"],["x","X / تويتر"],["instagram","Instagram"],["telegram","Telegram"],["website","الموقع"]];
+  const social = SOCIALS.filter(([k])=>m[k]).map(([k,l])=>`<a class="slink" href="${m[k]}" target="_blank" rel="noopener">${l}</a>`).join("");
+
+  // headline stat strip (raw indicators)
+  const HEAD=[["bills_enacted","قوانين أُقرّت"],["questions_submitted","أسئلة برلمانية"],["parliament_attendance_pct","الحضور %"],["speeches_count","مداخلات"],["ministers_summoned","استجوابات"],["investigations_initiated","تحقيقات"]];
+  const headStrip = HEAD.map(([k,l])=>`<div class="hs"><div class="v">${m[k]??"—"}</div><div class="l">${l}</div></div>`).join("");
+
+  // quick analysis: strongest/weakest dimension, bloc/gov standing, balance
+  const dmx = ds.dim_meta;
+  const best = dmx.reduce((a,d)=>(m[d.key]??0)>(m[a.key]??0)?d:a);
+  const worst = dmx.reduce((a,d)=>(m[d.key]??0)<(m[a.key]??0)?d:a);
+  const blocMps = ds.mps.filter(x=>x.bloc===m.bloc), govMps = ds.mps.filter(x=>x.governorate===m.governorate);
+  const topPctOf = arr => arr.length ? 100-Math.round(arr.filter(x=>x.mpii<m.mpii).length/arr.length*100) : 0;
+  const balance = std(dmx.map(d=>m[d.key]??0));
+  const balanceLbl = balance<12?"متوازن":balance<22?"متفاوت قليلاً":"متفاوت";
+  const qa = [
+    `أقوى محور: <b>${best.label}</b> (${(m[best.key]??0).toFixed(0)})`,
+    `أضعف محور: <b>${worst.label}</b> (${(m[worst.key]??0).toFixed(0)})`,
+    `ضمن أفضل <b>${topPctOf(blocMps)}%</b> بكتلته`,
+    `ضمن أفضل <b>${topPctOf(govMps)}%</b> بمحافظته`,
+    `توازن المحاور: <b>${balanceLbl}</b>`,
+  ].map(t=>`<div class="pill">${t}</div>`).join("");
+
+  // comparison: MP vs bloc / governorate / parliament average
+  const refs=[["النائب",m.mpii,cssv("--accent")],["متوسط كتلته",mean(blocMps.map(x=>x.mpii)),cssv("--accent2")],
+    ["متوسط محافظته",mean(govMps.map(x=>x.mpii)),cssv("--accent2")],["متوسط البرلمان",mean(ds.mps.map(x=>x.mpii)),cssv("--muted")]];
+  const cmpBars = refs.map(([l,v,c])=>`<div class="cmp"><div class="lab"><span>${l}</span><b>${v.toFixed(1)}</b></div>
+    <div class="track"><i style="width:${Math.max(0,Math.min(100,v))}%;background:${c}"></i></div></div>`).join("");
+
   document.getElementById("modalBody").innerHTML = `
     <div class="pf-head">
       ${photo}
@@ -570,9 +650,11 @@ function openProfile(name){
         <div class="rl">${ROLE_AR[m.role] || "عضو"} · ${m.governorate}</div>
         <div class="pf-badges">
           <span class="pf-badge">${m.bloc}</span>
-          <span class="pf-badge">يتفوّق على ${beats}% من النواب</span>
-          <span class="pf-badge" style="color:${expC};border-color:${expC}55">${m.expected_label}</span>
+          ${m.eligible ? `<span class="pf-badge">يتفوّق على ${beats}% من النواب</span>
+          <span class="pf-badge" style="color:${expC};border-color:${expC}55">${m.expected_label}</span>`
+          : `<span class="pf-badge" style="color:${cssv("--d")};border-color:${cssv("--d")}55">غير مصنّف — نشاط غير كافٍ</span>`}
         </div>
+        ${social ? `<div class="social">${social}</div>` : ""}
       </div>
       <div class="pf-score">
         <div class="v" style="color:${gc}">${m.mpii.toFixed(1)}</div>
@@ -580,6 +662,15 @@ function openProfile(name){
       </div>
     </div>
     <div class="pf-meta">${meta}</div>
+
+    <div class="pf-sec">أرقام رئيسية</div>
+    <div class="pf-strip">${headStrip}</div>
+
+    <div class="pf-sec">تحليل سريع</div>
+    <div class="pf-charts">
+      <div class="chartbox"><h4>ملاحظات</h4><div class="qa">${qa}</div></div>
+      <div class="chartbox"><h4>مقارنة الدرجة الكلية</h4>${cmpBars}</div>
+    </div>
 
     <div class="pf-sec">نظرة عامة على المحاور</div>
     <div class="pf-charts">
@@ -617,7 +708,7 @@ function fillFilters(){
   const uniq = key => [...new Set(data().mps.map(m=>m[key]).filter(Boolean))].sort();
   const opt = (cur,key,label)=>`<option value="">${label}</option>`+
     uniq(key).map(v=>`<option ${cur===v?'selected':''}>${v}</option>`).join("");
-  ["","2"].forEach(s=>{
+  ["","2","3"].forEach(s=>{
     document.getElementById("fGov"+s).innerHTML = opt(state.gov,"governorate","All governorates");
     document.getElementById("fBloc"+s).innerHTML = opt(state.bloc,"bloc","All blocs");
     document.getElementById("fCommittee"+s).innerHTML = opt(state.committee,"committee","All committees");
@@ -625,7 +716,7 @@ function fillFilters(){
 }
 
 function syncControls(){
-  ["search","search2"].forEach(id=>document.getElementById(id).value = state.search);
+  ["search","search2","search3"].forEach(id=>document.getElementById(id).value = state.search);
 }
 
 function renderStats(){
@@ -792,19 +883,19 @@ function renderPresidency(){
   document.querySelectorAll("#boardCards .bcard").forEach(c=>c.onclick=()=>openProfile(c.dataset.name));
 }
 
-function renderAll(){ renderKpis(); renderList(); renderGroups(); renderStats(); renderCats(); renderMethodology(); renderPresidency(); renderCharts(); }
+function renderAll(){ renderKpis(); renderList(); renderUnranked(); renderGroups(); renderStats(); renderCats(); renderMethodology(); renderPresidency(); renderCharts(); }
 
 // events — both filter rows (ranking + stats tabs) write to the same state
-const TABS = ["ranking","presidency","cats","stats","groups","method"];
+const TABS = ["ranking","unranked","presidency","cats","stats","groups","method"];
 document.querySelectorAll("#catNav button").forEach(b=>b.onclick=()=>{
   state.cat=b.dataset.cat;
   document.querySelectorAll("#catNav button").forEach(x=>x.classList.toggle("on",x===b));
   renderCats();
 });
-["search","search2"].forEach(id=>document.getElementById(id).oninput = e=>{
-  state.search=e.target.value; syncControls(); renderKpis(); renderList(); renderStats(); });
+["search","search2","search3"].forEach(id=>document.getElementById(id).oninput = e=>{
+  state.search=e.target.value; syncControls(); renderKpis(); renderList(); renderUnranked(); renderStats(); });
 [["fGov","gov"],["fBloc","bloc"],["fCommittee","committee"]].forEach(([base,key])=>{
-  ["","2"].forEach(s=>document.getElementById(base+s).onchange = e=>{
+  ["","2","3"].forEach(s=>document.getElementById(base+s).onchange = e=>{
     state[key]=e.target.value; fillFilters(); renderAll(); });
 });
 document.getElementById("groupBy").onchange = e=>{state.groupBy=e.target.value;renderGroups();};

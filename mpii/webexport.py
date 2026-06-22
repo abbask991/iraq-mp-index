@@ -121,10 +121,11 @@ def _attach_expected(res: pd.DataFrame, members: pd.DataFrame) -> pd.DataFrame:
 
 
 def _clean(records):
-    """Replace NaN with None so the embedded JSON is valid JS."""
+    """Replace NaN / NA with None so the embedded JSON is valid JS (unranked MPs
+    have null ranks)."""
     out = []
     for rec in records:
-        out.append({k: (None if isinstance(v, float) and v != v else v) for k, v in rec.items()})
+        out.append({k: (None if pd.isna(v) else v) for k, v in rec.items()})
     return out
 
 
@@ -142,7 +143,8 @@ def _dataset(config_path: str, members: pd.DataFrame, raw: pd.DataFrame) -> dict
     # Enrich each MP record with raw indicator values + profile fields so the
     # profile view can show full performance details, voting number, role, etc.
     enriched = res.merge(raw, on="member_id", how="left")
-    extra = [c for c in ("voting_number", "role", "photo", "status", "served_months")
+    extra = [c for c in ("voting_number", "role", "photo", "status", "served_months",
+                         "facebook", "x", "instagram", "telegram", "website")
              if c in members.columns]
     if extra:
         enriched = enriched.merge(members[["member_id", *extra]], on="member_id", how="left")

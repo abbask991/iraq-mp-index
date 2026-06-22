@@ -80,19 +80,31 @@ def compute_scores(cfg: Config, members: pd.DataFrame, raw: pd.DataFrame) -> pd.
         out["dim_integrity"] = integ.round(2)
         final += integ * cfg.integrity_weight
 
-    # ---- final index, grade, rankings -----------------------------------
+    # ---- final index, grade ---------------------------------------------
     if cfg.rescale_final_to_top:
         top = final.max()
         if top and top > 0:
             final = final / top * 100.0
     out["mpii"] = final.round(2)
     out["grade"] = out["mpii"].map(cfg.grade_for)
-    out["rank_overall"] = out["mpii"].rank(ascending=False, method="min").astype(int)
-    out["rank_in_governorate"] = (
-        out.groupby("governorate")["mpii"].rank(ascending=False, method="min").astype(int)
-    )
-    out["rank_in_bloc"] = (
-        out.groupby("bloc")["mpii"].rank(ascending=False, method="min").astype(int)
-    )
+
+    # ---- activity gate: rank only members above the activity threshold --
+    if cfg.activity:
+        parts = []
+        for ind in cfg.activity.get("indicators", []):
+            method = "absolute" if ind.endswith("_pct") else "percentile"
+            parts.append(normalize_series(_column(df, ind), method))
+        activity = sum(parts) / len(parts) if parts else pd.Series(100.0, index=df.index)
+        out["activity_score"] = activity.round(1)
+        out["eligible"] = activity >= float(cfg.activity.get("min_score", 0))
+    else:
+        out["activity_score"] = pd.Series(100.0, index=df.index)
+        out["eligible"] = pd.Series(True, index=df.index)
+
+    # ranks are computed ONLY among eligible MPs; the rest get no rank (NaN)
+    masked = out["mpii"].where(out["eligible"])
+    out["rank_overall"] = masked.rank(ascending=False, method="min")
+    out["rank_in_governorate"] = masked.groupby(out["governorate"]).rank(ascending=False, method="min")
+    out["rank_in_bloc"] = masked.groupby(out["bloc"]).rank(ascending=False, method="min")
 
     return out.sort_values("mpii", ascending=False)

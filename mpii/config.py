@@ -23,6 +23,9 @@ class Config:
         self.full_term_months = float(data.get("full_term_months", 48))
         # Shanghai/ARWU: rescale the final total so the #1 MP = 100, others relative.
         self.rescale_final_to_top = bool(data.get("rescale_final_to_top", False))
+        # Two-tier eligibility: MPs below a minimum activity score are listed but
+        # NOT ranked (avoids false precision among near-inactive members).
+        self.activity = data.get("activity") or None
         self.dimensions = data.get("dimensions", {})
         self.integrity = data.get("integrity", {"weight": 0.0})
         self.grades = sorted(

@@ -15,9 +15,11 @@ _GID_RE = re.compile(r"[#&?]gid=([0-9]+)")
 
 MEMBER_REQUIRED = ["member_id", "name", "governorate", "bloc"]
 MEMBER_COLUMNS = ["member_id", "name", "governorate", "bloc", "committee", "gender",
-                  "role", "status", "served_months", "voting_number", "photo"]
+                  "role", "status", "served_months", "voting_number", "photo",
+                  "facebook", "x", "instagram", "telegram", "website"]
 MEMBER_DEFAULTS = {"committee": "غير محدد", "gender": "", "role": "member",
-                   "status": "active", "served_months": 48, "photo": ""}
+                   "status": "active", "served_months": 48, "photo": "",
+                   "facebook": "", "x": "", "instagram": "", "telegram": "", "website": ""}
 
 INDICATOR_COLUMNS = [
     "bills_introduced", "bills_to_committee", "bills_passed_chamber", "bills_enacted",

@@ -100,3 +100,14 @@ grades:
   - { min: 60, label: "C",  note: Average }
   - { min: 50, label: "D",  note: Weak }
   - { min: 0,  label: "F",  note: Poor }
+
+# Two-tier eligibility (see config.shanghai.yaml for details).
+activity:
+  min_score: 50
+  indicators:
+    - parliament_attendance_pct
+    - voting_participation_pct
+    - committee_attendance_pct
+    - speeches_count
+    - bills_introduced
+    - questions_submitted
