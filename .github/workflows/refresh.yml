@@ -1,0 +1,38 @@
+name: Refresh public dashboard
+
+# Runs daily and on-demand: pulls admin edits + latest news from the live
+# Supabase backend, rebuilds the dashboard, and publishes it to GitHub Pages.
+on:
+  schedule:
+    - cron: "0 6 * * *"   # daily at 06:00 UTC
+  workflow_dispatch: {}    # manual "Run workflow" button
+
+permissions:
+  contents: write
+
+env:
+  SUPABASE_URL: https://qirngmeklutpmcfcnyoj.supabase.co
+  SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpcm5nbWVrbHV0cG1jZmNueW9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNDU1MTEsImV4cCI6MjA5NzcyMTUxMX0.XtFR8tYIrN5qCzWnkxUhXVMq8CB6EVbUGfEIS2EwaRs
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e .
+      - name: Pull admin edits (names/photos/socials) from Supabase
+        run: python -m mpii sync
+      - name: Fetch latest news (uses admin's news sources)
+        run: python -m mpii news --all --per-mp 5
+      - name: Rebuild dashboard
+        run: python -m mpii web --out web
+      - name: Publish to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./web
+          publish_branch: gh-pages
