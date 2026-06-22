@@ -249,8 +249,11 @@ def _watch(data_dir: str) -> list:
 def _supabase_cfg() -> dict:
     """Read the public Supabase URL + anon key (safe to embed) from the platform
     env, so the dashboard can do live ratings/comments. None if not configured."""
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_ANON_KEY")
+    if url and key:
+        return {"url": url, "anonKey": key}
     path = os.path.join("platform", ".env.local")
-    url = key = None
     if os.path.exists(path):
         for line in open(path, encoding="utf-8"):
             if line.startswith("NEXT_PUBLIC_SUPABASE_URL="):

@@ -21,8 +21,11 @@ WATCH_COLUMNS = ["term", "date", "source", "title", "link"]
 
 
 def _supabase_env():
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_ANON_KEY")
+    if url and key:
+        return url, key
     p = os.path.join("platform", ".env.local")
-    url = key = None
     if os.path.exists(p):
         for line in open(p, encoding="utf-8"):
             if line.startswith("NEXT_PUBLIC_SUPABASE_URL="):

@@ -91,6 +91,12 @@ def cmd_template(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sync(args: argparse.Namespace) -> int:
+    from .sync import sync_members
+    sync_members(args.data)
+    return 0
+
+
 def cmd_news(args: argparse.Namespace) -> int:
     import csv as _csv
 
@@ -212,6 +218,10 @@ def main(argv=None) -> int:
     p_tg.add_argument("--per-mp", type=int, default=6, help="max posts per MP")
     p_tg.add_argument("--data", default="data")
     p_tg.set_defaults(func=cmd_telegram)
+
+    p_sync = sub.add_parser("sync", help="pull admin edits (names/photos/socials) from Supabase into members.csv")
+    p_sync.add_argument("--data", default="data")
+    p_sync.set_defaults(func=cmd_sync)
 
     args = parser.parse_args(argv)
     return args.func(args)
