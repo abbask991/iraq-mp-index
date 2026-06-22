@@ -92,10 +92,16 @@ def cmd_template(args: argparse.Namespace) -> int:
 
 
 def cmd_news(args: argparse.Namespace) -> int:
+    import csv as _csv
+
     from .news import update_mentions
 
-    ids = [int(x) for x in args.ids.split(",") if x.strip()]
     members_csv = os.path.join(args.data, "members.csv")
+    if args.all:
+        with open(members_csv, encoding="utf-8") as fh:
+            ids = [int(r["member_id"]) for r in _csv.DictReader(fh)]
+    else:
+        ids = [int(x) for x in (args.ids or "").split(",") if x.strip()]
     out_csv = os.path.join(args.data, "mentions.csv")
     print(f"fetching Google News mentions for {len(ids)} MPs (display-only, not scored)…")
     counts = update_mentions(members_csv, out_csv, ids, per_mp=args.per_mp)
@@ -167,7 +173,8 @@ def main(argv=None) -> int:
     p_tpl.set_defaults(func=cmd_template)
 
     p_news = sub.add_parser("news", help="fetch Google News mentions per MP (display-only, not scored)")
-    p_news.add_argument("--ids", required=True, help="comma-separated member ids, e.g. 185,227,312")
+    p_news.add_argument("--ids", help="comma-separated member ids, e.g. 185,227,312")
+    p_news.add_argument("--all", action="store_true", help="fetch for every MP in members.csv")
     p_news.add_argument("--per-mp", type=int, default=6, help="max headlines per MP")
     p_news.add_argument("--data", default="data")
     p_news.set_defaults(func=cmd_news)

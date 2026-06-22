@@ -241,6 +241,7 @@
   <div class="tabbar">
     <button data-tab="ranking" class="on">Ranking</button>
     <button data-tab="unranked">غير المصنّفين</button>
+    <button data-tab="buzz">الأكثر ذكراً</button>
     <button data-tab="presidency">هيئة الرئاسة</button>
     <button data-tab="cats">الفئات</button>
     <button data-tab="stats">Statistics</button>
@@ -286,6 +287,23 @@
       </select>
     </div>
     <div class="card"><div id="groupTable"></div></div>
+  </div>
+
+  <!-- MOST-MENTIONED (BUZZ) TAB -->
+  <div id="tab-buzz" class="hidden" dir="rtl">
+    <div class="tabbar" id="buzzNav">
+      <button data-period="day" >اليوم</button>
+      <button data-period="week" class="on">الأسبوع</button>
+      <button data-period="month">الشهر</button>
+      <button data-period="all">الكل</button>
+    </div>
+    <div class="card">
+      <h3 id="buzzTitle">الأكثر ذكراً في الأخبار</h3>
+      <div id="buzzList"></div>
+    </div>
+    <p class="muted" style="color:var(--muted);font-size:12px;margin-top:10px">
+      حسب عدد مرات الذكر في Google News · للعرض فقط، لا يؤثر على الترتيب · النبرة تصنيف آلي تقريبي.
+    </p>
   </div>
 
   <!-- PRESIDENCY BOARD TAB -->
@@ -364,6 +382,7 @@ const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n)
 const dimLabel = c => c.replace("dim_","").replace(/_/g," ").replace(/\b\w/g,m=>m.toUpperCase());
 const gradeColor = g => cssv(GRADE_C[g] || "--muted");
 const gradeOf = s => s>=90?"A+":s>=80?"A":s>=70?"B":s>=60?"C":s>=50?"D":"F";
+const sentColor = s => s==="سلبي"?cssv("--f"):s==="إيجابي"?cssv("--a"):cssv("--muted");
 
 const mean = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : 0;
 const median = a => { if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); const m=s.length>>1;
@@ -373,7 +392,7 @@ const pearson = (a,b) => { const n=a.length; if(n<2) return 0; const ma=mean(a),
   let num=0,da=0,db=0; for(let i=0;i<n;i++){const x=a[i]-ma,y=b[i]-mb; num+=x*y; da+=x*x; db+=y*y;}
   return (da&&db) ? num/Math.sqrt(da*db) : 0; };
 
-let state = {mode:"shanghai", tab:"ranking", sel:null, cat:"top50",
+let state = {mode:"shanghai", tab:"ranking", sel:null, cat:"top50", period:"week",
              search:"", gov:"", bloc:"", committee:"", groupBy:"governorate"};
 
 // Shanghai/ARWU display: exact rank for the top 100, banded ranges below.
@@ -647,7 +666,10 @@ function openProfile(name){
   const mediaHtml = mentions.length ? mentions.map(x=>`
     <div style="border-top:1px solid var(--line);padding:9px 0">
       <a href="${x.link}" target="_blank" rel="noopener" style="font-size:13px">${x.title}</a>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">${x.source} · ${x.date}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">${x.source} · ${x.date}
+        <span style="color:${sentColor(x.sentiment)};border:1px solid ${sentColor(x.sentiment)}55;border-radius:6px;padding:1px 7px;margin:0 6px">${x.sentiment}</span>
+        <span style="color:var(--accent2);border:1px solid var(--line);border-radius:6px;padding:1px 7px">${x.type}</span>
+      </div>
     </div>`).join("") : `<div style="color:var(--muted)">لا توجد أخبار مجموعة لهذا النائب بعد.</div>`;
 
   document.getElementById("modalBody").innerHTML = `
@@ -894,10 +916,49 @@ function renderPresidency(){
   document.querySelectorAll("#boardCards .bcard").forEach(c=>c.onclick=()=>openProfile(c.dataset.name));
 }
 
-function renderAll(){ renderKpis(); renderList(); renderUnranked(); renderGroups(); renderStats(); renderCats(); renderMethodology(); renderPresidency(); renderCharts(); }
+function renderBuzz(){
+  const all = PAYLOAD.mentions || {};
+  let maxDate = "";
+  Object.values(all).forEach(arr=>arr.forEach(x=>{ if(x.date>maxDate) maxDate=x.date; }));
+  const days = state.period==="day"?1:state.period==="week"?7:state.period==="month"?30:99999;
+  const cutoff = days>=99999 ? "0000-00-00"
+    : new Date(Date.parse(maxDate+"T00:00:00Z") - (days-1)*86400000).toISOString().slice(0,10);
+  const periodAr = {day:"اليوم",week:"الأسبوع",month:"الشهر",all:"الكل"}[state.period];
+
+  const rows = Object.entries(all).map(([mid,arr])=>{
+    const within = arr.filter(x=>x.date>=cutoff);
+    const mp = data().mps.find(x=>String(x.member_id)===mid);
+    return { name: mp?mp.name:("#"+mid), gov: mp?mp.governorate:"", bloc: mp?mp.bloc:"",
+      c: within.length,
+      neg: within.filter(x=>x.sentiment==="سلبي").length,
+      pos: within.filter(x=>x.sentiment==="إيجابي").length };
+  }).filter(r=>r.c>0).sort((a,b)=>b.c-a.c).slice(0,30);
+
+  document.getElementById("buzzTitle").textContent =
+    `الأكثر ذكراً في الأخبار · ${periodAr}` + (maxDate ? `  (حتى ${maxDate})` : "");
+  const el = document.getElementById("buzzList");
+  if(!rows.length){ el.innerHTML = `<div class="empty">لا أخبار مجموعة ضمن هذه الفترة.</div>`; return; }
+  el.innerHTML = rows.map((r,i)=>`
+    <div class="row" data-name="${r.name}">
+      <div class="rank">${i+1}</div>
+      <div class="who"><div class="n">${r.name}</div><div class="m">${r.gov} · ${r.bloc}</div></div>
+      <div class="scorebox">
+        ${r.neg?`<span style="color:${cssv('--f')};font-size:11px">${r.neg} سلبي</span>`:""}
+        ${r.pos?`<span style="color:${cssv('--a')};font-size:11px">${r.pos} إيجابي</span>`:""}
+        <div class="score">${r.c}</div><span style="color:var(--muted);font-size:11px">ذِكر</span>
+      </div><div class="chev">›</div></div>`).join("");
+  el.querySelectorAll(".row").forEach(rw=>rw.onclick=()=>openProfile(rw.dataset.name));
+}
+
+function renderAll(){ renderKpis(); renderList(); renderUnranked(); renderBuzz(); renderGroups(); renderStats(); renderCats(); renderMethodology(); renderPresidency(); renderCharts(); }
 
 // events — both filter rows (ranking + stats tabs) write to the same state
-const TABS = ["ranking","unranked","presidency","cats","stats","groups","method"];
+const TABS = ["ranking","unranked","buzz","presidency","cats","stats","groups","method"];
+document.querySelectorAll("#buzzNav button").forEach(b=>b.onclick=()=>{
+  state.period=b.dataset.period;
+  document.querySelectorAll("#buzzNav button").forEach(x=>x.classList.toggle("on",x===b));
+  renderBuzz();
+});
 document.querySelectorAll("#catNav button").forEach(b=>b.onclick=()=>{
   state.cat=b.dataset.cat;
   document.querySelectorAll("#catNav button").forEach(x=>x.classList.toggle("on",x===b));

@@ -198,15 +198,19 @@ def _history(members: pd.DataFrame, months: int = 8) -> dict:
 
 
 def _mentions(data_dir: str) -> dict:
-    """News mentions per MP (display-only, not scored). Keyed by member_id (str)."""
+    """News mentions per MP (display-only, not scored), each auto-classified by
+    type + sentiment. Keyed by member_id (str)."""
+    from .news import classify
+
     path = os.path.join(data_dir, "mentions.csv")
     if not os.path.exists(path):
         return {}
     out: dict = {}
     with open(path, encoding="utf-8") as f:
         for r in csv.DictReader(f):
-            out.setdefault(str(r["mp_id"]), []).append(
-                {k: r.get(k, "") for k in ("date", "source", "title", "link")})
+            rec = {k: r.get(k, "") for k in ("date", "source", "title", "link")}
+            rec.update(classify(rec["title"]))
+            out.setdefault(str(r["mp_id"]), []).append(rec)
     return out
 
 
