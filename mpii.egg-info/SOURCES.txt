@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+mpii/__init__.py
+mpii/__main__.py
+mpii/cli.py
+mpii/config.py
+mpii/normalize.py
+mpii/report.py
+mpii/scoring.py
+mpii.egg-info/PKG-INFO
+mpii.egg-info/SOURCES.txt
+mpii.egg-info/dependency_links.txt
+mpii.egg-info/entry_points.txt
+mpii.egg-info/requires.txt
+mpii.egg-info/top_level.txt
+tests/test_report.py
+tests/test_scoring.py

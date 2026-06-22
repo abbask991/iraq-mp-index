@@ -1,0 +1,91 @@
+# =============================================================================
+# MPII — Member of Parliament Impact Index
+# Methodology configuration (edit weights/indicators here, never in code)
+# =============================================================================
+#
+# The final score is a weighted sum of dimension scores. Each dimension score is
+# a weighted average of its indicator scores. Each indicator is normalized ACROSS
+# ALL MPs to a 0-100 scale before weighting — raw counts are never summed directly.
+#
+# normalization methods (per indicator, falls back to normalization_default):
+#   percentile : rank of the MP among all MPs, 0-100. Robust to outliers.
+#                Use for unbounded counts (bills, questions, speeches).
+#   minmax     : (x - min) / (max - min) * 100. Linear, sensitive to outliers.
+#   absolute   : use the raw value, clipped to [0,100]. Use for figures that are
+#                ALREADY a meaningful 0-100 percentage (attendance %).
+#
+# direction: "up" = higher is better (default). "down" = lower is better.
+# rate: true  -> the indicator is a count affected by how long the MP served, so
+#                it is tenure-normalized before ranking (see tenure_normalization).
+# -----------------------------------------------------------------------------
+
+normalization_default: percentile
+
+# Fairness: scale count-based ("rate") indicators to a full-term equivalent so a
+# replacement / partial-term MP is not penalized for serving fewer months.
+#   adjusted_count = raw_count / (served_months / full_term_months)
+tenure_normalization: true
+full_term_months: 48          # Iraqi CoR term = 4 years
+
+dimensions:
+
+  legislative:
+    label: Legislative Performance
+    weight: 0.30
+    indicators:
+      bills_passed:        { weight: 0.40, rate: true }
+      bills_proposed:      { weight: 0.30, rate: true }
+      committee_reports:   { weight: 0.20, rate: true }
+      amendments_proposed: { weight: 0.10, rate: true }
+
+  attendance:
+    label: Attendance & Participation
+    weight: 0.20
+    indicators:
+      parliament_attendance_pct: { weight: 0.40, normalization: absolute }
+      committee_attendance_pct:  { weight: 0.30, normalization: absolute }
+      voting_participation_pct:  { weight: 0.20, normalization: absolute }
+      speeches_count:            { weight: 0.10, rate: true }
+
+  oversight:
+    label: Oversight & Accountability
+    weight: 0.20
+    indicators:
+      questions_submitted:      { weight: 0.40, rate: true }
+      investigations_initiated: { weight: 0.30, rate: true }
+      ministers_summoned:       { weight: 0.20, rate: true }
+      audit_requests:           { weight: 0.10, rate: true }
+
+  constituency:
+    label: Constituency Service
+    weight: 0.15
+    # NOTE: the softest dimension. Drop it (set weight 0 and reweight others) or
+    # treat as sentiment-derived if you lack rigorous data. See config.objective.yaml.
+    indicators:
+      issues_resolved:     { weight: 0.40, rate: true }
+      citizen_engagements: { weight: 0.30, rate: true }
+      local_projects:      { weight: 0.20, rate: true }
+      communication_score: { weight: 0.10, normalization: absolute }
+
+# Integrity is penalty-based: every MP starts at `base` and loses points per
+# confirmed issue (penalty counts are columns in raw_indicators.csv).
+integrity:
+  label: Integrity & Transparency
+  weight: 0.15
+  base: 100
+  penalties:                    # points removed per occurrence (counts)
+    minor_ethics_violations: -10
+    conflict_of_interest:    -20
+    confirmed_corruption:    -40
+    court_convictions:       -70
+  bonuses:                      # added if flag == 1
+    asset_disclosure_filed:   5
+
+# Letter grades from the final 0-100 MPII score.
+grades:
+  - { min: 90, label: "A+", note: Outstanding }
+  - { min: 80, label: "A",  note: Strong }
+  - { min: 70, label: "B",  note: Good }
+  - { min: 60, label: "C",  note: Average }
+  - { min: 50, label: "D",  note: Weak }
+  - { min: 0,  label: "F",  note: Poor }

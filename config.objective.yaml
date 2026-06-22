@@ -1,0 +1,51 @@
+# =============================================================================
+# MPII — v1 OBJECTIVE-ONLY preset
+# Only the three dimensions that can be measured from official records.
+# Constituency Service and Integrity are excluded (no rigorous data in v1).
+# Weights are the original 30/20/20 renormalized to sum to 1.0.
+# Run with:  python -m mpii score --config config.objective.yaml
+# =============================================================================
+
+normalization_default: percentile
+tenure_normalization: true
+full_term_months: 48
+
+dimensions:
+
+  legislative:
+    label: Legislative Performance
+    weight: 0.4286            # 30 / 70
+    indicators:
+      bills_passed:        { weight: 0.40, rate: true }
+      bills_proposed:      { weight: 0.30, rate: true }
+      committee_reports:   { weight: 0.20, rate: true }
+      amendments_proposed: { weight: 0.10, rate: true }
+
+  attendance:
+    label: Attendance & Participation
+    weight: 0.2857            # 20 / 70
+    indicators:
+      parliament_attendance_pct: { weight: 0.40, normalization: absolute }
+      committee_attendance_pct:  { weight: 0.30, normalization: absolute }
+      voting_participation_pct:  { weight: 0.20, normalization: absolute }
+      speeches_count:            { weight: 0.10, rate: true }
+
+  oversight:
+    label: Oversight & Accountability
+    weight: 0.2857            # 20 / 70
+    indicators:
+      questions_submitted:      { weight: 0.40, rate: true }
+      investigations_initiated: { weight: 0.30, rate: true }
+      ministers_summoned:       { weight: 0.20, rate: true }
+      audit_requests:           { weight: 0.10, rate: true }
+
+integrity:
+  weight: 0.0                 # excluded in v1
+
+grades:
+  - { min: 90, label: "A+", note: Outstanding }
+  - { min: 80, label: "A",  note: Strong }
+  - { min: 70, label: "B",  note: Good }
+  - { min: 60, label: "C",  note: Average }
+  - { min: 50, label: "D",  note: Weak }
+  - { min: 0,  label: "F",  note: Poor }

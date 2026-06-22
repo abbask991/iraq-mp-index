@@ -1,0 +1,7 @@
+member_id,name,governorate,bloc,committee,gender,role,status,served_months
+1,Ali Hassan,Baghdad,Bloc A,Finance,M,member,active,40
+2,Fatima Jasim,Basra,Bloc B,Security,F,chair,active,40
+3,Omar Khalid,Nineveh,Bloc A,Health,M,member,active,40
+4,Zainab Ali,Baghdad,Bloc C,Finance,F,member,replacement,18
+5,Mahmoud Saleh,Anbar,Bloc B,Energy,M,member,active,40
+6,Huda Karim,Erbil,Bloc C,Education,F,member,active,40
