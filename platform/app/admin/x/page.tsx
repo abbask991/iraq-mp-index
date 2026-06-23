@@ -29,8 +29,23 @@ export default function AdminX() {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
   const [platform, setPlatform] = useState<"x" | "youtube">("x");
+  const [replies, setReplies] = useState<Record<string, any>>({});
+  const [repBusy, setRepBusy] = useState<string>("");
 
   useEffect(() => { getSetting("x_targets").then(setTargets); }, []);
+
+  const tweetId = (link: string) => (link.match(/status\/(\d+)/) || [])[1] || "";
+  const analyzeReplies = async (h: any) => {
+    const id = tweetId(h.link);
+    if (!id) return;
+    setRepBusy(id);
+    const r = await fetch("/api/x-replies", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tweetId: id }),
+    }).then((res) => res.json()).catch(() => ({ replies: [], error: "X_API_ERROR" }));
+    setReplies((p) => ({ ...p, [id]: r }));
+    setRepBusy("");
+  };
   const isYT = platform === "youtube";
   const UNIT = isYT ? "فيديو" : "تغريدة";
   const ACCT = isYT ? "القنوات" : "الحسابات";
@@ -177,7 +192,10 @@ export default function AdminX() {
 
           <div className="section-title">{isYT ? "كل الفيديوهات" : "كل التغريدات"} (الأحدث أولاً) · {hits.length}</div>
           {hits.length === 0 && <p className="muted">لا نتائج مطابقة حالياً.</p>}
-          {hits.map((h, i) => (
+          {hits.map((h, i) => {
+            const id = tweetId(h.link);
+            const rep = replies[id];
+            return (
             <div className="newsitem" key={i}>
               <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
               <div className="meta">
@@ -186,9 +204,37 @@ export default function AdminX() {
                 <span className="chip" style={{ color: "var(--accent)" }}>{isYT ? "👍💬" : "♥"} {h.engagement}</span>
                 <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
                 <span className="chip" style={{ color: "var(--accent2)" }}>{h.type}</span>
+                {!isYT && id && (
+                  <button className="btn ghost" style={{ padding: "2px 8px", fontSize: 11 }}
+                    onClick={() => analyzeReplies(h)} disabled={repBusy === id}>
+                    {repBusy === id ? "جارٍ تحليل التعليقات…" : rep ? "↻ التعليقات" : "💬 حلّل التعليقات"}
+                  </button>
+                )}
               </div>
+              {rep && (rep.error ? <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>تعذّر جلب التعليقات.</div>
+                : rep.count === 0 ? <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>لا تعليقات خلال آخر ٧ أيام.</div>
+                : (
+                <div className="cbox" style={{ marginTop: 8, background: "#0b1422" }}>
+                  <div style={{ display: "flex", gap: 12, fontSize: 12, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <b>💬 {rep.count} تعليق</b>
+                    <span style={{ color: C.pos }}>● إيجابي {rep.pos}</span>
+                    <span style={{ color: C.neu }}>● محايد {rep.neu}</span>
+                    <span style={{ color: C.neg }}>● سلبي {rep.neg}</span>
+                    <span className="muted">— مزاج الجمهور: {rep.pos > rep.neg ? "إيجابي غالباً" : rep.neg > rep.pos ? "سلبي غالباً" : "منقسم"}</span>
+                  </div>
+                  {rep.replies.slice(0, 8).map((rp: any, j: number) => (
+                    <div key={j} style={{ padding: "5px 0", borderTop: j ? "1px solid var(--line)" : "0" }}>
+                      <div style={{ fontSize: 12.5 }}>{rp.text}</div>
+                      <div className="meta" style={{ marginTop: 2 }}>
+                        <span>{rp.source}</span>{rp.engagement ? <><span>·</span><span>♥ {rp.engagement}</span></> : null}
+                        <span className="chip" style={{ color: sColor(rp.sentiment), borderColor: sColor(rp.sentiment) + "55" }}>{rp.sentiment}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
-          ))}
+          ); })}
         </>
       )}
     </div>
