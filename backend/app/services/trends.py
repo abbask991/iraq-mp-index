@@ -15,10 +15,20 @@ Module map (spec → here):
   alert_engine          → alert_level()
   report_generator      → early_warning_report()
 """
+import math
+import re
 from collections import Counter
 from datetime import datetime, timezone
 
 from app.services import network
+
+AR_STOP = set((
+    "في من على عن الى إلى هذا هذه ذلك التي الذي الذين مع كل بعد قبل عند او أو ثم انه أنه ان أن "
+    "لا ما يا كان كانت قد هو هي هم نحن انت أنت بين حول ضد دون منذ خلال حتى لكن غير عبر إن وان "
+    "والتي وهو وهي يكون تكون العراق عراق بغداد التي اليوم الان الآن حول عبر بعد منو شنو هاي هسه "
+    "عراقي عراقية اكثر اكبر اول جدا كذلك ايضا أيضا فقط حيث منها منه عنها عنه لها له بها به"
+).split())
+_AR_WORD = re.compile(r"[؀-ۿ]{4,}")
 
 WEIGHTS = {
     "mention_velocity": 0.25,
@@ -227,6 +237,64 @@ def spread_analysis(tweets, users, times):
         "amplifiers": amplifiers,
         "unique_accounts": len(agg),
         "most_shared_domain": ({"domain": top_domain[0][0], "count": top_domain[0][1]} if top_domain else None),
+    }
+
+
+def discover(tweets, users, sentiments):
+    """Auto-detect trending hashtags + keywords from a broad recent feed —
+    no keyword needed. Ranks by 'heat' (volume + recent velocity + reach +
+    engagement) and projects expected 24h volume from the recent rate."""
+    now = datetime.now(timezone.utc)
+    times = [_hours_ago(t.get("created_at"), now) for t in tweets]
+    window = max(times) if times else 24.0
+    RECENT = 6.0
+
+    def _agg(key_list_fn):
+        bag: dict = {}
+        for i, t in enumerate(tweets):
+            for k in key_list_fn(t):
+                d = bag.setdefault(k, {"key": k, "count": 0, "recent": 0, "engagement": 0,
+                                       "accounts": set(), "first": 0.0, "neg": 0, "pos": 0})
+                d["count"] += 1
+                if times[i] < RECENT:
+                    d["recent"] += 1
+                d["engagement"] += t.get("engagement", 0)
+                d["accounts"].add(t["author_id"])
+                d["first"] = max(d["first"], times[i])
+                s = sentiments[i] if i < len(sentiments) else "محايد"
+                if s == "سلبي":
+                    d["neg"] += 1
+                elif s == "إيجابي":
+                    d["pos"] += 1
+        return bag
+
+    def _items(bag, label, min_count):
+        out = []
+        for d in bag.values():
+            if d["count"] < min_count:
+                continue
+            base_rate = d["count"] / max(window, 1)
+            recent_rate = d["recent"] / RECENT
+            velocity = round(recent_rate / base_rate, 2) if base_rate > 0 else 0.0
+            heat = d["count"] + velocity * 5 + len(d["accounts"]) * 0.5 + math.log10(d["engagement"] + 1) * 3
+            out.append({
+                label: d["key"], "mentions": d["count"], "recent_6h": d["recent"],
+                "accounts": len(d["accounts"]), "engagement": d["engagement"],
+                "velocity": velocity, "predicted_24h": round(recent_rate * 24 * 0.7),
+                "sentiment": "سلبي" if d["neg"] > d["pos"] else "إيجابي" if d["pos"] > d["neg"] else "محايد",
+                "first_hours_ago": round(d["first"], 1), "heat": round(heat, 1),
+            })
+        out.sort(key=lambda x: -x["heat"])
+        return out
+
+    hashtags = _items(_agg(lambda t: t.get("hashtags", [])), "hashtag", 2)[:20]
+    keywords = _items(
+        _agg(lambda t: {w for w in _AR_WORD.findall(t.get("text", "")) if w not in AR_STOP}),
+        "keyword", 3)[:15]
+
+    return {
+        "hashtags": hashtags, "keywords": keywords,
+        "scanned": len(tweets), "accounts": len(users), "window_hours": round(window, 1),
     }
 
 

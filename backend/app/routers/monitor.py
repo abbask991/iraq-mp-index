@@ -145,6 +145,32 @@ async def monitor_index(req: KeywordReq):
     return result
 
 
+# broad Iraq-politics seed so trends surface without a user keyword
+DISCOVER_SEED = '(العراق OR بغداد OR الحكومة OR "مجلس النواب" OR الوزراء OR السوداني OR العراقية)'
+
+
+@router.post("/discover")
+async def monitor_discover(req: KeywordReq = KeywordReq()):  # noqa: B008
+    """Auto-discover currently trending/emerging hashtags & topics — no keyword."""
+    seed = (req.keywords[0] if req.keywords else "") or DISCOVER_SEED
+    rng = req.range or "day"
+    key = f"discover:{rng}:{seed}"
+    cached = cache.get(key, 300)
+    if cached is not None:
+        return cached
+
+    tw = await x.fetch_trend(seed, want=300, range=rng)
+    if "error" in tw:
+        return {"hashtags": [], "keywords": [], "error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
+    tweets, users = tw["tweets"], tw["users"]
+    cls = await ai.classify_all([t["text"] for t in tweets])
+    sentiments = [c.get("sentiment", "محايد") for c in cls]
+
+    result = trends.discover(tweets, users, sentiments)
+    cache.put(key, result)
+    return result
+
+
 @router.post("/trends")
 async def monitor_trends(req: KeywordReq):
     """Early trend detection — composite Trend Score (0-100) + alert + report."""

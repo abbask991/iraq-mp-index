@@ -30,6 +30,10 @@ export default function Trends() {
 
   useEffect(() => {
     supabase.from("monitors").select("name,keywords").then(({ data }) => setMonitors(data || []));
+    // auto-run when arriving from "ترندات الآن" with ?q=
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) run(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const run = async (q: string) => {
