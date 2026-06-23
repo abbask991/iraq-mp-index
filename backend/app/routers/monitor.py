@@ -3,7 +3,7 @@ as the previous Next.js API routes, so the frontend swaps base URL only."""
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.services import ai, cache, news, x
+from app.services import ai, cache, network, news, x
 
 NEWS_TTL = 300   # seconds — repeated identical queries return instantly
 X_TTL = 180
@@ -92,6 +92,23 @@ async def monitor_x_replies(req: RepliesReq):
 @router.post("/summarize")
 async def monitor_summarize(req: SummaryReq):
     return {"summary": await ai.summarize(req.name, req.stats, req.samples)}
+
+
+@router.post("/network")
+async def monitor_network(req: KeywordReq):
+    """Big-data: fake-account scoring + organized-campaign detection for a term."""
+    if not req.keywords:
+        return {"accounts": 0, "verdict": "—"}
+    key = "net:" + req.keywords[0]
+    cached = cache.get(key, NEWS_TTL)
+    if cached is not None:
+        return cached
+    res = await x.fetch_network(req.keywords[0], want=100)
+    if "error" in res:
+        return {"accounts": 0, "error": res["error"], "verdict": "تعذّر — تأكد من توكن X"}
+    result = network.analyze(res["tweets"], res["users"])
+    cache.put(key, result)
+    return result
 
 
 @router.post("/risk")

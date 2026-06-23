@@ -78,6 +78,37 @@ async def fetch_x(keywords: list[str], per_keyword: int = 50, cap: int = 200):
     return {"items": uniq[:cap]}
 
 
+async def fetch_network(keyword: str, want: int = 100):
+    """Fetch tweets about a keyword WITH full author profiles, for bot/campaign
+    analysis. Returns {tweets:[{text,author_id,created_at}], users:{id:{...}}}."""
+    if not X_BEARER_TOKEN:
+        return {"error": "X_TOKEN_MISSING"}
+    fields = ("tweet.fields=created_at&expansions=author_id"
+              "&user.fields=created_at,public_metrics,description,verified,profile_image_url")
+    tweets, users, next_token, loops = [], {}, None, 0
+    async with httpx.AsyncClient() as client:
+        while len(tweets) < want and loops < 8:
+            per = min(100, max(10, want - len(tweets)))
+            url = f"{_BASE}?query={quote(keyword + ' -is:retweet')}&max_results={per}&{fields}"
+            if next_token:
+                url += f"&next_token={next_token}"
+            r = await client.get(url, headers=_headers(), timeout=25)
+            if r.status_code != 200:
+                if tweets:
+                    break
+                return {"error": r.status_code}
+            j = r.json()
+            for u in j.get("includes", {}).get("users", []):
+                users[u["id"]] = u
+            for t in j.get("data", []):
+                tweets.append({"text": t["text"], "author_id": t["author_id"], "created_at": t.get("created_at")})
+            next_token = j.get("meta", {}).get("next_token")
+            loops += 1
+            if not next_token:
+                break
+    return {"tweets": tweets, "users": users}
+
+
 async def fetch_replies(tweet_id: str, want: int = 60):
     if not X_BEARER_TOKEN:
         return {"error": "X_TOKEN_MISSING"}
