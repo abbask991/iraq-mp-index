@@ -5,7 +5,7 @@
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") || "";
 
-type Kind = "news" | "x" | "x-replies" | "summarize" | "youtube" | "risk" | "network";
+type Kind = "news" | "x" | "x-replies" | "summarize" | "youtube" | "risk" | "network" | "index";
 
 // FastAPI path  vs  Next.js fallback path
 const MAP: Record<Kind, { fast: string; next: string }> = {
@@ -16,6 +16,7 @@ const MAP: Record<Kind, { fast: string; next: string }> = {
   // risk (early-warning) + network (big-data) only exist on the FastAPI backend
   risk:        { fast: "/monitor/risk",       next: "/monitor/risk" },
   network:     { fast: "/monitor/network",    next: "/monitor/network" },
+  index:       { fast: "/monitor/index",      next: "/monitor/index" },
   // YouTube is not on the FastAPI backend yet → always use the Next route
   youtube:     { fast: "",                    next: "/api/youtube-fetch" },
 };

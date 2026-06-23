@@ -94,6 +94,54 @@ async def monitor_summarize(req: SummaryReq):
     return {"summary": await ai.summarize(req.name, req.stats, req.samples)}
 
 
+@router.post("/index")
+async def monitor_index(req: KeywordReq):
+    """Composite media-performance index (0-100) for a target, from monitoring
+    signals: visibility, sentiment, engagement, source diversity, momentum."""
+    if not req.keywords:
+        return {"composite": 0, "grade": "—"}
+    import math
+    from datetime import datetime, timedelta
+
+    key = "idx:" + ",".join(sorted(req.keywords))
+    cached = cache.get(key, NEWS_TTL)
+    if cached is not None:
+        return cached
+
+    news_res = await monitor_news(KeywordReq(keywords=req.keywords))
+    x_res = await monitor_x(KeywordReq(keywords=req.keywords))
+    hits = (news_res.get("hits") or []) + (x_res.get("hits") or [])
+    total = len(hits)
+    if not total:
+        result = {"composite": 0, "grade": "—", "total": 0, "dims": {}}
+        cache.put(key, result)
+        return result
+
+    pos = sum(1 for h in hits if h.get("sentiment") == "إيجابي")
+    neg = sum(1 for h in hits if h.get("sentiment") == "سلبي")
+    eng = sum(int(h.get("engagement") or 0) for h in hits)
+    distinct = len({h.get("source") for h in hits})
+    cutoff = (datetime.utcnow() - timedelta(days=2)).strftime("%Y-%m-%d")
+    recent = sum(1 for h in hits if (h.get("date") or "") >= cutoff)
+
+    dims = {
+        "visibility": min(100, round(total / 1.5)),
+        "sentiment": round((pos - neg) / total * 50 + 50),
+        "engagement": min(100, round(math.log10(eng + 1) * 20)),
+        "diversity": min(100, distinct * 2),
+        "momentum": min(100, round(recent / total * 100)),
+    }
+    W = {"visibility": 0.25, "sentiment": 0.25, "engagement": 0.20, "diversity": 0.15, "momentum": 0.15}
+    composite = round(sum(dims[k] * W[k] for k in dims))
+    grade = ("A+" if composite >= 85 else "A" if composite >= 75 else "B" if composite >= 60
+             else "C" if composite >= 45 else "D")
+
+    result = {"composite": composite, "grade": grade, "total": total, "dims": dims,
+              "pos": pos, "neg": neg, "engagement": eng, "sources": distinct}
+    cache.put(key, result)
+    return result
+
+
 @router.post("/network")
 async def monitor_network(req: KeywordReq):
     """Big-data: fake-account scoring + organized-campaign detection for a term."""

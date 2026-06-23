@@ -10,6 +10,7 @@ const NAV = [
   ["🎯", "رصد السوشيال", "/monitor/targets"],
   ["🔔", "الإنذار المبكر", "/monitor/alerts"],
   ["🧠", "البيانات الضخمة", "/monitor/network"],
+  ["📊", "المؤشرات والدراسات", "/monitor/index-report"],
   ["💳", "اشتراكي", "/monitor/account"],
 ];
 const SOON = [
