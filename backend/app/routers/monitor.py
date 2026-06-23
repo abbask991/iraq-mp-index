@@ -171,6 +171,54 @@ async def monitor_discover(req: KeywordReq = KeywordReq()):  # noqa: B008
     return result
 
 
+@router.post("/campaign-scan")
+async def monitor_campaign_scan(req: KeywordReq = KeywordReq()):  # noqa: B008
+    """Auto-detect coordinated campaigns — scans the broad feed, finds emerging
+    hashtags, and scores each for coordination. No keyword needed. Efficient:
+    one fetch + one classification pass, then in-memory scoring per hashtag."""
+    from collections import Counter as _C
+
+    seed = (req.keywords[0] if req.keywords else "") or DISCOVER_SEED
+    rng = req.range or "day"
+    key = f"campscan:{rng}:{seed}"
+    cached = cache.get(key, 300)
+    if cached is not None:
+        return cached
+
+    tw = await x.fetch_trend(seed, want=300, range=rng)
+    if "error" in tw:
+        return {"campaigns": [], "error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
+    tweets, users = tw["tweets"], tw["users"]
+    cls = await ai.classify_all([t["text"] for t in tweets])
+    for t, c in zip(tweets, cls):
+        t["type"] = c.get("type", "عام")
+
+    htags = _C(h for t in tweets for h in t.get("hashtags", []))
+    candidates = [h for h, c in htags.most_common(14) if c >= 5]
+    win = {"day": "آخر 24 ساعة", "week": "آخر 7 أيام"}.get(rng, rng)
+
+    campaigns = []
+    for h in candidates:
+        subset = [t for t in tweets if h in t.get("hashtags", [])]
+        sub_users = {t["author_id"]: users[t["author_id"]] for t in subset if t["author_id"] in users}
+        det = campaign.detect(h, subset, sub_users, 0, window_label=win)
+        if det.get("total_posts", 0) >= 5:
+            campaigns.append({
+                "hashtag": h, "coordination_score": det["coordination_score"],
+                "alert_level": det["alert_level"], "total_posts": det["total_posts"],
+                "unique_accounts": det.get("unique_accounts"),
+                "duplicate_content_ratio": det.get("duplicate_content_ratio"),
+                "suspicious_account_ratio": det.get("suspicious_account_ratio"),
+                "peak_15min_post_ratio": det.get("peak_15min_post_ratio"),
+                "main_narrative": det.get("main_narrative"),
+                "explanation": det.get("explanation"),
+            })
+    campaigns.sort(key=lambda r: -r["coordination_score"])
+    out = {"campaigns": campaigns, "scanned": len(tweets), "accounts": len(users), "candidates": len(candidates)}
+    cache.put(key, out)
+    return out
+
+
 @router.post("/campaign")
 async def monitor_campaign(req: KeywordReq):
     """Coordinated-campaign detection — 9-signal Coordination Score (0-100)."""
