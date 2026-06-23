@@ -1088,6 +1088,26 @@ function renderWatch(){
       </div></div>`).join("")}`).join("");
 }
 
+function svgRadarCompare(labels, a, b, size=300){
+  const cx=size/2, cy=size/2, R=size/2-42, N=labels.length;
+  const ang=i=>(-90+i*360/N)*Math.PI/180, pt=(i,r)=>[cx+Math.cos(ang(i))*r, cy+Math.sin(ang(i))*r];
+  const cl=v=>Math.max(0,Math.min(100,v));
+  let g="";
+  [0.25,0.5,0.75,1].forEach(f=>{ g+=`<polygon points="${labels.map((_,i)=>pt(i,R*f).map(n=>n.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="#1f2a3d"/>`; });
+  labels.forEach((l,i)=>{ const [x,y]=pt(i,R),[lx,ly]=pt(i,R+16);
+    g+=`<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#1f2a3d"/>`;
+    const anc=Math.abs(lx-cx)<8?"middle":(lx>cx?"start":"end");
+    g+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#8a97ad" font-size="10.5" text-anchor="${anc}" dominant-baseline="middle">${l}</text>`; });
+  const poly=(vals,col)=>{
+    const pts=vals.map((v,i)=>pt(i,R*cl(v)/100).map(n=>n.toFixed(1)).join(",")).join(" ");
+    let s=`<polygon points="${pts}" fill="${col}22" stroke="${col}" stroke-width="2.5"/>`;
+    vals.forEach((v,i)=>{const [x,y]=pt(i,R*cl(v)/100);s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="${col}"/>`;});
+    return s;
+  };
+  g+=poly(a,"#34d6c6")+poly(b,"#4f9dff");
+  return `<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:${size}px;display:block;margin:0 auto">${g}</svg>`;
+}
+
 function renderCompare(){
   const mps = data().mps;
   const selA=document.getElementById("cmpA"), selB=document.getElementById("cmpB");
@@ -1108,8 +1128,12 @@ function renderCompare(){
       <td style="${td};color:${gradeColor(gradeOf(vb))};font-weight:700">${vb.toFixed(1)}</td></tr>`;
   }).join("");
   const head=m=>`<td style="${td};font-weight:800;font-size:16px;color:${gradeColor(m.grade)}">${m.name}<br>${m.mpii.toFixed(1)} · ${m.grade}<br><span class="muted" style="font-size:12px;font-weight:400">#${m.rank_overall??'—'}</span></td>`;
-  document.getElementById("compareBody").innerHTML=
-    `<table style="width:100%;border-collapse:collapse"><tr>${head(a)}<td style="${td};color:var(--muted)">مقابل</td>${head(b)}</tr>${rows}</table>`;
+  const labels=dm.map(d=>SHORT_DIM[d.key]||d.label);
+  const radar=svgRadarCompare(labels, dm.map(d=>a[d.key]??0), dm.map(d=>b[d.key]??0));
+  const legend=`<div style="text-align:center;margin-bottom:12px;font-size:13px;font-weight:700">
+    <span style="color:#34d6c6">● ${a.name}</span> &nbsp;&nbsp; <span style="color:#4f9dff">● ${b.name}</span></div>`;
+  document.getElementById("compareBody").innerHTML= legend + radar +
+    `<table style="width:100%;border-collapse:collapse;margin-top:14px"><tr>${head(a)}<td style="${td};color:var(--muted)">مقابل</td>${head(b)}</tr>${rows}</table>`;
 }
 
 function renderAll(){ renderKpis(); renderList(); renderUnranked(); renderCompare(); renderBuzz(); renderWatch(); renderGroups(); renderStats(); renderCats(); renderMethodology(); renderPresidency(); renderCharts(); }
