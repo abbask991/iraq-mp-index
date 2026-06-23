@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getMySub, isActive, daysLeft, PLAN_LABEL, Sub } from "@/lib/subscription";
-import { getLang, setLang, applyDir, tr, Lang } from "@/lib/i18n";
+import { getLang, setLang, applyDir, tr, Lang, getTheme, setTheme, applyTheme, Theme } from "@/lib/i18n";
 
 type Item = { icon: string; ar: string; en: string; href?: string };
 const SECTORS: { ar: string; en: string; items: Item[] }[] = [
@@ -66,11 +66,14 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   const [state, setState] = useState<"loading" | "guest" | "locked" | "ok">("loading");
   const [sub, setSub] = useState<Sub | null>(null);
   const [lang, setLangState] = useState<Lang>("ar");
+  const [theme, setThemeState] = useState<Theme>("dark");
   const path = usePathname();
 
   useEffect(() => {
     setLangState(getLang());
+    setThemeState(getTheme());
     applyDir();
+    applyTheme();
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setState("guest"); return; }
@@ -81,12 +84,16 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   }, []);
 
   const t = (s: { ar: string; en: string }) => tr(s, lang);
-  const LangBtn = (
-    <button className="btn ghost" style={{ width: "100%", marginBottom: 10, fontSize: 12 }}
-      onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
-      🌐 {lang === "ar" ? "English" : "العربية"}
-    </button>
+  const toggleTheme = () => { const n: Theme = theme === "dark" ? "light" : "dark"; setTheme(n); setThemeState(n); };
+  const Controls = (
+    <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+      <button className="btn ghost" style={{ flex: 1, fontSize: 12 }}
+        onClick={() => setLang(lang === "ar" ? "en" : "ar")}>🌐 {lang === "ar" ? "EN" : "ع"}</button>
+      <button className="btn ghost" style={{ flex: 1, fontSize: 12 }}
+        onClick={toggleTheme}>{theme === "dark" ? "☀️ Light" : "🌙 Dark"}</button>
+    </div>
   );
+  const LangBtn = Controls;
 
   if (state === "loading") return <p className="muted" style={{ padding: 30 }}>{t(T.verifying)}</p>;
 

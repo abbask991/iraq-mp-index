@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 import asyncio
 
-from app.services import ai, cache, campaign, network, news, sov, trends, x
+from app.services import ai, cache, campaign, network, news, sources_extra, sov, trends, x
 
 NEWS_TTL = 300   # seconds — repeated identical queries return instantly
 X_TTL = 180
@@ -49,11 +49,22 @@ async def monitor_news(req: KeywordReq):
     cached = cache.get(key, NEWS_TTL)
     if cached is not None:
         return cached
-    hits = await news.fetch_news(req.keywords, cap=100, range=rng)
+    # Google News RSS (per-source) + GDELT + direct RSS + Telegram, in parallel
+    gnews, extra = await asyncio.gather(
+        news.fetch_news(req.keywords, cap=100, range=rng),
+        sources_extra.fetch_extra(req.keywords[0], rng),
+    )
+    for h in gnews:
+        h.setdefault("src_type", "Google News")
+    seen = {h["link"] for h in gnews}
+    hits = gnews + [h for h in extra if h["link"] not in seen]
+    hits.sort(key=lambda h: h.get("date", ""), reverse=True)
+    hits = hits[:130]
     cls = await ai.classify_all([h["title"] for h in hits])
     for h, c in zip(hits, cls):
         h["sentiment"], h["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
-    result = {"hits": hits, "count": len(hits), "sources": _distinct_sources(hits)}
+    result = {"hits": hits, "count": len(hits), "sources": _distinct_sources(hits),
+              "source_types": sorted({h.get("src_type", "Google News") for h in hits})}
     cache.put(key, result)
     return result
 

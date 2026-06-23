@@ -1,9 +1,9 @@
 "use client";
 import { useEffect } from "react";
-import { applyDir } from "@/lib/i18n";
+import { applyDir, applyTheme } from "@/lib/i18n";
 
-/** Applies the stored language's dir/lang to <html> on every page load. */
+/** Applies the stored language dir + theme to <html> on every page load. */
 export default function DirInit() {
-  useEffect(() => { applyDir(); }, []);
+  useEffect(() => { applyDir(); applyTheme(); }, []);
   return null;
 }

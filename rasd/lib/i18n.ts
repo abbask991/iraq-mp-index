@@ -23,3 +23,21 @@ export function setLang(l: Lang) {
 export function tr(s: { ar: string; en: string }, l: Lang): string {
   return l === "en" ? s.en : s.ar;
 }
+
+export type Theme = "dark" | "light";
+
+export function getTheme(): Theme {
+  if (typeof window === "undefined") return "dark";
+  return localStorage.getItem("theme") === "light" ? "light" : "dark";
+}
+
+/** Apply the stored theme to <html> (CSS variables switch live, no reload). */
+export function applyTheme() {
+  if (typeof document === "undefined") return;
+  document.documentElement.setAttribute("data-theme", getTheme());
+}
+
+export function setTheme(t: Theme) {
+  localStorage.setItem("theme", t);
+  applyTheme();
+}

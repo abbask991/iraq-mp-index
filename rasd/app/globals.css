@@ -1,11 +1,18 @@
 :root {
   --bg: #0a0e17; --panel: #111726; --line: #1f2a3d; --text: #e8eef9;
-  --muted: #8a97ad; --accent: #34d6c6; --accent2: #4f9dff;
+  --muted: #8a97ad; --accent: #34d6c6; --accent2: #4f9dff; --input: #0c1320; --hover: #0e1626;
 }
+[data-theme="light"] {
+  --bg: #f4f6fb; --panel: #ffffff; --line: #e2e8f0; --text: #0b1220;
+  --muted: #5b6675; --accent: #0d9488; --accent2: #2563eb; --input: #ffffff; --hover: #eef2f7;
+}
+[data-theme="light"] .banner { color: #7c2d12; }
+[data-theme="light"] .card, [data-theme="light"] .mpcard, [data-theme="light"] .cbox,
+[data-theme="light"] .stat, [data-theme="light"] .admin-side { box-shadow: 0 1px 3px rgba(15,23,42,.06); }
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
-  font-family: -apple-system, "Segoe UI", Roboto, sans-serif; direction: rtl;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 a { color: var(--accent2); text-decoration: none; }
 .wrap { max-width: 1000px; margin: 0 auto; padding: 24px 18px 60px; }
@@ -26,7 +33,7 @@ a { color: var(--accent2); text-decoration: none; }
 .btn.ghost:hover { color: var(--text); border-color: var(--accent); }
 .star { font-size: 26px; cursor: pointer; color: #2b3650; background:none; border:0; }
 .star.on { color: #facc15; }
-input, textarea { background:#0c1320; border:1px solid var(--line); color:var(--text);
+input, textarea { background:var(--input); border:1px solid var(--line); color:var(--text);
   border-radius:10px; padding:10px; width:100%; font: inherit; }
 .muted { color: var(--muted); font-size: 13px; }
 
@@ -37,7 +44,7 @@ input, textarea { background:#0c1320; border:1px solid var(--line); color:var(--
 .admin-side { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px; position: sticky; top: 16px; }
 .admin-side .grp { color: var(--muted); font-size: 11px; letter-spacing: .5px; margin: 12px 10px 6px; }
 .admin-side a { display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 10px; color: var(--muted); margin-bottom: 3px; font-size: 14px; }
-.admin-side a:hover { background: #0e1626; color: var(--text); }
+.admin-side a:hover { background: var(--hover); color: var(--text); }
 .admin-side a.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #04121a; font-weight: 700; }
 .admin-main h2 { margin: 0 0 4px; }
 .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 8px 0 4px; }
@@ -55,7 +62,7 @@ input, textarea { background:#0c1320; border:1px solid var(--line); color:var(--
   border-radius: 18px; padding: 22px 24px; margin-bottom: 16px; }
 .mon-hero h2 { margin: 0 0 6px; font-size: 22px; }
 .mon-hero .kw { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 8px; }
-.mon-hero .kw span { background: #0e1626; border: 1px solid var(--line); border-radius: 8px;
+.mon-hero .kw span { background: var(--hover); border: 1px solid var(--line); border-radius: 8px;
   padding: 4px 11px; font-size: 12.5px; color: var(--accent); }
 .mon-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; }
 @media (max-width: 760px) { .mon-grid { grid-template-columns: 1fr; } }
@@ -70,7 +77,7 @@ input, textarea { background:#0c1320; border:1px solid var(--line); color:var(--
 .trend .col i { width: 100%; border-radius: 5px 5px 0 0; min-height: 2px; background: linear-gradient(180deg, var(--accent), var(--accent2)); }
 .trend .col b { font-size: 12px; } .trend .col span { font-size: 9.5px; color: var(--muted); }
 .srcrow { display: grid; grid-template-columns: 120px 1fr 38px; align-items: center; gap: 10px; margin: 9px 0; font-size: 13px; }
-.srcrow .bar { height: 9px; background: #0c1320; border-radius: 5px; overflow: hidden; }
+.srcrow .bar { height: 9px; background: var(--hover); border-radius: 5px; overflow: hidden; }
 .srcrow .bar i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
 .srcrow .num { text-align: left; color: var(--muted); font-variant-numeric: tabular-nums; }
 .newsitem { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 9px;
