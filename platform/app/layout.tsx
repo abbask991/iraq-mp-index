@@ -14,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="topbar">
             <Link href="/" style={{ fontWeight: 800, color: "var(--text)" }}>🏛️ تقييم النواب</Link>
             <span style={{ display: "flex", gap: 14 }}>
+              <Link href="/monitor" className="muted">📡 مركز الرصد</Link>
               <Link href="/admin" className="muted">الإدارة</Link>
               <Link href="/login" className="muted">تسجيل الدخول</Link>
             </span>
