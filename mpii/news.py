@@ -115,10 +115,7 @@ def classify_llm(title: str):
         return None
 
 
-def classify(title: str) -> dict:
-    llm = classify_llm(title)
-    if llm:
-        return llm
+def _classify_kw(title: str) -> dict:
     t = title or ""
     typ = next((label for label, kws in _TYPES if any(k in t for k in kws)), "عام")
     if any(k in t for k in _NEG):
@@ -128,6 +125,63 @@ def classify(title: str) -> dict:
     else:
         sent = "محايد"
     return {"type": typ, "sentiment": sent}
+
+
+_CACHE: dict = {}
+
+
+def classify(title: str) -> dict:
+    if title in _CACHE:
+        return _CACHE[title]
+    r = classify_llm(title) or _classify_kw(title)
+    _CACHE[title] = r
+    return r
+
+
+def _llm_on() -> bool:
+    return bool(os.environ.get("ANTHROPIC_API_KEY") and os.environ.get("USE_LLM_CLASSIFY"))
+
+
+def classify_batch_llm(titles: list):
+    """Classify up to ~25 titles in ONE Claude call. Returns a list or None."""
+    if not _llm_on() or not titles:
+        return None
+    import json as _json
+    listed = "\n".join(f"{i+1}. {t}" for i, t in enumerate(titles))
+    prompt = ('عناوين أخبار عن نواب عراقيين. صنّف كل عنوان. أعد JSON array فقط، بنفس الترتيب وبنفس العدد '
+              f'({len(titles)} عنصر)، كل عنصر: '
+              '{"sentiment":"إيجابي|محايد|سلبي","type":"أمني/حادث|فساد/قضاء|تشريعي|رقابي|دبلوماسي/زيارة|تصريح|عام"}.\n\n'
+              + listed)
+    body = {"model": "claude-haiku-4-5-20251001", "max_tokens": 2000,
+            "messages": [{"role": "user", "content": prompt}]}
+    req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=_json.dumps(body).encode(),
+        headers={"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01",
+                 "content-type": "application/json"})
+    try:
+        r = _json.loads(urllib.request.urlopen(req, timeout=60, context=_ctx()).read())
+        txt = r["content"][0]["text"]
+        arr = _json.loads(txt[txt.find("["):txt.rfind("]") + 1])
+        if len(arr) == len(titles):
+            return [{"sentiment": x.get("sentiment", "محايد"), "type": x.get("type", "عام")} for x in arr]
+    except Exception:
+        pass
+    return None
+
+
+def classify_many(titles: list) -> list:
+    """Classify a list of titles, caching results (batched LLM if enabled)."""
+    todo = [t for t in dict.fromkeys(titles) if t not in _CACHE]
+    if todo and _llm_on():
+        for i in range(0, len(todo), 25):
+            chunk = todo[i:i + 25]
+            res = classify_batch_llm(chunk)
+            if res:
+                for t, r in zip(chunk, res):
+                    _CACHE[t] = r
+            else:
+                for t in chunk:
+                    _CACHE[t] = _classify_kw(t)
+    return [classify(t) for t in titles]
 
 
 def _ctx():

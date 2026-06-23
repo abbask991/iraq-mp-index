@@ -266,6 +266,18 @@ def _supabase_cfg() -> dict:
 def build_payload(data_dir: str) -> dict:
     members = pd.read_csv(os.path.join(data_dir, "members.csv"))
     raw = pd.read_csv(os.path.join(data_dir, "raw_indicators.csv"))
+
+    # pre-warm the news classification cache with ONE batched pass over all titles
+    from .news import classify_many
+    titles = []
+    for fn, col in (("mentions.csv", "title"), ("telegram.csv", "text"), ("watch.csv", "title")):
+        p = os.path.join(data_dir, fn)
+        if os.path.exists(p):
+            with open(p, encoding="utf-8") as f:
+                titles += [r.get(col, "") for r in csv.DictReader(f)]
+    if titles:
+        classify_many(titles)
+
     return {
         "supabase": _supabase_cfg(),
         "mentions": _mentions(data_dir),
