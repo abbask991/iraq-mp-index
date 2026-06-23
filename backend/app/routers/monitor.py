@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 import asyncio
 
-from app.services import ai, cache, campaign, network, news, sources_extra, sov, trends, x
+from app.services import ai, bigdata, cache, campaign, network, news, sources_extra, sov, trends, x
 
 NEWS_TTL = 300   # seconds — repeated identical queries return instantly
 X_TTL = 180
@@ -416,6 +416,30 @@ async def monitor_trends(req: KeywordReq):
     platforms_present = 1 + (1 if news_count else 0)  # X + news (live platforms)
 
     result = trends.analyze(kw, tweets, users, sentiments, news_count, platforms_present)
+    cache.put(key, result)
+    return result
+
+
+@router.post("/bigdata")
+async def monitor_bigdata(req: KeywordReq):
+    """Advanced big-data analytics for a topic: manipulation index, influence
+    network graph, activity heatmap, distributions, timeline, fingerprints."""
+    if not req.keywords:
+        return {"sparse": True}
+    kw = req.keywords[0]
+    rng = req.range or "week"
+    key = f"bigdata:{rng}:" + kw
+    cached = cache.get(key, 240)
+    if cached is not None:
+        return cached
+    tw = await x.fetch_trend(kw, want=200, range=rng)
+    if "error" in tw:
+        return {"sparse": True, "error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
+    tweets, users = tw["tweets"], tw["users"]
+    cls = await ai.classify_all([t["text"] for t in tweets])
+    for t, c in zip(tweets, cls):
+        t["sentiment"] = c.get("sentiment", "محايد")
+    result = bigdata.analyze(kw, tweets, users)
     cache.put(key, result)
     return result
 

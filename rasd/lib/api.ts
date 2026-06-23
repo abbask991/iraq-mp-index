@@ -5,7 +5,7 @@
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") || "";
 
-type Kind = "news" | "x" | "x-replies" | "summarize" | "youtube" | "risk" | "network" | "index" | "trends" | "discover" | "campaign" | "campaign-scan" | "new-accounts" | "sov" | "overview";
+type Kind = "news" | "x" | "x-replies" | "summarize" | "youtube" | "risk" | "network" | "index" | "trends" | "discover" | "campaign" | "campaign-scan" | "new-accounts" | "sov" | "overview" | "bigdata";
 
 // FastAPI path  vs  Next.js fallback path
 const MAP: Record<Kind, { fast: string; next: string }> = {
@@ -16,6 +16,7 @@ const MAP: Record<Kind, { fast: string; next: string }> = {
   // risk (early-warning) + network (big-data) only exist on the FastAPI backend
   risk:        { fast: "/monitor/risk",       next: "/monitor/risk" },
   network:     { fast: "/monitor/network",    next: "/monitor/network" },
+  bigdata:     { fast: "/monitor/bigdata",    next: "/monitor/bigdata" },
   index:       { fast: "/monitor/index",      next: "/monitor/index" },
   trends:      { fast: "/monitor/trends",     next: "/monitor/trends" },
   discover:    { fast: "/monitor/discover",   next: "/monitor/discover" },
