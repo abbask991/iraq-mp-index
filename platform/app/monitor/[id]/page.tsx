@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -27,7 +27,10 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true);
   const [platform, setPlatform] = useState<"news" | "x" | "youtube">("news");
   const [notice, setNotice] = useState<string>("");
+  const [updatedAt, setUpdatedAt] = useState<string>("");
+  const cacheRef = useRef<Record<string, { hits: any[]; at: string }>>({});
 
+  // fresh fetch from the live API → updates the cache (Supabase + in-memory)
   const run = useCallback(async (m: any, plat: "news" | "x" | "youtube") => {
     setLoading(true);
     setNotice("");
@@ -39,18 +42,37 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
     const j = await res.json();
     setHits(j.hits || []);
     if (j.message) setNotice(j.message);
+    const at = new Date().toISOString();
+    if (!j.error) {
+      cacheRef.current = { ...cacheRef.current, [plat]: { hits: j.hits || [], at } };
+      setUpdatedAt(at);
+      supabase.from("monitors").update({ cache: cacheRef.current }).eq("id", m.id).then(() => {});
+    } else { setUpdatedAt(""); }
     setLoading(false);
   }, []);
 
-  const switchTo = (plat: "news" | "x" | "youtube") => { setPlatform(plat); if (mon) run(mon, plat); };
+  // show cached result instantly if present; otherwise fetch fresh
+  const show = useCallback((m: any, plat: "news" | "x" | "youtube") => {
+    const c = cacheRef.current[plat];
+    if (c) {
+      setHits(c.hits); setUpdatedAt(c.at); setNotice(""); setLoading(false);
+    } else {
+      run(m, plat);
+    }
+  }, [run]);
+
+  const switchTo = (plat: "news" | "x" | "youtube") => { setPlatform(plat); if (mon) show(mon, plat); };
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("monitors").select("*").eq("id", params.id).maybeSingle();
       setMon(data);
-      if (data) run(data, "news"); else setLoading(false);
+      if (data) {
+        cacheRef.current = data.cache && typeof data.cache === "object" ? data.cache : {};
+        show(data, "news");
+      } else setLoading(false);
     })();
-  }, [params.id, run]);
+  }, [params.id, show]);
 
   if (!mon && !loading) return <p className="muted">الرصد غير موجود.</p>;
   const isX = platform === "x";
@@ -84,7 +106,12 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
             <h2>📡 {mon?.name}</h2>
             <div className="kw">{(mon?.keywords || []).map((k: string) => <span key={k}>{k}</span>)}</div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {updatedAt && !loading && (
+              <span className="muted" style={{ fontSize: 11 }}>
+                آخر تحديث: {updatedAt.slice(0, 10)} {updatedAt.slice(11, 16)}
+              </span>
+            )}
             <Link href={`/monitor/${mon?.id}/report`} className="btn ghost" style={{ textDecoration: "none" }}>📄 تقرير PDF</Link>
             <button className="btn" onClick={() => mon && run(mon, platform)} disabled={loading}>↻ تحديث</button>
           </div>
