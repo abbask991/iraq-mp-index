@@ -38,10 +38,14 @@ function parseItems(xml: string, term: string, limit: number) {
 async function fetchOne(term: string, domain: string) {
   const q = encodeURIComponent(`"${term}" site:${domain}`);
   const url = `https://news.google.com/rss/search?q=${q}&hl=ar&gl=IQ&ceid=IQ:ar`;
+  // cap each source at 6s so one slow/hanging site can't drag the whole request
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 6000);
   try {
-    const xml = await (await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } })).text();
+    const xml = await (await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, signal: ac.signal })).text();
     return parseItems(xml, term, 12);
   } catch { return []; }
+  finally { clearTimeout(timer); }
 }
 
 async function classify(titles: string[]) {
