@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { apiPost } from "@/lib/api";
 
 const C = { neg: "#f43f5e", neu: "#8a97ad", pos: "#22c55e" };
 const sColor = (s: string) => (s === "سلبي" ? C.neg : s === "إيجابي" ? C.pos : C.neu);
@@ -33,11 +34,11 @@ export default function MonitorReport({ params }: { params: { id: string } }) {
   const build = useCallback(async (m: any) => {
     setLoading(true);
     setStage("جارٍ جلب الأخبار ومنصّة X…");
-    const call = (url: string) => fetch(url, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ keywords: m.keywords, limit: 100 }),
-    }).then((r) => r.json()).catch(() => ({ hits: [] }));
-    const [news, x] = await Promise.all([call("/api/monitor-fetch"), call("/api/x-fetch")]);
+    const body = { keywords: m.keywords, limit: 100 };
+    const [news, x] = await Promise.all([
+      apiPost("news", body).catch(() => ({ hits: [] })),
+      apiPost("x", body).catch(() => ({ hits: [] })),
+    ]);
     const all = [
       ...(news.hits || []).map((h: any) => ({ ...h, platform: "news" })),
       ...(x.hits || []).map((h: any) => ({ ...h, platform: "x" })),
@@ -49,13 +50,10 @@ export default function MonitorReport({ params }: { params: { id: string } }) {
     const neu = all.length - neg - pos;
     const idx = all.length ? Math.round(50 + (50 * (pos - neg)) / all.length) : 50;
     setStage("جارٍ توليد الملخّص التنفيذي بالذكاء الاصطناعي…");
-    const s = await fetch("/api/summarize", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: m.name, stats: { total: all.length, pos, neg, neu, idx },
-        samples: all.slice(0, 40).map((h) => ({ title: h.title, sentiment: h.sentiment })),
-      }),
-    }).then((r) => r.json()).catch(() => ({ summary: "" }));
+    const s = await apiPost("summarize", {
+      name: m.name, stats: { total: all.length, pos, neg, neu, idx },
+      samples: all.slice(0, 40).map((h) => ({ title: h.title, sentiment: h.sentiment })),
+    }).catch(() => ({ summary: "" }));
     setSummary(s.summary || "");
     setLoading(false);
   }, []);

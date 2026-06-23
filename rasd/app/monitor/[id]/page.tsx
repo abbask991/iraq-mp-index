@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { apiPost } from "@/lib/api";
 
 const C = { neg: "#f43f5e", neu: "#8a97ad", pos: "#22c55e" };
 const sColor = (s: string) => (s === "سلبي" ? C.neg : s === "إيجابي" ? C.pos : C.neu);
@@ -34,12 +35,8 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
   const run = useCallback(async (m: any, plat: "news" | "x" | "youtube") => {
     setLoading(true);
     setNotice("");
-    const endpoint = plat === "x" ? "/api/x-fetch" : plat === "youtube" ? "/api/youtube-fetch" : "/api/monitor-fetch";
-    const res = await fetch(endpoint, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ keywords: m.keywords }),
-    });
-    const j = await res.json();
+    const kind = plat === "x" ? "x" : plat === "youtube" ? "youtube" : "news";
+    const j = await apiPost(kind, { keywords: m.keywords });
     setHits(j.hits || []);
     if (j.message) setNotice(j.message);
     const at = new Date().toISOString();

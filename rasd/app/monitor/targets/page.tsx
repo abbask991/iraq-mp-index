@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { apiPost } from "@/lib/api";
 
 const C = { neg: "#f43f5e", neu: "#8a97ad", pos: "#22c55e" };
 const sColor = (s: string) => (s === "سلبي" ? C.neg : s === "إيجابي" ? C.pos : C.neu);
@@ -43,10 +44,7 @@ export default function AdminX() {
     const id = tweetId(h.link);
     if (!id) return;
     setRepBusy(id);
-    const r = await fetch("/api/x-replies", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tweetId: id }),
-    }).then((res) => res.json()).catch(() => ({ replies: [], error: "X_API_ERROR" }));
+    const r = await apiPost("x-replies", { tweetId: id }).catch(() => ({ replies: [], error: "X_API_ERROR" }));
     setReplies((p) => ({ ...p, [id]: r }));
     setRepBusy("");
   };
@@ -71,12 +69,7 @@ export default function AdminX() {
 
   const view = useCallback(async (name: string, plat: "x" | "youtube") => {
     setSel(name); setPlatform(plat); setLoading(true); setNotice(""); setHits([]);
-    const endpoint = plat === "youtube" ? "/api/youtube-fetch" : "/api/x-fetch";
-    const res = await fetch(endpoint, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ keywords: [name], limit: 150 }),
-    });
-    const j = await res.json();
+    const j = await apiPost(plat === "youtube" ? "youtube" : "x", { keywords: [name], limit: 150 });
     setHits(j.hits || []);
     if (j.message) setNotice(j.message);
     setLoading(false);

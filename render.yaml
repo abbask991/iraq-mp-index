@@ -1,0 +1,21 @@
+# Render Blueprint — مركز الرصد FastAPI backend.
+# In Render: New + → Blueprint → connect this repo → it reads this file.
+# Then set the two secret env vars (ANTHROPIC_API_KEY, X_BEARER_TOKEN) in the dashboard.
+services:
+  - type: web
+    name: rasd-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+      - key: CORS_ORIGINS
+        value: "https://rasd-monitor.vercel.app,http://localhost:3000"
+      - key: ANTHROPIC_API_KEY
+        sync: false   # set in dashboard (secret)
+      - key: X_BEARER_TOKEN
+        sync: false   # set in dashboard (secret)
