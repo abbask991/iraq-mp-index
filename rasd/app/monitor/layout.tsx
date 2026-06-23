@@ -4,47 +4,73 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getMySub, isActive, daysLeft, PLAN_LABEL, Sub } from "@/lib/subscription";
+import { getLang, setLang, applyDir, tr, Lang } from "@/lib/i18n";
 
-// 3-sector org structure (هيكل المركز)
-const SECTORS: { sector: string; items: { icon: string; label: string; href?: string }[] }[] = [
+type Item = { icon: string; ar: string; en: string; href?: string };
+const SECTORS: { ar: string; en: string; items: Item[] }[] = [
   {
-    sector: "القطاع الأول · الرصد الإعلامي",
+    ar: "القطاع الأول · الرصد الإعلامي", en: "Sector 1 · Media Monitoring",
     items: [
-      { icon: "📺", label: "الإعلام التقليدي", href: "/monitor" },
-      { icon: "📱", label: "الإعلام الرقمي", href: "/monitor/targets" },
-      { icon: "🌍", label: "الرصد الدولي" },
+      { icon: "📺", ar: "الإعلام التقليدي", en: "Traditional Media", href: "/monitor" },
+      { icon: "📱", ar: "الإعلام الرقمي", en: "Digital Media", href: "/monitor/targets" },
+      { icon: "🌍", ar: "الرصد الدولي", en: "International Monitoring" },
     ],
   },
   {
-    sector: "القطاع الثاني · التحليل والبحوث",
+    ar: "القطاع الثاني · التحليل والبحوث", en: "Sector 2 · Analysis & Research",
     items: [
-      { icon: "🧩", label: "تحليل المحتوى", href: "/monitor" },
-      { icon: "🏆", label: "حصة الصوت (SOV)", href: "/monitor/sov" },
-      { icon: "📚", label: "الدراسات والبحوث" },
-      { icon: "🗳️", label: "استطلاعات الرأي" },
+      { icon: "🧩", ar: "تحليل المحتوى", en: "Content Analysis", href: "/monitor" },
+      { icon: "🏆", ar: "حصة الصوت (SOV)", en: "Share of Voice", href: "/monitor/sov" },
+      { icon: "📚", ar: "الدراسات والبحوث", en: "Studies & Research" },
+      { icon: "🗳️", ar: "استطلاعات الرأي", en: "Opinion Polls" },
     ],
   },
   {
-    sector: "القطاع الثالث · البيانات والذكاء",
+    ar: "القطاع الثالث · البيانات والذكاء", en: "Sector 3 · Data & AI",
     items: [
-      { icon: "🧠", label: "البيانات الضخمة والتحليلات", href: "/monitor/network" },
-      { icon: "🆕", label: "الحسابات الجديدة", href: "/monitor/new-accounts" },
-      { icon: "🚨", label: "رادار الحملات", href: "/monitor/campaigns" },
-      { icon: "🕵️", label: "فحص حملة محدّدة", href: "/monitor/campaign" },
-      { icon: "🌡️", label: "ترندات الآن", href: "/monitor/discover" },
-      { icon: "🔮", label: "تحليل ترند محدّد", href: "/monitor/trends" },
-      { icon: "📊", label: "المؤشرات والـKPIs", href: "/monitor/index-report" },
-      { icon: "🔔", label: "الإنذار المبكر وإدارة السمعة", href: "/monitor/alerts" },
+      { icon: "🧠", ar: "البيانات الضخمة والتحليلات", en: "Big Data & Analytics", href: "/monitor/network" },
+      { icon: "🆕", ar: "الحسابات الجديدة", en: "New Accounts", href: "/monitor/new-accounts" },
+      { icon: "🚨", ar: "رادار الحملات", en: "Campaign Radar", href: "/monitor/campaigns" },
+      { icon: "🕵️", ar: "فحص حملة محدّدة", en: "Campaign Check", href: "/monitor/campaign" },
+      { icon: "🌡️", ar: "ترندات الآن", en: "Trending Now", href: "/monitor/discover" },
+      { icon: "🔮", ar: "تحليل ترند محدّد", en: "Trend Analysis", href: "/monitor/trends" },
+      { icon: "📊", ar: "المؤشرات والـKPIs", en: "Indices & KPIs", href: "/monitor/index-report" },
+      { icon: "🔔", ar: "الإنذار المبكر", en: "Early Warning", href: "/monitor/alerts" },
     ],
   },
 ];
 
+const T = {
+  verifying: { ar: "جارٍ التحقق…", en: "Verifying…" },
+  panelTitle: { ar: "📡 لوحة الرصد", en: "📡 Monitoring Dashboard" },
+  subscribersOnly: { ar: "هذه اللوحة للمشتركين.", en: "This dashboard is for subscribers." },
+  login: { ar: "سجّل الدخول", en: "Log in" },
+  orSignup: { ar: "أو أنشئ حساباً للبدء.", en: "or create an account to start." },
+  notActiveT: { ar: "اشتراكك غير مُفعّل", en: "Your subscription is inactive" },
+  expired: { ar: "انتهت صلاحية اشتراكك.", en: "Your subscription has expired." },
+  pending: { ar: "حسابك بانتظار التفعيل.", en: "Your account is awaiting activation." },
+  currentPlan: { ar: "باقتك الحالية:", en: "Current plan:" },
+  contactActivate: { ar: "تواصل معنا لتفعيل أو تجديد الباقة المناسبة.", en: "Contact us to activate or renew your plan." },
+  whatsapp: { ar: "تواصل عبر واتساب", en: "Contact via WhatsApp" },
+  exit: { ar: "خروج", en: "Exit" },
+  trial: { ar: "أنت على التجربة المجانية", en: "You're on the free trial" },
+  upgrade: { ar: "للترقية تواصل معنا.", en: "Contact us to upgrade." },
+  comingSoon: { ar: "قريباً", en: "Coming soon" },
+  account: { ar: "الحساب", en: "Account" },
+  mySub: { ar: "اشتراكي", en: "My Subscription" },
+  plan: { ar: "الباقة", en: "Plan" },
+  logout: { ar: "تسجيل الخروج", en: "Log out" },
+};
+
 export default function DashLayout({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<"loading" | "guest" | "locked" | "ok">("loading");
   const [sub, setSub] = useState<Sub | null>(null);
+  const [lang, setLangState] = useState<Lang>("ar");
   const path = usePathname();
 
   useEffect(() => {
+    setLangState(getLang());
+    applyDir();
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setState("guest"); return; }
@@ -54,65 +80,87 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
     })();
   }, []);
 
-  if (state === "loading") return <p className="muted" style={{ padding: 30 }}>جارٍ التحقق…</p>;
+  const t = (s: { ar: string; en: string }) => tr(s, lang);
+  const LangBtn = (
+    <button className="btn ghost" style={{ width: "100%", marginBottom: 10, fontSize: 12 }}
+      onClick={() => setLang(lang === "ar" ? "en" : "ar")}>
+      🌐 {lang === "ar" ? "English" : "العربية"}
+    </button>
+  );
+
+  if (state === "loading") return <p className="muted" style={{ padding: 30 }}>{t(T.verifying)}</p>;
 
   if (state === "guest") return (
     <div className="card" style={{ maxWidth: 460, margin: "40px auto" }}>
-      <h2>📡 لوحة الرصد</h2>
-      <p className="muted">هذه اللوحة للمشتركين. <Link href="/login">سجّل الدخول</Link> أو أنشئ حساباً للبدء.</p>
+      <h2>{t(T.panelTitle)}</h2>
+      <p className="muted">{t(T.subscribersOnly)} <Link href="/login">{t(T.login)}</Link> {t(T.orSignup)}</p>
     </div>
   );
 
   if (state === "locked") return (
     <div className="card" style={{ maxWidth: 520, margin: "40px auto", textAlign: "center" }}>
       <div style={{ fontSize: 40 }}>🔒</div>
-      <h2>اشتراكك غير مُفعّل</h2>
+      <h2>{t(T.notActiveT)}</h2>
       <p className="muted">
-        {sub?.status === "expired" ? "انتهت صلاحية اشتراكك." : "حسابك بانتظار التفعيل."} باقتك الحالية:
+        {sub?.status === "expired" ? t(T.expired) : t(T.pending)} {t(T.currentPlan)}
         <b> {PLAN_LABEL[sub?.plan || "trial"]}</b>.
       </p>
-      <p className="muted">تواصل معنا لتفعيل أو تجديد الباقة المناسبة (فواتير B2B).</p>
+      <p className="muted">{t(T.contactActivate)}</p>
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14 }}>
-        <a className="btn" href="https://wa.me/9647700000000" target="_blank" rel="noopener">تواصل عبر واتساب</a>
-        <a className="btn ghost" href="#" onClick={async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = "/login"; }}>خروج</a>
+        <a className="btn" href="https://wa.me/9647700000000" target="_blank" rel="noopener">{t(T.whatsapp)}</a>
+        <a className="btn ghost" href="#" onClick={async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = "/login"; }}>{t(T.exit)}</a>
       </div>
+      <div style={{ maxWidth: 160, margin: "16px auto 0" }}>{LangBtn}</div>
     </div>
   );
 
   const dl = daysLeft(sub);
+  const soon = SECTORS.flatMap((s) => s.items.filter((it) => !it.href));
+
   return (
     <div className="admin-shell">
+      <aside className="admin-side">
+        {LangBtn}
+        {SECTORS.map((sec) => {
+          const live = sec.items.filter((it) => it.href);
+          if (!live.length) return null;
+          return (
+            <div key={sec.en}>
+              <div className="grp">{t(sec)}</div>
+              {live.map((it) => (
+                <Link key={it.en + (it.href || "")} href={it.href!} className={path === it.href ? "active" : ""}>
+                  <span>{it.icon}</span> {t(it)}
+                </Link>
+              ))}
+            </div>
+          );
+        })}
+
+        <div className="grp">{t(T.account)}</div>
+        <Link href="/monitor/account" className={path === "/monitor/account" ? "active" : ""}><span>💳</span> {t(T.mySub)}</Link>
+        <div style={{ padding: "4px 10px", fontSize: 12 }} className="muted">
+          {t(T.plan)}: <b style={{ color: "var(--accent)" }}>{PLAN_LABEL[sub?.plan || "trial"]}</b>
+        </div>
+        <a href="#" onClick={async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = "/login"; }}>↩︎ {t(T.logout)}</a>
+
+        {/* not-yet-working sections, moved to the bottom */}
+        <div className="grp">{t(T.comingSoon)}</div>
+        {soon.map((it) => (
+          <span key={it.en} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", opacity: 0.4, fontSize: 13 }}>
+            <span>{it.icon}</span> {t(it)}
+            <span style={{ marginInlineStart: "auto", fontSize: 10, background: "#1f2a3d", padding: "1px 6px", borderRadius: 6 }}>{t(T.comingSoon)}</span>
+          </span>
+        ))}
+      </aside>
+
       <div className="admin-main">
         {sub?.plan === "trial" && (
           <div className="trial-banner">
-            🎁 أنت على التجربة المجانية{dl != null ? ` — باقٍ ${dl} يوم` : ""}. للترقية تواصل معنا.
+            🎁 {t(T.trial)}{dl != null ? (lang === "ar" ? ` — باقٍ ${dl} يوم` : ` — ${dl} days left`) : ""}. {t(T.upgrade)}
           </div>
         )}
         {children}
       </div>
-      <aside className="admin-side">
-        {SECTORS.map((sec) => (
-          <div key={sec.sector}>
-            <div className="grp">{sec.sector}</div>
-            {sec.items.map((it) => it.href ? (
-              <Link key={it.label} href={it.href} className={path === it.href ? "active" : ""}>
-                <span>{it.icon}</span> {it.label}
-              </Link>
-            ) : (
-              <span key={it.label} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", opacity: 0.45, fontSize: 13 }}>
-                <span>{it.icon}</span> {it.label}
-                <span style={{ marginInlineStart: "auto", fontSize: 10, background: "#1f2a3d", padding: "1px 6px", borderRadius: 6 }}>قريباً</span>
-              </span>
-            ))}
-          </div>
-        ))}
-        <div className="grp">الحساب</div>
-        <Link href="/monitor/account" className={path === "/monitor/account" ? "active" : ""}><span>💳</span> اشتراكي</Link>
-        <div style={{ padding: "4px 10px", fontSize: 12 }} className="muted">
-          الباقة: <b style={{ color: "var(--accent)" }}>{PLAN_LABEL[sub?.plan || "trial"]}</b>
-        </div>
-        <a href="#" onClick={async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = "/login"; }}>↩︎ تسجيل الخروج</a>
-      </aside>
     </div>
   );
 }

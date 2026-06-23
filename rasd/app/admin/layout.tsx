@@ -27,7 +27,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="admin-shell">
-      <div className="admin-main">{children}</div>
       <aside className="admin-side">
         {NAV.map((g) => (
           <div key={g.grp}>
@@ -45,6 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ↩︎ تسجيل الخروج
         </a>
       </aside>
+      <div className="admin-main">{children}</div>
     </div>
   );
 }

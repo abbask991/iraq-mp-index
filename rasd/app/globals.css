@@ -31,7 +31,8 @@ input, textarea { background:#0c1320; border:1px solid var(--line); color:var(--
 .muted { color: var(--muted); font-size: 13px; }
 
 /* ---- admin panel ---- */
-.admin-shell { display: grid; grid-template-columns: 1fr 230px; gap: 20px; align-items: start; }
+/* sidebar is the FIRST column → sits on the right in RTL, left in LTR */
+.admin-shell { display: grid; grid-template-columns: 240px 1fr; gap: 20px; align-items: start; }
 @media (max-width: 800px) { .admin-shell { grid-template-columns: 1fr; } }
 .admin-side { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px; position: sticky; top: 16px; }
 .admin-side .grp { color: var(--muted); font-size: 11px; letter-spacing: .5px; margin: 12px 10px 6px; }

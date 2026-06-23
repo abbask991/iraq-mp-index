@@ -1,5 +1,6 @@
 import "./globals.css";
 import Link from "next/link";
+import DirInit from "@/components/DirInit";
 
 export const metadata = {
   title: "مركز الرصد — الرصد والتحليل الإعلامي",
@@ -10,6 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl">
       <body>
+        <DirInit />
         <div className="wrap">
           <div className="topbar">
             <Link href="/" style={{ fontWeight: 800, color: "var(--text)" }}>📡 مركز الرصد</Link>
