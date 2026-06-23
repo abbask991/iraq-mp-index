@@ -30,6 +30,14 @@ AR_STOP = set((
 ).split())
 _AR_WORD = re.compile(r"[؀-ۿ]{4,}")
 
+# foreign / non-Iraqi hashtags to drop from auto-discovery (standalone country tags)
+EXCLUDE_HASHTAGS = {
+    "ايران", "إيران", "السعودية", "قطر", "الكويت", "مصر", "سوريا", "سورية", "تركيا",
+    "لبنان", "فلسطين", "غزة", "اسرائيل", "إسرائيل", "امريكا", "أمريكا", "روسيا", "اوكرانيا",
+    "اليمن", "الامارات", "الإمارات", "البحرين", "الاردن", "الأردن", "المغرب", "الجزائر",
+    "تونس", "السودان", "ليبيا", "عمان", "افغانستان",
+}
+
 WEIGHTS = {
     "mention_velocity": 0.25,
     "engagement_velocity": 0.15,
@@ -287,7 +295,8 @@ def discover(tweets, users, sentiments):
         out.sort(key=lambda x: -x["heat"])
         return out
 
-    hashtags = _items(_agg(lambda t: t.get("hashtags", [])), "hashtag", 2)[:20]
+    hashtags = _items(_agg(lambda t: [h for h in t.get("hashtags", []) if h not in EXCLUDE_HASHTAGS]),
+                      "hashtag", 2)[:20]
     keywords = _items(
         _agg(lambda t: {w for w in _AR_WORD.findall(t.get("text", "")) if w not in AR_STOP}),
         "keyword", 3)[:15]

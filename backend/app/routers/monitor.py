@@ -145,8 +145,13 @@ async def monitor_index(req: KeywordReq):
     return result
 
 
-# broad Iraq-politics seed so trends surface without a user keyword
-DISCOVER_SEED = '(العراق OR بغداد OR الحكومة OR "مجلس النواب" OR الوزراء OR السوداني OR العراقية)'
+# Iraq-focused seed so the surfaced hashtags are genuinely Iraqi (not generic
+# pan-Arab). Provinces + Iraqi figures/bodies + local issues + Arabic only.
+DISCOVER_SEED = (
+    '(العراق OR بغداد OR البصرة OR النجف OR كربلاء OR الموصل OR كركوك OR "ذي قار" OR الانبار '
+    'OR السوداني OR "مجلس النواب" OR "الاطار التنسيقي" OR الحشد OR الكهرباء OR الرواتب '
+    'OR الموازنة OR "الحكومة العراقية" OR العراقي) lang:ar'
+)
 
 
 @router.post("/discover")
@@ -193,7 +198,7 @@ async def monitor_campaign_scan(req: KeywordReq = KeywordReq()):  # noqa: B008
     for t, c in zip(tweets, cls):
         t["type"] = c.get("type", "عام")
 
-    htags = _C(h for t in tweets for h in t.get("hashtags", []))
+    htags = _C(h for t in tweets for h in t.get("hashtags", []) if h not in trends.EXCLUDE_HASHTAGS)
     candidates = [h for h, c in htags.most_common(14) if c >= 5]
     win = {"day": "آخر 24 ساعة", "week": "آخر 7 أيام"}.get(rng, rng)
 
