@@ -3,7 +3,9 @@ as the previous Next.js API routes, so the frontend swaps base URL only."""
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.services import ai, cache, campaign, network, news, trends, x
+import asyncio
+
+from app.services import ai, cache, campaign, network, news, sov, trends, x
 
 NEWS_TTL = 300   # seconds — repeated identical queries return instantly
 X_TTL = 180
@@ -26,6 +28,12 @@ class SummaryReq(BaseModel):
     name: str
     stats: dict = {}
     samples: list[dict] = []
+
+
+class SovReq(BaseModel):
+    entities: list[dict] = []   # [{name, aliases:[...]}]
+    category: str = ""
+    range: str | None = None
 
 
 def _distinct_sources(hits):
@@ -172,6 +180,39 @@ async def monitor_discover(req: KeywordReq = KeywordReq()):  # noqa: B008
     sentiments = [c.get("sentiment", "محايد") for c in cls]
 
     result = trends.discover(tweets, users, sentiments)
+    cache.put(key, result)
+    return result
+
+
+@router.post("/sov")
+async def monitor_sov(req: SovReq):
+    """Media Share of Voice across compared entities (alias-aware)."""
+    ents = [e for e in req.entities if e.get("name")][:6]
+    if len(ents) < 2:
+        return {"entities": [], "message": "أضِف كيانين على الأقل للمقارنة."}
+    rng = req.range or "week"
+    key = f"sov:{rng}:" + "|".join(sorted(e["name"] for e in ents))
+    cached = cache.get(key, 300)
+    if cached is not None:
+        return cached
+
+    async def collect(e):
+        aliases = e.get("aliases") or [e["name"]]
+        q = "(" + " OR ".join(f'"{a}"' for a in aliases[:4]) + ")"
+        tw, news_res = await asyncio.gather(
+            x.fetch_trend(q, want=100, range=rng),
+            monitor_news(KeywordReq(keywords=[e["name"]], range=rng)),
+        )
+        tweets = [] if "error" in tw else tw["tweets"]
+        users = {} if "error" in tw else tw["users"]
+        cls = await ai.classify_all([t["text"] for t in tweets])
+        for t, c in zip(tweets, cls):
+            t["sentiment"], t["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
+        return {"name": e["name"], "aliases": aliases, "x_tweets": tweets,
+                "x_users": users, "news_hits": news_res.get("hits", [])}
+
+    inputs = await asyncio.gather(*[collect(e) for e in ents])
+    result = sov.compute(inputs, category=req.category)
     cache.put(key, result)
     return result
 

@@ -19,6 +19,7 @@ const SECTORS: { sector: string; items: { icon: string; label: string; href?: st
     sector: "القطاع الثاني · التحليل والبحوث",
     items: [
       { icon: "🧩", label: "تحليل المحتوى", href: "/monitor" },
+      { icon: "🏆", label: "حصة الصوت (SOV)", href: "/monitor/sov" },
       { icon: "📚", label: "الدراسات والبحوث" },
       { icon: "🗳️", label: "استطلاعات الرأي" },
     ],
