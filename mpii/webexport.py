@@ -245,7 +245,7 @@ def _watch(data_dir: str) -> list:
     with open(path, encoding="utf-8") as f:
         for r in csv.DictReader(f):
             rec = {k: r.get(k, "") for k in ("term", "date", "source", "title", "link")}
-            rec["sentiment"] = classify(rec["title"])["sentiment"]
+            rec.update(classify(rec["title"]))  # sentiment + type
             out.append(rec)
     out.sort(key=lambda x: x.get("date", ""), reverse=True)
     return out

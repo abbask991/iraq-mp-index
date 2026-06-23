@@ -310,9 +310,10 @@
 
   <!-- WATCHED TOPICS TAB -->
   <div id="tab-watch" class="hidden" dir="rtl">
-    <div class="card"><div id="watchBody" style="padding:6px 4px"></div></div>
+    <div class="tabbar" id="watchNav"></div>
+    <div id="watchBody"></div>
     <p class="muted" style="color:var(--muted);font-size:12px;margin-top:10px">
-      مواضيع/هاشتاغات تُرصد من <code>settings.yaml</code> (watch_terms) · أضف/احذف بحرية ثم شغّل <code>mpii news</code>.
+      تحليل لكل موضوع مرصود · المواضيع من إعدادات الرصد · تصنيف AI من مصادر عراقية.
     </p>
   </div>
 
@@ -1095,17 +1096,49 @@ function renderBuzz(){
 
 function renderWatch(){
   const watch = PAYLOAD.watch || [];
-  const el = document.getElementById("watchBody");
-  if(!watch.length){ el.innerHTML = `<div class="empty">لا مواضيع مرصودة بعد. أضف watch_terms في settings.yaml وشغّل mpii news.</div>`; return; }
-  const byTerm = {};
-  watch.forEach(w=>{ (byTerm[w.term] = byTerm[w.term] || []).push(w); });
-  el.innerHTML = Object.entries(byTerm).map(([term,items])=>`
-    <div class="pf-sec" style="margin:8px 18px">${term} <span style="text-transform:none;letter-spacing:0;color:var(--muted)">· ${items.length} خبر</span></div>
-    ${items.map(x=>`<div style="border-top:1px solid var(--line);padding:9px 18px">
-      <a href="${x.link}" target="_blank" rel="noopener" style="font-size:13px">${x.title}</a>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">${x.source} · ${x.date}
-        <span style="color:${sentColor(x.sentiment)};border:1px solid ${sentColor(x.sentiment)}55;border-radius:6px;padding:1px 7px;margin-right:6px">${x.sentiment}</span>
-      </div></div>`).join("")}`).join("");
+  const nav=document.getElementById("watchNav"), body=document.getElementById("watchBody");
+  if(!watch.length){ nav.innerHTML=""; body.innerHTML=`<div class="card"><div class="empty">لا مواضيع مرصودة بعد.</div></div>`; return; }
+  const terms=[...new Set(watch.map(w=>w.term))];
+  if(!state.watchTerm || !terms.includes(state.watchTerm)) state.watchTerm=terms[0];
+  nav.innerHTML=terms.map(t=>`<button data-term="${t}" class="${t===state.watchTerm?'on':''}">${t}</button>`).join("");
+  nav.querySelectorAll("button").forEach(b=>b.onclick=()=>{state.watchTerm=b.dataset.term; renderWatch();});
+
+  const items=watch.filter(w=>w.term===state.watchTerm).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const neg=items.filter(x=>x.sentiment==='سلبي').length, pos=items.filter(x=>x.sentiment==='إيجابي').length, neu=items.length-neg-pos;
+  const idx=items.length?Math.round(50+50*(pos-neg)/items.length):50;
+  const idxC=idx>=60?cssv('--a'):idx<=40?cssv('--f'):cssv('--muted');
+  const src={}; items.forEach(x=>src[x.source]=(src[x.source]||0)+1);
+  const topSrc=Object.entries(src).sort((a,b)=>b[1]-a[1]).slice(0,6); const maxS=Math.max(1,...topSrc.map(s=>s[1]));
+  const mo={}; items.forEach(x=>{const m=(x.date||'').slice(0,7); if(m)mo[m]=(mo[m]||0)+1;});
+  const tr=Object.entries(mo).sort((a,b)=>a[0].localeCompare(b[0])).slice(-8); const maxT=Math.max(1,...tr.map(t=>t[1]));
+  const segs=[{label:'سلبي',value:neg,color:cssv('--f')},{label:'محايد',value:neu,color:cssv('--muted')},{label:'إيجابي',value:pos,color:cssv('--a')}];
+
+  body.innerHTML=`
+    <div class="statcards">
+      <div class="statcard"><div class="v">${items.length}</div><div class="l">إجمالي الذكر</div></div>
+      <div class="statcard"><div class="v" style="color:${idxC}">${idx}<span style="font-size:13px">/100</span></div><div class="l">المؤشر الإعلامي</div></div>
+      <div class="statcard"><div class="v" style="color:${neg?cssv('--f'):''}">${neg}</div><div class="l">سلبي</div></div>
+      <div class="statcard"><div class="v">${topSrc.length}</div><div class="l">مصادر</div></div>
+    </div>
+    <div class="pf-charts" style="margin-top:16px">
+      <div class="chartbox"><h4>توزيع النبرة</h4>${svgDonut(segs)}
+        <div class="pf-badges" style="justify-content:center;margin-top:10px">
+          <span class="pf-badge" style="color:${cssv('--f')};border-color:${cssv('--f')}55">سلبي ${neg}</span>
+          <span class="pf-badge">محايد ${neu}</span>
+          <span class="pf-badge" style="color:${cssv('--a')};border-color:${cssv('--a')}55">إيجابي ${pos}</span></div></div>
+      <div class="chartbox"><h4>التغطية عبر الزمن</h4>${tr.length?`<div class="histo">`+tr.map(([m,n])=>`<div class="col"><b>${n}</b><i style="height:${n/maxT*100}%"></i><span>${m.slice(2)}</span></div>`).join("")+`</div>`:`<div class="muted" style="padding:20px;text-align:center">لا بيانات كافية</div>`}</div>
+    </div>
+    <div class="card" style="margin-top:16px"><h3>المصادر الأكثر تغطية</h3><div style="padding:12px 18px">
+      ${topSrc.map(([s,c])=>`<div class="dperf" style="grid-template-columns:150px 1fr 44px"><div>${s}</div><div class="bar" style="width:auto"><i style="width:${c/maxS*100}%;background:linear-gradient(90deg,var(--accent2),var(--accent))"></i></div><div class="val">${c}</div></div>`).join("")||'<span class="muted">لا مصادر</span>'}
+    </div></div>
+    <div class="pf-sec" style="margin:18px 4px 10px">الأخبار (${items.length}) — الأحدث أولاً</div>
+    <div class="card"><div style="padding:4px 18px">
+      ${items.map(x=>`<div style="border-top:1px solid var(--line);padding:9px 0">
+        <a href="${x.link}" target="_blank" rel="noopener" style="font-size:13px">${x.title}</a>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${x.source} · ${x.date}
+          <span style="color:${sentColor(x.sentiment)};border:1px solid ${sentColor(x.sentiment)}55;border-radius:6px;padding:1px 7px;margin-right:6px">${x.sentiment}</span>
+          <span style="color:var(--accent2);border:1px solid var(--line);border-radius:6px;padding:1px 7px">${x.type||'عام'}</span></div></div>`).join("")||'<div class="muted" style="padding:12px">لا أخبار.</div>'}
+    </div></div>`;
 }
 
 function svgRadarCompare(labels, a, b, size=300){
