@@ -157,6 +157,47 @@ def analyze(keyword, tweets, users):
     domains = Counter(dm for t in tweets for dm in t.get("domains", []) if "t.co" not in dm)
     top_domains = [{"domain": dm, "count": c} for dm, c in domains.most_common(8)]
 
+    # ---- synchronized posting waves (10-min buckets with ≥3 distinct accounts) ----
+    wave_acc = defaultdict(set)
+    wave_cnt = Counter()
+    acc_times = defaultdict(list)
+    for t in tweets:
+        try:
+            dt = datetime.fromisoformat((t.get("created_at") or "").replace("Z", "+00:00"))
+            bk = dt.replace(minute=(dt.minute // 10) * 10, second=0).strftime("%m-%d %H:%M")
+            wave_acc[bk].add(t["author_id"]); wave_cnt[bk] += 1
+            acc_times[t["author_id"]].append(dt.timestamp() / 60)
+        except Exception:
+            pass
+    waves = sorted(
+        ({"time": k, "posts": wave_cnt[k], "accounts": len(v)} for k, v in wave_acc.items() if len(v) >= 3),
+        key=lambda w: -w["accounts"])[:6]
+
+    # ---- related (co-occurring) hashtags ----
+    kw_low = keyword.lower()
+    rel = Counter()
+    for t in tweets:
+        for h in t.get("hashtags", []):
+            if h.lower() not in kw_low and h not in trends.EXCLUDE_HASHTAGS and not trends.is_spam_hashtag(h):
+                rel[h] += 1
+    related_hashtags = [{"hashtag": h, "count": c} for h, c in rel.most_common(10) if c >= 2]
+
+    # ---- automation fingerprint: robotic interval regularity or hyperactivity ----
+    import statistics
+    auto = []
+    for a, ts in acc_times.items():
+        if len(ts) < 4:
+            continue
+        ts.sort()
+        gaps = [ts[i + 1] - ts[i] for i in range(len(ts) - 1)]
+        m = statistics.mean(gaps) or 1
+        cv = statistics.pstdev(gaps) / m
+        if cv < 0.35 or len(ts) >= 8:
+            u = users.get(a, {})
+            auto.append({"username": u.get("username"), "posts": len(ts),
+                         "regularity": round(max(0, 1 - cv), 2), "bot_score": bot_scores[a]})
+    automation_suspects = sorted(auto, key=lambda x: (-x["regularity"], -x["posts"]))[:8]
+
     return {
         "keyword": keyword, "posts": n_posts, "accounts": n_acc,
         "manipulation_index": manip, "level": level,
@@ -166,4 +207,22 @@ def analyze(keyword, tweets, users):
         "activity_by_hour": hours, "timeline": timeline,
         "network": {"nodes": nodes, "edges": node_edges, "communities": len(set(comm.values()))},
         "duplicate_clusters": clusters, "amplifiers": amplifiers, "top_domains": top_domains,
+        "coordination_waves": waves, "related_hashtags": related_hashtags,
+        "automation_suspects": automation_suspects,
     }
+
+
+def brief_facts(d: dict) -> str:
+    """Compact facts string fed to the AI analyst."""
+    dr = d.get("drivers", {})
+    amp = ", ".join(f"@{a['username']}" for a in d.get("amplifiers", [])[:3])
+    rel = "، ".join(h["hashtag"] for h in d.get("related_hashtags", [])[:4])
+    return (
+        f"مؤشّر التلاعب {d.get('manipulation_index')}/100 ({d.get('level')}). "
+        f"حسابات مشبوهة {dr.get('bot_pct')}%، محتوى مكرّر {dr.get('dup_ratio')}%، "
+        f"حسابات جديدة {dr.get('new_pct')}%، تركيز زمني {dr.get('burst')}%. "
+        f"{d.get('posts')} منشور من {d.get('accounts')} حساب. "
+        f"موجات نشر متزامن: {len(d.get('coordination_waves', []))}. "
+        f"حسابات بإيقاع آلي: {len(d.get('automation_suspects', []))}. "
+        f"أبرز المضخّمين: {amp or '—'}. هاشتاغات مرافقة: {rel or '—'}."
+    )

@@ -58,6 +58,28 @@ async def classify_all(titles: list[str]) -> list[dict]:
     return out
 
 
+async def analyst_brief(title: str, facts: str) -> str:
+    """Intelligence-style interpretation of computed big-data metrics."""
+    if not ANTHROPIC_API_KEY:
+        return ""
+    prompt = (
+        f"أنت محلّل استخبارات إعلامية محترف. بناءً على المعطيات الآلية التالية عن «{title}»، "
+        "اكتب موجزاً تحليلياً (4 إلى 6 جُمل) يجيب: هل النشاط عضوي أم تظهر مؤشرات تنسيق؟ "
+        "من يقود المحادثة؟ ما المخاطر أو الفرص؟ وتوصية عملية موجزة. "
+        "استخدم لغة احتمالية (\"يُحتمل\"، \"مؤشرات\") لا قطعية، واختم بأن التحليل يحتاج مراجعة بشرية.\n\n"
+        f"المعطيات: {facts}\n\nاكتب نصاً متّصلاً احترافياً بدون عناوين أو نقاط."
+    )
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(_API, headers=_HEADERS(), json={
+                "model": SUMMARY_MODEL, "max_tokens": 700,
+                "messages": [{"role": "user", "content": prompt}],
+            }, timeout=40)
+            return r.json()["content"][0]["text"].strip()
+    except Exception:
+        return ""
+
+
 async def summarize(name: str, stats: dict, samples: list[dict]) -> str:
     if not ANTHROPIC_API_KEY or not name:
         return ""

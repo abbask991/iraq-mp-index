@@ -76,6 +76,14 @@ export default function BigData() {
             </div>
           </div>
 
+          {/* AI analyst brief */}
+          {d.analyst_brief && (
+            <div className="cbox" style={{ marginBottom: 16, borderInlineStart: "4px solid var(--accent)" }}>
+              <h4>موجز المحلّل (ذكاء اصطناعي)</h4>
+              <p style={{ fontSize: 13.5, lineHeight: 1.95 }}>{d.analyst_brief}</p>
+            </div>
+          )}
+
           {/* influence network */}
           <div className="cbox" style={{ marginBottom: 16 }}>
             <h4>خريطة شبكة التأثير — {net?.nodes?.length || 0} حساب · {net?.communities || 0} مجتمع · {net?.edges?.length || 0} رابط</h4>
@@ -194,6 +202,48 @@ export default function BigData() {
               ))}
             </div>
           </div>
+
+          <div className="cc-grid">
+            {/* coordination waves */}
+            <div className="cbox" style={{ borderColor: (d.coordination_waves || []).length ? "#fb923c55" : undefined }}>
+              <h4>موجات نشر متزامن</h4>
+              {(d.coordination_waves || []).length === 0 && <span className="muted">لا موجات تزامن واضحة (نشاط موزّع طبيعي).</span>}
+              {(d.coordination_waves || []).map((w: any) => (
+                <div className="srcrow" key={w.time} style={{ marginBottom: 5 }}>
+                  <div style={{ width: 110, fontSize: 12 }}>{w.time}</div>
+                  <div className="bar"><i style={{ width: `${Math.min(100, w.accounts * 12)}%`, background: "#fb923c" }} /></div>
+                  <div className="num">{w.accounts} حساب</div>
+                </div>
+              ))}
+              <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>عدّة حسابات تنشر بنفس النافذة (10 دقائق) = مؤشّر تنسيق.</div>
+            </div>
+
+            {/* related hashtags */}
+            <div className="cbox">
+              <h4>الهاشتاغات المرافقة</h4>
+              {(d.related_hashtags || []).length === 0 && <span className="muted">—</span>}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {(d.related_hashtags || []).map((h: any) => (
+                  <a key={h.hashtag} href={`/monitor/trends?q=${encodeURIComponent(h.hashtag)}`}
+                    className="chip" style={{ padding: "6px 10px", color: "var(--accent2)" }}>#{h.hashtag} <span className="muted">×{h.count}</span></a>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {(d.automation_suspects || []).length > 0 && (
+            <div className="cbox" style={{ marginTop: 16, borderColor: "#f43f5e55" }}>
+              <h4>حسابات بإيقاع آلي مشتبه (بصمة أتمتة)</h4>
+              <p className="muted" style={{ fontSize: 12, margin: "2px 0 8px" }}>حسابات تنشر بفواصل زمنية منتظمة جداً أو بمعدّل مرتفع — سلوك أقرب للأتمتة.</p>
+              {d.automation_suspects.map((a: any) => (
+                <div className="srcrow" key={a.username} style={{ marginBottom: 4 }}>
+                  <div style={{ flex: 1, fontSize: 13 }}><a href={`https://x.com/${a.username}`} target="_blank" rel="noopener" style={{ color: "var(--text)" }}>@{a.username}</a></div>
+                  <span className="muted" style={{ fontSize: 11 }}>{a.posts} منشور · انتظام {Math.round(a.regularity * 100)}%</span>
+                  <span className="chip" style={{ color: riskColor(a.bot_score), marginInlineStart: 6, fontSize: 11 }}>بوت {a.bot_score}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           <p className="muted" style={{ fontSize: 11, marginTop: 14 }}>
             * تحليل آلي تقريبي مبني على إشارات علنية — لا يثبت التلاعب بشكل قاطع ويتطلّب مراجعة بشرية.

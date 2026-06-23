@@ -440,6 +440,8 @@ async def monitor_bigdata(req: KeywordReq):
     for t, c in zip(tweets, cls):
         t["sentiment"] = c.get("sentiment", "محايد")
     result = bigdata.analyze(kw, tweets, users)
+    if not result.get("sparse"):
+        result["analyst_brief"] = await ai.analyst_brief(kw, bigdata.brief_facts(result))
     cache.put(key, result)
     return result
 
