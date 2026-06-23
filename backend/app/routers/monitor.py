@@ -92,3 +92,43 @@ async def monitor_x_replies(req: RepliesReq):
 @router.post("/summarize")
 async def monitor_summarize(req: SummaryReq):
     return {"summary": await ai.summarize(req.name, req.stats, req.samples)}
+
+
+@router.post("/risk")
+async def monitor_risk(req: KeywordReq):
+    """Early-warning risk score for a target: combines news + X, weights recent
+    negative mentions. Reuses the same cache entries as the dashboard."""
+    if not req.keywords:
+        return {"total": 0, "level": "low"}
+    from datetime import datetime, timedelta
+
+    news_res = await monitor_news(KeywordReq(keywords=req.keywords))
+    x_res = await monitor_x(KeywordReq(keywords=req.keywords))
+    hits = (news_res.get("hits") or []) + (x_res.get("hits") or [])
+
+    cutoff = (datetime.utcnow() - timedelta(days=2)).strftime("%Y-%m-%d")
+    total = len(hits)
+    neg = [h for h in hits if h.get("sentiment") == "سلبي"]
+    pos = sum(1 for h in hits if h.get("sentiment") == "إيجابي")
+    recent_neg = [h for h in neg if (h.get("date") or "") >= cutoff]
+    neg_ratio = (len(neg) / total) if total else 0.0
+
+    # risk: recent negatives matter most, then overall negativity
+    score = len(recent_neg) * 2 + len(neg)
+    if len(recent_neg) >= 5 or (neg_ratio > 0.5 and total >= 8):
+        level = "high"
+    elif len(recent_neg) >= 2 or neg_ratio > 0.3:
+        level = "medium"
+    else:
+        level = "low"
+
+    top_neg = sorted(neg, key=lambda h: (h.get("date", ""), h.get("engagement", 0)), reverse=True)[:5]
+    return {
+        "total": total, "neg": len(neg), "pos": pos, "neu": total - len(neg) - pos,
+        "recent_neg": len(recent_neg), "neg_ratio": round(neg_ratio, 2),
+        "score": score, "level": level,
+        "top_negative": [{
+            "title": h.get("title"), "source": h.get("source"), "date": h.get("date"),
+            "link": h.get("link"), "platform": "x" if str(h.get("source", "")).startswith("@") else "news",
+        } for h in top_neg],
+    }

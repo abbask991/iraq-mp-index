@@ -6,9 +6,17 @@ import { supabase } from "@/lib/supabaseClient";
 import { getMySub, isActive, daysLeft, PLAN_LABEL, Sub } from "@/lib/subscription";
 
 const NAV = [
-  ["📡", "عمليات الرصد", "/monitor"],
-  ["🎯", "أهداف X/يوتيوب", "/monitor/targets"],
+  ["📡", "الرصد الإعلامي", "/monitor"],
+  ["🎯", "رصد السوشيال", "/monitor/targets"],
+  ["🔔", "الإنذار المبكر", "/monitor/alerts"],
   ["💳", "اشتراكي", "/monitor/account"],
+];
+const SOON = [
+  ["🧠", "البيانات الضخمة"],
+  ["✅", "التحقق من المعلومات"],
+  ["📊", "المؤشرات والدراسات"],
+  ["🗳️", "استطلاعات الرأي"],
+  ["🤝", "العلاقات الإعلامية"],
 ];
 
 export default function DashLayout({ children }: { children: React.ReactNode }) {
@@ -63,11 +71,17 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         {children}
       </div>
       <aside className="admin-side">
-        <div className="grp">لوحة الرصد</div>
+        <div className="grp">الأقسام</div>
         {NAV.map(([icon, label, href]) => (
           <Link key={href} href={href} className={path === href ? "active" : ""}>
             <span>{icon}</span> {label}
           </Link>
+        ))}
+        {SOON.map(([icon, label]) => (
+          <span key={label} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", opacity: 0.45, fontSize: 13 }}>
+            <span>{icon}</span> {label}
+            <span style={{ marginInlineStart: "auto", fontSize: 10, background: "#1f2a3d", padding: "1px 6px", borderRadius: 6 }}>قريباً</span>
+          </span>
         ))}
         <div className="grp">الحساب</div>
         <div style={{ padding: "4px 10px", fontSize: 12 }} className="muted">
