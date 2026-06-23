@@ -129,7 +129,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       <aside className="admin-side">
         {LangBtn}
         <Link href="/monitor/overview" className={path === "/monitor/overview" ? "active" : ""}>
-          <span>🛰️</span> {lang === "ar" ? "لوحة القيادة" : "Command Center"}
+          <span>🏠</span> {lang === "ar" ? "لوحة القيادة" : "Command Center"}
         </Link>
         {SECTORS.map((sec) => {
           const live = sec.items.filter((it) => it.href);

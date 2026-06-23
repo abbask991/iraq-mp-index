@@ -46,7 +46,7 @@ export default function Overview() {
       <div className="cc-hero">
         <div>
           <div className="cc-live"><span className="cc-dot" /> {loading ? "جارٍ التحديث…" : `مباشر · آخر تحديث ${at}`}</div>
-          <h2 style={{ margin: "6px 0 2px" }}>🛰️ لوحة القيادة</h2>
+          <h2 style={{ margin: "6px 0 2px" }}>لوحة القيادة</h2>
           <p className="muted" style={{ margin: 0 }}>نبض المحادثة العراقية لحظة بلحظة — ترندات، حملات، حسابات، ومزاج عام.</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
