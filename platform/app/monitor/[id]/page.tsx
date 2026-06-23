@@ -84,7 +84,10 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
             <h2>📡 {mon?.name}</h2>
             <div className="kw">{(mon?.keywords || []).map((k: string) => <span key={k}>{k}</span>)}</div>
           </div>
-          <button className="btn" onClick={() => mon && run(mon, platform)} disabled={loading}>↻ تحديث</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Link href={`/monitor/${mon?.id}/report`} className="btn ghost" style={{ textDecoration: "none" }}>📄 تقرير PDF</Link>
+            <button className="btn" onClick={() => mon && run(mon, platform)} disabled={loading}>↻ تحديث</button>
+          </div>
         </div>
         <div className="src-toggle" style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button className={`btn ${platform === "news" ? "" : "ghost"}`} onClick={() => switchTo("news")} disabled={loading}>📰 الأخبار</button>
