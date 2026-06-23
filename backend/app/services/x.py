@@ -18,12 +18,29 @@ def _users(payload: dict) -> dict:
     return {u["id"]: u for u in payload.get("includes", {}).get("users", [])}
 
 
-async def _search(client: httpx.AsyncClient, query: str, want: int) -> dict:
+# X recent-search is capped at the last 7 days on Basic tier
+RANGE_DAYS = {"day": 1, "week": 7, "month": 7, "year": 7}
+
+
+def _start_time(range: str) -> str:
+    from datetime import datetime, timedelta, timezone
+    days = RANGE_DAYS.get(range or "", 0)
+    if not days:
+        return ""
+    # X requires start_time strictly within the last 7 days and not in the future
+    days = min(days, 7)
+    dt = datetime.now(timezone.utc) - timedelta(days=days)
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+async def _search(client: httpx.AsyncClient, query: str, want: int, start_time: str = "") -> dict:
     """Paginate recent-search until `want` tweets or no more pages."""
     items, next_token, loops = [], None, 0
     while len(items) < want and loops < 6:
         per = min(100, max(10, want - len(items)))
         url = f"{_BASE}?query={quote(query)}&max_results={per}&{_FIELDS}"
+        if start_time:
+            url += f"&start_time={start_time}"
         if next_token:
             url += f"&next_token={next_token}"
         r = await client.get(url, headers=_headers(), timeout=25)
@@ -56,13 +73,14 @@ async def _search(client: httpx.AsyncClient, query: str, want: int) -> dict:
     return {"items": items}
 
 
-async def fetch_x(keywords: list[str], per_keyword: int = 50, cap: int = 200):
+async def fetch_x(keywords: list[str], per_keyword: int = 50, cap: int = 200, range: str = ""):
     if not X_BEARER_TOKEN:
         return {"error": "X_TOKEN_MISSING"}
+    start_time = _start_time(range)
     hits, api_error = [], None
     async with httpx.AsyncClient() as client:
         for k in keywords[:5]:
-            res = await _search(client, f'"{k}" -is:retweet', per_keyword)
+            res = await _search(client, f'"{k}" -is:retweet', per_keyword, start_time)
             if "error" in res:
                 api_error = res["error"]
                 continue

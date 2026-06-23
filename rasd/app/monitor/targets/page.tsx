@@ -30,6 +30,7 @@ export default function AdminX() {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
   const [platform, setPlatform] = useState<"x" | "youtube">("x");
+  const [range, setRange] = useState<"day" | "week" | "month" | "year">("week");
   const [replies, setReplies] = useState<Record<string, any>>({});
   const [repBusy, setRepBusy] = useState<string>("");
 
@@ -67,13 +68,13 @@ export default function AdminX() {
     await supabase.from("user_targets").delete().eq("name", t);
   };
 
-  const view = useCallback(async (name: string, plat: "x" | "youtube") => {
+  const view = useCallback(async (name: string, plat: "x" | "youtube", rng?: string) => {
     setSel(name); setPlatform(plat); setLoading(true); setNotice(""); setHits([]);
-    const j = await apiPost(plat === "youtube" ? "youtube" : "x", { keywords: [name], limit: 150 });
+    const j = await apiPost(plat === "youtube" ? "youtube" : "x", { keywords: [name], limit: 150, range: rng ?? range });
     setHits(j.hits || []);
     if (j.message) setNotice(j.message);
     setLoading(false);
-  }, []);
+  }, [range]);
 
   const neg = hits.filter((h) => h.sentiment === "سلبي").length;
   const pos = hits.filter((h) => h.sentiment === "إيجابي").length;
@@ -93,10 +94,22 @@ export default function AdminX() {
       <h2>📡 رصد مخصّص — X ويوتيوب</h2>
       <p className="muted">أضِف اسم شخص أو مؤسسة، اختر المنصّة، واضغط «عرض» لجلب كل المحتوى عنه وتحليله (نبرة، أكثر {ACCT}، التفاعل).</p>
 
-      <div className="src-toggle" style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+      <div className="src-toggle" style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
         <button className={`btn ${!isYT ? "" : "ghost"}`} onClick={() => { setPlatform("x"); if (sel) view(sel, "x"); }} disabled={loading}>𝕏 منصّة X</button>
         <button className={`btn ${isYT ? "" : "ghost"}`} onClick={() => { setPlatform("youtube"); if (sel) view(sel, "youtube"); }} disabled={loading}>▶️ يوتيوب</button>
+        <span style={{ marginInlineStart: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+          <span className="muted" style={{ fontSize: 12 }}>المدة:</span>
+          {([["day", "يوم"], ["week", "أسبوع"], ["month", "شهر"], ["year", "سنة"]] as const).map(([v, l]) => (
+            <button key={v} className={`btn ${range === v ? "" : "ghost"}`} style={{ padding: "4px 10px", fontSize: 12 }}
+              onClick={() => { setRange(v); if (sel) view(sel, platform, v); }} disabled={loading}>{l}</button>
+          ))}
+        </span>
       </div>
+      {!isYT && (range === "month" || range === "year") && (
+        <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
+          ⚠️ منصّة X تبحث آخر ٧ أيام فقط (قيد الخطة) — النتائج ستكون لآخر أسبوع. الأخبار تدعم {range === "month" ? "الشهر" : "السنة"} كاملة.
+        </div>
+      )}
 
       <div className="card" style={{ marginBottom: 14 }}>
         <b>➕ إضافة هدف (شخص / مؤسسة)</b>

@@ -27,21 +27,22 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
   const [hits, setHits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [platform, setPlatform] = useState<"news" | "x" | "youtube">("news");
+  const [range, setRange] = useState<"day" | "week" | "month" | "year">("week");
   const [notice, setNotice] = useState<string>("");
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const cacheRef = useRef<Record<string, { hits: any[]; at: string }>>({});
 
   // fresh fetch from the live API → updates the cache (Supabase + in-memory)
-  const run = useCallback(async (m: any, plat: "news" | "x" | "youtube") => {
+  const run = useCallback(async (m: any, plat: "news" | "x" | "youtube", rng: string) => {
     setLoading(true);
     setNotice("");
     const kind = plat === "x" ? "x" : plat === "youtube" ? "youtube" : "news";
-    const j = await apiPost(kind, { keywords: m.keywords });
+    const j = await apiPost(kind, { keywords: m.keywords, range: rng });
     setHits(j.hits || []);
     if (j.message) setNotice(j.message);
     const at = new Date().toISOString();
     if (!j.error) {
-      cacheRef.current = { ...cacheRef.current, [plat]: { hits: j.hits || [], at } };
+      cacheRef.current = { ...cacheRef.current, [`${plat}:${rng}`]: { hits: j.hits || [], at } };
       setUpdatedAt(at);
       supabase.from("monitors").update({ cache: cacheRef.current }).eq("id", m.id).then(() => {});
     } else { setUpdatedAt(""); }
@@ -49,16 +50,17 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
   }, []);
 
   // show cached result instantly if present; otherwise fetch fresh
-  const show = useCallback((m: any, plat: "news" | "x" | "youtube") => {
-    const c = cacheRef.current[plat];
+  const show = useCallback((m: any, plat: "news" | "x" | "youtube", rng: string) => {
+    const c = cacheRef.current[`${plat}:${rng}`];
     if (c) {
       setHits(c.hits); setUpdatedAt(c.at); setNotice(""); setLoading(false);
     } else {
-      run(m, plat);
+      run(m, plat, rng);
     }
   }, [run]);
 
-  const switchTo = (plat: "news" | "x" | "youtube") => { setPlatform(plat); if (mon) show(mon, plat); };
+  const switchTo = (plat: "news" | "x" | "youtube") => { setPlatform(plat); if (mon) show(mon, plat, range); };
+  const switchRange = (rng: "day" | "week" | "month" | "year") => { setRange(rng); if (mon) show(mon, platform, rng); };
 
   useEffect(() => {
     (async () => {
@@ -66,7 +68,7 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
       setMon(data);
       if (data) {
         cacheRef.current = data.cache && typeof data.cache === "object" ? data.cache : {};
-        show(data, "news");
+        show(data, "news", "week");
       } else setLoading(false);
     })();
   }, [params.id, show]);
@@ -110,14 +112,26 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
               </span>
             )}
             <Link href={`/monitor/${mon?.id}/report`} className="btn ghost" style={{ textDecoration: "none" }}>📄 تقرير PDF</Link>
-            <button className="btn" onClick={() => mon && run(mon, platform)} disabled={loading}>↻ تحديث</button>
+            <button className="btn" onClick={() => mon && run(mon, platform, range)} disabled={loading}>↻ تحديث</button>
           </div>
         </div>
-        <div className="src-toggle" style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <div className="src-toggle" style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
           <button className={`btn ${platform === "news" ? "" : "ghost"}`} onClick={() => switchTo("news")} disabled={loading}>📰 الأخبار</button>
           <button className={`btn ${platform === "x" ? "" : "ghost"}`} onClick={() => switchTo("x")} disabled={loading}>𝕏 منصّة X</button>
           <button className={`btn ${platform === "youtube" ? "" : "ghost"}`} onClick={() => switchTo("youtube")} disabled={loading}>▶️ يوتيوب</button>
+          <span style={{ marginInlineStart: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+            <span className="muted" style={{ fontSize: 12 }}>المدة:</span>
+            {([["day", "يوم"], ["week", "أسبوع"], ["month", "شهر"], ["year", "سنة"]] as const).map(([v, l]) => (
+              <button key={v} className={`btn ${range === v ? "" : "ghost"}`} style={{ padding: "4px 10px", fontSize: 12 }}
+                onClick={() => switchRange(v)} disabled={loading}>{l}</button>
+            ))}
+          </span>
         </div>
+        {platform === "x" && (range === "month" || range === "year") && (
+          <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+            ⚠️ منصّة X تبحث آخر ٧ أيام فقط — لعرض {range === "month" ? "الشهر" : "السنة"} الكاملة استخدم تبويب الأخبار.
+          </div>
+        )}
       </div>
 
       {notice && (

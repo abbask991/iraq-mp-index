@@ -14,6 +14,7 @@ router = APIRouter(prefix="/monitor", tags=["monitor"])
 class KeywordReq(BaseModel):
     keywords: list[str] = []
     limit: int | None = None
+    range: str | None = None   # day | week | month | year
 
 
 class RepliesReq(BaseModel):
@@ -35,11 +36,12 @@ def _distinct_sources(hits):
 async def monitor_news(req: KeywordReq):
     if not req.keywords:
         return {"hits": [], "count": 0, "sources": 0}
-    key = "news:" + ",".join(sorted(req.keywords))
+    rng = req.range or ""
+    key = f"news:{rng}:" + ",".join(sorted(req.keywords))
     cached = cache.get(key, NEWS_TTL)
     if cached is not None:
         return cached
-    hits = await news.fetch_news(req.keywords, cap=100)
+    hits = await news.fetch_news(req.keywords, cap=100, range=rng)
     cls = await ai.classify_all([h["title"] for h in hits])
     for h, c in zip(hits, cls):
         h["sentiment"], h["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
@@ -53,11 +55,12 @@ async def monitor_x(req: KeywordReq):
     if not req.keywords:
         return {"hits": [], "count": 0, "sources": 0}
     per = min(200, max(10, req.limit or 50))
-    key = f"x:{per}:" + ",".join(sorted(req.keywords))
+    rng = req.range or ""
+    key = f"x:{per}:{rng}:" + ",".join(sorted(req.keywords))
     cached = cache.get(key, X_TTL)
     if cached is not None:
         return cached
-    res = await x.fetch_x(req.keywords, per_keyword=per)
+    res = await x.fetch_x(req.keywords, per_keyword=per, range=rng)
     if "error" in res:
         msg = {
             "X_TOKEN_MISSING": "أضِف X_BEARER_TOKEN لتفعيل رصد X.",

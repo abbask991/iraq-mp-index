@@ -41,8 +41,13 @@ def _parse(xml: str, term: str, limit: int) -> list[dict]:
     return out
 
 
-async def _fetch_one(client: httpx.AsyncClient, term: str, domain: str) -> list[dict]:
-    q = quote(f'"{term}" site:{domain}')
+# time-range → Google News `when:` operator
+RANGE_WHEN = {"day": "1d", "week": "7d", "month": "30d", "year": "365d"}
+
+
+async def _fetch_one(client: httpx.AsyncClient, term: str, domain: str, when: str = "") -> list[dict]:
+    base = f'"{term}" site:{domain}' + (f" when:{when}" if when else "")
+    q = quote(base)
     url = f"https://news.google.com/rss/search?q={q}&hl=ar&gl=IQ&ceid=IQ:ar"
     try:
         r = await client.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=4)
@@ -51,14 +56,15 @@ async def _fetch_one(client: httpx.AsyncClient, term: str, domain: str) -> list[
         return []
 
 
-async def fetch_news(keywords: list[str], per_source: int = 12, cap: int = 120) -> list[dict]:
+async def fetch_news(keywords: list[str], per_source: int = 12, cap: int = 120, range: str = "") -> list[dict]:
+    when = RANGE_WHEN.get(range or "", "")
     jobs = []
     async with httpx.AsyncClient(follow_redirects=True) as client:
         sem = asyncio.Semaphore(45)
 
         async def guarded(term, domain):
             async with sem:
-                return await _fetch_one(client, term, domain)
+                return await _fetch_one(client, term, domain, when)
 
         for k in keywords[:6]:
             for d in NEWS_SOURCES:
