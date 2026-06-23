@@ -764,6 +764,25 @@ function openProfile(name){
       </div>
     </div>`).join("") : `<div style="color:var(--muted)">لا توجد أخبار مجموعة لهذا النائب بعد.</div>`;
 
+  // media analysis: sentiment stats + final media evaluation + dominant topic
+  const mneg=mentions.filter(x=>x.sentiment==='سلبي').length, mpos=mentions.filter(x=>x.sentiment==='إيجابي').length;
+  const mtot=mentions.length, mneu=mtot-mneg-mpos;
+  const mIndex=mtot?Math.round(50+50*(mpos-mneg)/mtot):50;
+  const mLabel=mtot===0?'لا تغطية':mIndex>=60?'إيجابي عام':mIndex<=40?'سلبي عام':'متوازن';
+  const mLabelC=mIndex>=60?cssv('--a'):mIndex<=40?cssv('--f'):cssv('--muted');
+  const tc={}; mentions.forEach(x=>tc[x.type]=(tc[x.type]||0)+1);
+  const domType=Object.entries(tc).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
+  const mediaSummary = mtot ? `<div class="chartbox" style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:center">
+      <div><b>التقييم الإعلامي النهائي:</b> <span style="color:${mLabelC};font-weight:800">${mLabel} · ${mIndex}/100</span></div>
+      <div class="muted" style="font-size:12px">أبرز موضوع: <b style="color:var(--accent2)">${domType}</b></div></div>
+    <div style="display:flex;height:11px;border-radius:6px;overflow:hidden;margin-top:9px;background:#0c1320">
+      <i style="width:${mneg/mtot*100}%;background:${cssv('--f')}"></i>
+      <i style="width:${mneu/mtot*100}%;background:${cssv('--muted')}"></i>
+      <i style="width:${mpos/mtot*100}%;background:${cssv('--a')}"></i></div>
+    <div class="muted" style="font-size:11.5px;margin-top:6px">🔴 ${mneg} سلبي · ⚪ ${mneu} محايد · 🟢 ${mpos} إيجابي · المجموع ${mtot}</div>
+  </div>` : "";
+
   // Telegram public-channel posts (display-only)
   const tposts = (PAYLOAD.telegram && PAYLOAD.telegram[m.member_id]) || [];
   const tgHtml = tposts.length ? tposts.map(p=>`
@@ -820,7 +839,8 @@ function openProfile(name){
     <div class="pf-sec">التحسّن عبر الأشهر <span style="text-transform:none;letter-spacing:0;color:${trendC}">(${trend>=0?"+":""}${trend.toFixed(1)} خلال ${PAYLOAD.history.labels.length} أشهر)</span></div>
     <div class="chartbox">${line}</div>
 
-    <div class="pf-sec">النشاط الإعلامي <span style="text-transform:none;letter-spacing:0;color:var(--muted)">· ${mentions.length} خبر · للعرض فقط، غير مُدرج بالدرجة (نموذج أولي · Google News)</span></div>
+    <div class="pf-sec">النشاط الإعلامي <span style="text-transform:none;letter-spacing:0;color:var(--muted)">· ${mentions.length} خبر · تصنيف AI · للعرض فقط، غير مُدرج بالدرجة</span></div>
+    ${mediaSummary}
     <div class="chartbox">${mediaHtml}</div>
 
     ${tposts.length ? `<div class="pf-sec">منشورات تليغرام <span style="text-transform:none;letter-spacing:0;color:var(--muted)">· ${tposts.length} منشور · قناة عامة، للعرض فقط</span></div>
