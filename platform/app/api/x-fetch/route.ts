@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
 
   if (!hits.length && apiError) {
     const msg = apiError.error === 401 ? "توكن X غير صالح (401) — تأكد من X_BEARER_TOKEN."
+      : apiError.error === 402 ? "حسابك على الخطة المجانية بدون رصيد بحث (402) — اشترك بخطة Basic من developer.x.com/portal/products ليعمل الرصد. التوكن مربوط وصحيح."
       : apiError.error === 429 ? "تم تجاوز حد الطلبات لخطة X الحالية (429) — جرّب لاحقاً أو رقِّ الخطة."
       : apiError.error === 403 ? "خطة X الحالية لا تسمح بالبحث (403) — تحتاج خطة Basic أو أعلى."
       : `تعذّر الاتصال بـX (${apiError.error}).`;
