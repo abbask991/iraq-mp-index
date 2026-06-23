@@ -25,27 +25,35 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
   const [mon, setMon] = useState<any>(null);
   const [hits, setHits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [platform, setPlatform] = useState<"news" | "x">("news");
+  const [notice, setNotice] = useState<string>("");
 
-  const run = useCallback(async (m: any) => {
+  const run = useCallback(async (m: any, plat: "news" | "x") => {
     setLoading(true);
-    const res = await fetch("/api/monitor-fetch", {
+    setNotice("");
+    const endpoint = plat === "x" ? "/api/x-fetch" : "/api/monitor-fetch";
+    const res = await fetch(endpoint, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ keywords: m.keywords }),
     });
     const j = await res.json();
     setHits(j.hits || []);
+    if (j.message) setNotice(j.message);
     setLoading(false);
   }, []);
+
+  const switchTo = (plat: "news" | "x") => { setPlatform(plat); if (mon) run(mon, plat); };
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("monitors").select("*").eq("id", params.id).maybeSingle();
       setMon(data);
-      if (data) run(data); else setLoading(false);
+      if (data) run(data, "news"); else setLoading(false);
     })();
   }, [params.id, run]);
 
   if (!mon && !loading) return <p className="muted">الرصد غير موجود.</p>;
+  const isX = platform === "x";
 
   const neg = hits.filter((h) => h.sentiment === "سلبي").length;
   const pos = hits.filter((h) => h.sentiment === "إيجابي").length;
@@ -72,9 +80,19 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
             <h2>📡 {mon?.name}</h2>
             <div className="kw">{(mon?.keywords || []).map((k: string) => <span key={k}>{k}</span>)}</div>
           </div>
-          <button className="btn" onClick={() => mon && run(mon)} disabled={loading}>↻ تحديث</button>
+          <button className="btn" onClick={() => mon && run(mon, platform)} disabled={loading}>↻ تحديث</button>
+        </div>
+        <div className="src-toggle" style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <button className={`btn ${!isX ? "" : "ghost"}`} onClick={() => switchTo("news")} disabled={loading}>📰 الأخبار</button>
+          <button className={`btn ${isX ? "" : "ghost"}`} onClick={() => switchTo("x")} disabled={loading}>𝕏 منصّة X</button>
         </div>
       </div>
+
+      {notice && (
+        <div className="cbox" style={{ marginTop: 16, borderColor: "#f59e0b55", background: "#f59e0b12" }}>
+          <b>𝕏 ملاحظة:</b> <span className="muted">{notice}</span>
+        </div>
+      )}
 
       {loading ? <div className="spinner" /> : (
         <>
@@ -82,7 +100,7 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
             <div className="stat"><div className="v">{hits.length}</div><div className="l">إجمالي الذكر</div></div>
             <div className="stat"><div className="v" style={{ color: idxC }}>{idx}<span style={{ fontSize: 14 }}>/100</span></div><div className="l">المؤشر الإعلامي</div></div>
             <div className="stat"><div className="v" style={{ color: neg ? C.neg : undefined }}>{neg}</div><div className="l">أخبار سلبية</div></div>
-            <div className="stat"><div className="v">{topSrc.length}</div><div className="l">مصادر</div></div>
+            <div className="stat"><div className="v">{topSrc.length}</div><div className="l">{isX ? "حسابات" : "مصادر"}</div></div>
           </div>
 
           <div className="mon-grid" style={{ marginTop: 16 }}>
@@ -108,20 +126,21 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
           </div>
 
           <div className="cbox" style={{ marginTop: 16 }}>
-            <h4>المصادر الأكثر تغطية</h4>
-            {topSrc.length === 0 && <span className="muted">لا مصادر.</span>}
+            <h4>{isX ? "أكثر الحسابات ذِكراً" : "المصادر الأكثر تغطية"}</h4>
+            {topSrc.length === 0 && <span className="muted">{isX ? "لا حسابات." : "لا مصادر."}</span>}
             {topSrc.map(([s, c]) => (
               <div className="srcrow" key={s}><div>{s}</div><div className="bar"><i style={{ width: `${(c / maxSrc) * 100}%` }} /></div><div className="num">{c}</div></div>
             ))}
           </div>
 
-          <div className="section-title">الأخبار (الأحدث أولاً) · {hits.length}</div>
-          {hits.length === 0 && <p className="muted">لا أخبار مطابقة حالياً — جرّب كلمات أوسع.</p>}
+          <div className="section-title">{isX ? "التغريدات (الأحدث أولاً)" : "الأخبار (الأحدث أولاً)"} · {hits.length}</div>
+          {hits.length === 0 && !notice && <p className="muted">{isX ? "لا تغريدات مطابقة حالياً — جرّب كلمات أوسع." : "لا أخبار مطابقة حالياً — جرّب كلمات أوسع."}</p>}
           {hits.map((h, i) => (
             <div className="newsitem" key={i}>
               <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
               <div className="meta">
-                <span>{h.source}</span><span>·</span><span>{h.date}</span>
+                <span>{isX && h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
+                {isX && h.engagement != null && <span className="chip" style={{ color: "var(--accent)" }}>♥ {h.engagement}</span>}
                 <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
                 <span className="chip" style={{ color: "var(--accent2)" }}>{h.type}</span>
               </div>
