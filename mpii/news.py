@@ -168,6 +168,33 @@ def classify_batch_llm(titles: list):
     return None
 
 
+def relevance_filter(name: str, governorate: str, bloc: str, items: list) -> list:
+    """Keep only mentions actually about THIS MP, using Claude to drop news about
+    a different person with the same name or unrelated topics. Falls back to
+    keeping everything if the LLM is off or fails (never drops on error)."""
+    if not _llm_on() or len(items) < 1:
+        return items
+    import json as _json
+    listed = "\n".join(f"{i + 1}. {it['title']}" for i, it in enumerate(items))
+    prompt = (f'عناوين أخبار يُفترض أنها عن النائب العراقي "{name}" من محافظة {governorate} (كتلة {bloc}). '
+              'أعد JSON array بأرقام العناوين التي تخصّ هذا النائب تحديداً فقط — '
+              'استبعد ما يخصّ شخصاً آخر بنفس الاسم أو مواضيع عامة لا علاقة له بها. '
+              'مثال للرد: [1,3,4]\n\n' + listed)
+    body = {"model": "claude-haiku-4-5-20251001", "max_tokens": 300,
+            "messages": [{"role": "user", "content": prompt}]}
+    req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=_json.dumps(body).encode(),
+        headers={"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01",
+                 "content-type": "application/json"})
+    try:
+        r = _json.loads(urllib.request.urlopen(req, timeout=60, context=_ctx()).read())
+        txt = r["content"][0]["text"]
+        keep = set(_json.loads(txt[txt.find("["):txt.rfind("]") + 1]))
+        filtered = [it for i, it in enumerate(items) if (i + 1) in keep]
+        return filtered  # may be empty if AI judges none relevant
+    except Exception:
+        return items
+
+
 def classify_many(titles: list) -> list:
     """Classify a list of titles, caching results (batched LLM if enabled)."""
     todo = [t for t in dict.fromkeys(titles) if t not in _CACHE]
@@ -232,8 +259,7 @@ def update_mentions(members_csv: str, out_csv: str, ids: list, per_mp: int = 6) 
     """Fetch mentions for the given member ids and merge into out_csv.
     Returns {mp_id: count} for what was fetched."""
     with open(members_csv, encoding="utf-8") as f:
-        members = {int(r["member_id"]): (r["name"], (r.get("search_name") or "").strip())
-                   for r in csv.DictReader(f)}
+        members = {int(r["member_id"]): r for r in csv.DictReader(f)}
 
     existing = []
     if os.path.exists(out_csv):
@@ -246,12 +272,14 @@ def update_mentions(members_csv: str, out_csv: str, ids: list, per_mp: int = 6) 
         rec = members.get(mid)
         if not rec:
             continue
-        name, search = rec
+        name = rec["name"]
+        search = (rec.get("search_name") or "").strip()
         query = search if search else short_name(name)
         try:
             rows = fetch_mentions(query, per_mp, ctx, settings)
         except Exception:
             rows = []  # one failure (rate-limit/timeout) shouldn't kill the run
+        rows = relevance_filter(name, rec.get("governorate", ""), rec.get("bloc", ""), rows)
         counts[mid] = len(rows)
         for r in rows:
             fetched.append({"mp_id": mid, "date": r["date"], "source": r["source"],
