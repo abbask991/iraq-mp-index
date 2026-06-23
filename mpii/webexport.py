@@ -211,6 +211,8 @@ def _mentions(data_dir: str) -> dict:
             rec = {k: r.get(k, "") for k in ("date", "source", "title", "link")}
             rec.update(classify(rec["title"]))
             out.setdefault(str(r["mp_id"]), []).append(rec)
+    for k in out:  # newest first
+        out[k].sort(key=lambda x: x.get("date", ""), reverse=True)
     return out
 
 
@@ -227,6 +229,8 @@ def _telegram(data_dir: str) -> dict:
             rec = {k: r.get(k, "") for k in ("date", "channel", "text")}
             rec["sentiment"] = classify(rec["text"])["sentiment"]
             out.setdefault(str(r["mp_id"]), []).append(rec)
+    for k in out:
+        out[k].sort(key=lambda x: x.get("date", ""), reverse=True)
     return out
 
 
@@ -243,6 +247,7 @@ def _watch(data_dir: str) -> list:
             rec = {k: r.get(k, "") for k in ("term", "date", "source", "title", "link")}
             rec["sentiment"] = classify(rec["title"])["sentiment"]
             out.append(rec)
+    out.sort(key=lambda x: x.get("date", ""), reverse=True)
     return out
 
 
