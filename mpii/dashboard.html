@@ -250,7 +250,7 @@
     <button data-tab="unranked">غير المصنّفين</button>
     <button data-tab="compare">مقارنة</button>
     <button data-tab="buzz">الأكثر ذكراً</button>
-    <button data-tab="watch">مواضيع مرصودة</button>
+    <button data-tab="watch">مركز الرصد</button>
     <button data-tab="presidency">هيئة الرئاسة</button>
     <button data-tab="cats">الفئات</button>
     <button data-tab="stats">Statistics</button>
@@ -1139,6 +1139,9 @@ function renderWatch(){
   const mo={}; items.forEach(x=>{const m=(x.date||'').slice(0,7); if(m)mo[m]=(mo[m]||0)+1;});
   const tr=Object.entries(mo).sort((a,b)=>a[0].localeCompare(b[0])).slice(-8); const maxT=Math.max(1,...tr.map(t=>t[1]));
   const segs=[{label:'سلبي',value:neg,color:cssv('--f')},{label:'محايد',value:neu,color:cssv('--muted')},{label:'إيجابي',value:pos,color:cssv('--a')}];
+  const tc={}; items.forEach(x=>{const t=x.type||'عام'; tc[t]=(tc[t]||0)+1;});
+  const types=Object.entries(tc).sort((a,b)=>b[1]-a[1]); const maxTy=Math.max(1,...types.map(t=>t[1]));
+  const typeBars=types.map(([t,c])=>`<div class="dperf" style="grid-template-columns:150px 1fr 44px"><div>${t}</div><div class="bar" style="width:auto"><i style="width:${c/maxTy*100}%;background:linear-gradient(90deg,var(--accent2),var(--accent))"></i></div><div class="val">${c}</div></div>`).join("");
 
   body.innerHTML=`
     <div class="statcards">
@@ -1155,6 +1158,9 @@ function renderWatch(){
           <span class="pf-badge" style="color:${cssv('--a')};border-color:${cssv('--a')}55">إيجابي ${pos}</span></div></div>
       <div class="chartbox"><h4>التغطية عبر الزمن</h4>${tr.length?`<div class="histo">`+tr.map(([m,n])=>`<div class="col"><b>${n}</b><i style="height:${n/maxT*100}%"></i><span>${m.slice(2)}</span></div>`).join("")+`</div>`:`<div class="muted" style="padding:20px;text-align:center">لا بيانات كافية</div>`}</div>
     </div>
+    <div class="card" style="margin-top:16px"><h3>تصنيف القضايا — كم خبر لكل نوع</h3><div style="padding:12px 18px">
+      ${typeBars||'<span class="muted">لا تصنيف</span>'}
+    </div></div>
     <div class="card" style="margin-top:16px"><h3>المصادر الأكثر تغطية</h3><div style="padding:12px 18px">
       ${topSrc.map(([s,c])=>`<div class="dperf" style="grid-template-columns:150px 1fr 44px"><div>${s}</div><div class="bar" style="width:auto"><i style="width:${c/maxS*100}%;background:linear-gradient(90deg,var(--accent2),var(--accent))"></i></div><div class="val">${c}</div></div>`).join("")||'<span class="muted">لا مصادر</span>'}
     </div></div>
