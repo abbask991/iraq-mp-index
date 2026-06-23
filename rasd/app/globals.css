@@ -89,6 +89,30 @@ input, textarea { background:var(--input); border:1px solid var(--line); color:v
   border-radius: 50%; animation: spin .8s linear infinite; margin: 30px auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ===== Command Center ===== */
+.cc-hero { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;
+  background: linear-gradient(135deg, #12203a, #0c1726); border: 1px solid var(--line);
+  border-radius: 18px; padding: 20px 24px; margin-bottom: 16px; }
+[data-theme="light"] .cc-hero { background: linear-gradient(135deg, #e8effb, #f4f7fd); }
+.cc-live { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--accent); }
+.cc-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 #22c55e; animation: pulse 2s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.5); } 70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+.cc-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+@media (max-width: 700px) { .cc-kpis { grid-template-columns: repeat(2, 1fr); } }
+.cc-kpi { background: linear-gradient(180deg, var(--panel), #0e1421); border: 1px solid var(--line);
+  border-radius: 16px; padding: 18px; text-align: center; transition: transform .15s, border-color .15s; }
+[data-theme="light"] .cc-kpi { background: var(--panel); }
+.cc-kpi:hover { transform: translateY(-2px); border-color: var(--accent); }
+.cc-kpi .ic { font-size: 24px; }
+.cc-kpi .v { font-size: 30px; font-weight: 800; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.cc-kpi .l { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.cc-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 760px) { .cc-grid { grid-template-columns: 1fr; } }
+.cc-trend { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 10px;
+  margin-bottom: 4px; color: var(--text); transition: background .15s; }
+.cc-trend:hover { background: var(--hover); }
+.cc-trend .t { font-weight: 700; }
+
 /* ===== PDF report ===== */
 .rep-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .paper { background: #fff; color: #0b1220; border-radius: 12px; padding: 34px 36px; max-width: 900px;

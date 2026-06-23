@@ -173,6 +173,69 @@ DISCOVER_SEED = (
 )
 
 
+@router.post("/overview")
+async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
+    """Command-center overview — all live stats from ONE broad fetch:
+    trending hashtags/keywords, suspected campaigns, new accounts, overall
+    sentiment, and top issues."""
+    from collections import Counter as _C
+
+    rng = req.range or "day"
+    key = f"overview:{rng}"
+    cached = cache.get(key, 240)
+    if cached is not None:
+        return cached
+
+    tw = await x.fetch_trend(DISCOVER_SEED, want=500, range=rng)
+    if "error" in tw:
+        return {"error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
+    tweets, users = tw["tweets"], tw["users"]
+    cls = await ai.classify_all([t["text"] for t in tweets])
+    sentiments = [c.get("sentiment", "محايد") for c in cls]
+    for t, c in zip(tweets, cls):
+        t["sentiment"], t["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
+
+    disc = trends.discover(tweets, users, sentiments)
+
+    # suspected campaigns from credible-account hashtags
+    cred = trends.credible_authors(users)
+    htags = _C(h for t in tweets if t["author_id"] in cred
+               for h in t.get("hashtags", [])
+               if h not in trends.EXCLUDE_HASHTAGS and not trends.is_spam_hashtag(h))
+    campaigns = []
+    for h, c in htags.most_common(12):
+        if c < 5:
+            continue
+        subset = [t for t in tweets if h in t.get("hashtags", [])]
+        sub_users = {t["author_id"]: users[t["author_id"]] for t in subset if t["author_id"] in users}
+        det = campaign.detect(h, subset, sub_users, 0, window_label=rng)
+        if det.get("coordination_score", 0) >= 30:
+            campaigns.append({"hashtag": h, "coordination_score": det["coordination_score"],
+                              "alert_level": det["alert_level"], "total_posts": det["total_posts"]})
+    campaigns.sort(key=lambda r: -r["coordination_score"])
+
+    newacc = network.new_accounts_report(tweets, users)
+    pos = sentiments.count("إيجابي")
+    neg = sentiments.count("سلبي")
+    neu = len(sentiments) - pos - neg
+    issues = [{"label": trends.NARRATIVE_MAP.get(t, t), "count": c}
+              for t, c in _C(t.get("type") for t in tweets if t.get("type") and t["type"] != "عام").most_common(6)]
+
+    result = {
+        "scanned": len(tweets), "accounts": len(users), "window": rng,
+        "sentiment": {"pos": pos, "neg": neg, "neu": neu},
+        "media_index": round(50 + (50 * (pos - neg) / len(tweets))) if tweets else 50,
+        "trending": disc["hashtags"][:8], "keywords": disc["keywords"][:8],
+        "campaigns": campaigns[:5],
+        "new_accounts": {"new_today": newacc["bands"][0]["count"] if newacc["bands"] else 0,
+                         "new_total": newacc["new_accounts"],
+                         "clusters": newacc["creation_clusters"][:3]},
+        "issues": issues,
+    }
+    cache.put(key, result)
+    return result
+
+
 @router.post("/discover")
 async def monitor_discover(req: KeywordReq = KeywordReq()):  # noqa: B008
     """Auto-discover currently trending/emerging hashtags & topics — no keyword."""
