@@ -26,14 +26,12 @@ async function classify(titles: string[]) {
 }
 
 async function classifyAll(titles: string[]) {
-  const out: any[] = [];
-  for (let i = 0; i < titles.length; i += 25) {
-    const chunk = titles.slice(i, i + 25);
-    const r = await classify(chunk);
-    if (r && r.length === chunk.length) out.push(...r);
-    else out.push(...chunk.map(() => ({ sentiment: "محايد", type: "عام" })));
-  }
-  return out;
+  const chunks: string[][] = [];
+  for (let i = 0; i < titles.length; i += 25) chunks.push(titles.slice(i, i + 25));
+  const results = await Promise.all(chunks.map((chunk) =>
+    classify(chunk).then((r) => (r && r.length === chunk.length) ? r : chunk.map(() => ({ sentiment: "محايد", type: "عام" })))
+  ));
+  return results.flat();
 }
 
 async function searchX(term: string, token: string, want = 50) {

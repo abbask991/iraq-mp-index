@@ -62,14 +62,13 @@ async function classify(titles: string[]) {
 }
 
 async function classifyAll(titles: string[]) {
-  const out: any[] = [];
-  for (let i = 0; i < titles.length; i += 25) {
-    const chunk = titles.slice(i, i + 25);
-    const r = await classify(chunk);
-    if (r && r.length === chunk.length) out.push(...r);
-    else out.push(...chunk.map(() => ({ sentiment: "محايد", type: "عام" })));
-  }
-  return out;
+  // batches of 25, run ALL batches in parallel (was sequential → main slowdown)
+  const chunks: string[][] = [];
+  for (let i = 0; i < titles.length; i += 25) chunks.push(titles.slice(i, i + 25));
+  const results = await Promise.all(chunks.map((chunk) =>
+    classify(chunk).then((r) => (r && r.length === chunk.length) ? r : chunk.map(() => ({ sentiment: "محايد", type: "عام" })))
+  ));
+  return results.flat();
 }
 
 export async function POST(req: NextRequest) {
@@ -80,8 +79,8 @@ export async function POST(req: NextRequest) {
   const jobs: (() => Promise<any[]>)[] = [];
   for (const k of keywords.slice(0, 6)) for (const d of IRAQI) jobs.push(() => fetchOne(k, d));
   let hits: any[] = [];
-  for (let i = 0; i < jobs.length; i += 30) {
-    const batch = await Promise.all(jobs.slice(i, i + 30).map((f) => f()));
+  for (let i = 0; i < jobs.length; i += 45) {
+    const batch = await Promise.all(jobs.slice(i, i + 45).map((f) => f()));
     hits = hits.concat(...batch);
   }
 
