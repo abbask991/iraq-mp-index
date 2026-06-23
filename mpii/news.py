@@ -17,12 +17,20 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
-# Iraqi news domains (well-indexed in Google News) for deep per-source monitoring.
-IRAQI_SOURCES = ["shafaq.com", "ina.iq", "baghdadtoday.news", "almadapaper.net", "ninanews.com",
-    "mawazin.net", "sotaliraq.com", "basnews.com", "nrttv.com", "kurdistan24.net", "almasalah.com",
-    "alghadpress.com", "964media.com", "rudaw.net", "alaalem.com", "burathanews.com", "alsharqiya.com",
-    "almustakbalpaper.net", "alsabaah.iq", "imn.iq", "almothaqaf.com", "alrabiaa.tv",
-    "ultrairaq.ultrasawt.com", "altaghier.tv"]
+# News domains (well-indexed in Google News) for deep per-source monitoring —
+# Iraqi outlets + pan-Arab outlets that cover Iraq heavily (diverse coverage).
+IRAQI_SOURCES = [
+    # Iraqi
+    "shafaq.com", "ina.iq", "baghdadtoday.news", "almadapaper.net", "ninanews.com", "mawazin.net",
+    "sotaliraq.com", "basnews.com", "nrttv.com", "kurdistan24.net", "almasalah.com", "alghadpress.com",
+    "964media.com", "rudaw.net", "alaalem.com", "burathanews.com", "alsharqiya.com", "almustakbalpaper.net",
+    "alsabaah.iq", "imn.iq", "almothaqaf.com", "alrabiaa.tv", "ultrairaq.ultrasawt.com", "altaghier.tv",
+    "shafaqna.com", "ishtartv.com",
+    # pan-Arab covering Iraq
+    "aljazeera.net", "alarabiya.net", "aawsat.com", "youm7.com", "alquds.co.uk", "al-ain.com",
+    "arabic.rt.com", "skynewsarabia.com", "arabi21.com", "almayadeen.net", "independentarabia.com",
+    "france24.com", "dw.com", "alhurra.com", "alkhaleejonline.net", "alquds.com", "aljarida.com",
+    "akhbaralaan.net", "alaraby.co.uk"]
 
 MENTION_COLUMNS = ["mp_id", "date", "source", "title", "link"]
 WATCH_COLUMNS = ["term", "date", "source", "title", "link"]
