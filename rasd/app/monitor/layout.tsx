@@ -5,19 +5,32 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getMySub, isActive, daysLeft, PLAN_LABEL, Sub } from "@/lib/subscription";
 
-const NAV = [
-  ["📡", "الرصد الإعلامي", "/monitor"],
-  ["🎯", "رصد السوشيال", "/monitor/targets"],
-  ["🔔", "الإنذار المبكر", "/monitor/alerts"],
-  ["🧠", "البيانات الضخمة", "/monitor/network"],
-  ["📊", "المؤشرات والدراسات", "/monitor/index-report"],
-  ["💳", "اشتراكي", "/monitor/account"],
-];
-const SOON = [
-  ["✅", "التحقق من المعلومات"],
-  ["📊", "المؤشرات والدراسات"],
-  ["🗳️", "استطلاعات الرأي"],
-  ["🤝", "العلاقات الإعلامية"],
+// 3-sector org structure (هيكل المركز)
+const SECTORS: { sector: string; items: { icon: string; label: string; href?: string }[] }[] = [
+  {
+    sector: "القطاع الأول · الرصد الإعلامي",
+    items: [
+      { icon: "📺", label: "الإعلام التقليدي", href: "/monitor" },
+      { icon: "📱", label: "الإعلام الرقمي", href: "/monitor/targets" },
+      { icon: "🌍", label: "الرصد الدولي" },
+    ],
+  },
+  {
+    sector: "القطاع الثاني · التحليل والبحوث",
+    items: [
+      { icon: "🧩", label: "تحليل المحتوى", href: "/monitor" },
+      { icon: "📚", label: "الدراسات والبحوث" },
+      { icon: "🗳️", label: "استطلاعات الرأي" },
+    ],
+  },
+  {
+    sector: "القطاع الثالث · البيانات والذكاء",
+    items: [
+      { icon: "🧠", label: "البيانات الضخمة والتحليلات", href: "/monitor/network" },
+      { icon: "📊", label: "المؤشرات والـKPIs", href: "/monitor/index-report" },
+      { icon: "🔔", label: "الإنذار المبكر وإدارة السمعة", href: "/monitor/alerts" },
+    ],
+  },
 ];
 
 export default function DashLayout({ children }: { children: React.ReactNode }) {
@@ -72,19 +85,23 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         {children}
       </div>
       <aside className="admin-side">
-        <div className="grp">الأقسام</div>
-        {NAV.map(([icon, label, href]) => (
-          <Link key={href} href={href} className={path === href ? "active" : ""}>
-            <span>{icon}</span> {label}
-          </Link>
-        ))}
-        {SOON.map(([icon, label]) => (
-          <span key={label} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", opacity: 0.45, fontSize: 13 }}>
-            <span>{icon}</span> {label}
-            <span style={{ marginInlineStart: "auto", fontSize: 10, background: "#1f2a3d", padding: "1px 6px", borderRadius: 6 }}>قريباً</span>
-          </span>
+        {SECTORS.map((sec) => (
+          <div key={sec.sector}>
+            <div className="grp">{sec.sector}</div>
+            {sec.items.map((it) => it.href ? (
+              <Link key={it.label} href={it.href} className={path === it.href ? "active" : ""}>
+                <span>{it.icon}</span> {it.label}
+              </Link>
+            ) : (
+              <span key={it.label} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", opacity: 0.45, fontSize: 13 }}>
+                <span>{it.icon}</span> {it.label}
+                <span style={{ marginInlineStart: "auto", fontSize: 10, background: "#1f2a3d", padding: "1px 6px", borderRadius: 6 }}>قريباً</span>
+              </span>
+            ))}
+          </div>
         ))}
         <div className="grp">الحساب</div>
+        <Link href="/monitor/account" className={path === "/monitor/account" ? "active" : ""}><span>💳</span> اشتراكي</Link>
         <div style={{ padding: "4px 10px", fontSize: 12 }} className="muted">
           الباقة: <b style={{ color: "var(--accent)" }}>{PLAN_LABEL[sub?.plan || "trial"]}</b>
         </div>
