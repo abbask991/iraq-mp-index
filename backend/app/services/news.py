@@ -45,7 +45,7 @@ async def _fetch_one(client: httpx.AsyncClient, term: str, domain: str) -> list[
     q = quote(f'"{term}" site:{domain}')
     url = f"https://news.google.com/rss/search?q={q}&hl=ar&gl=IQ&ceid=IQ:ar"
     try:
-        r = await client.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=6)
+        r = await client.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=4)
         return _parse(r.text, term, 12)
     except Exception:
         return []

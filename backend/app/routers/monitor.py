@@ -3,7 +3,10 @@ as the previous Next.js API routes, so the frontend swaps base URL only."""
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.services import ai, news, x
+from app.services import ai, cache, news, x
+
+NEWS_TTL = 300   # seconds — repeated identical queries return instantly
+X_TTL = 180
 
 router = APIRouter(prefix="/monitor", tags=["monitor"])
 
@@ -32,11 +35,17 @@ def _distinct_sources(hits):
 async def monitor_news(req: KeywordReq):
     if not req.keywords:
         return {"hits": [], "count": 0, "sources": 0}
-    hits = await news.fetch_news(req.keywords)
+    key = "news:" + ",".join(sorted(req.keywords))
+    cached = cache.get(key, NEWS_TTL)
+    if cached is not None:
+        return cached
+    hits = await news.fetch_news(req.keywords, cap=100)
     cls = await ai.classify_all([h["title"] for h in hits])
     for h, c in zip(hits, cls):
         h["sentiment"], h["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
-    return {"hits": hits, "count": len(hits), "sources": _distinct_sources(hits)}
+    result = {"hits": hits, "count": len(hits), "sources": _distinct_sources(hits)}
+    cache.put(key, result)
+    return result
 
 
 @router.post("/x")
@@ -44,6 +53,10 @@ async def monitor_x(req: KeywordReq):
     if not req.keywords:
         return {"hits": [], "count": 0, "sources": 0}
     per = min(200, max(10, req.limit or 50))
+    key = f"x:{per}:" + ",".join(sorted(req.keywords))
+    cached = cache.get(key, X_TTL)
+    if cached is not None:
+        return cached
     res = await x.fetch_x(req.keywords, per_keyword=per)
     if "error" in res:
         msg = {
@@ -54,7 +67,9 @@ async def monitor_x(req: KeywordReq):
     cls = await ai.classify_all([h["title"] for h in hits])
     for h, c in zip(hits, cls):
         h["sentiment"], h["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
-    return {"hits": hits, "count": len(hits), "sources": _distinct_sources(hits), "platform": "x"}
+    result = {"hits": hits, "count": len(hits), "sources": _distinct_sources(hits), "platform": "x"}
+    cache.put(key, result)
+    return result
 
 
 @router.post("/x-replies")
