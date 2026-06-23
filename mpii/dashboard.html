@@ -227,7 +227,7 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="banner" dir="rtl">⚠️ نموذج أوّلي للعرض التقني — مؤشرات الأداء الحالية <b>بيانات تجريبية مولّدة وليست تقييمات حقيقية للنواب</b>. الأسماء والمحافظات والكتل حقيقية فقط.</div>
+  <div class="banner" dir="rtl">⚠️ نموذج أوّلي — مؤشرات الأداء <b>بيانات تجريبية مولّدة، ليست تقييماً حقيقياً</b> (الأسماء/المحافظات/الكتل حقيقية فقط). أداة تحليلية للأداء العام لا يُقصد بها التشهير بأي شخص، والآراء في التعليقات تخصّ أصحابها.</div>
   <header>
     <div class="brand">
       <div class="logo">🏛️</div>
@@ -248,6 +248,7 @@
   <div class="tabbar">
     <button data-tab="ranking" class="on">Ranking</button>
     <button data-tab="unranked">غير المصنّفين</button>
+    <button data-tab="compare">مقارنة</button>
     <button data-tab="buzz">الأكثر ذكراً</button>
     <button data-tab="watch">مواضيع مرصودة</button>
     <button data-tab="presidency">هيئة الرئاسة</button>
@@ -295,6 +296,16 @@
       </select>
     </div>
     <div class="card"><div id="groupTable"></div></div>
+  </div>
+
+  <!-- COMPARE TAB -->
+  <div id="tab-compare" class="hidden" dir="rtl">
+    <div class="controls">
+      <select id="cmpA"></select>
+      <span style="align-self:center;color:var(--muted)">مقابل</span>
+      <select id="cmpB"></select>
+    </div>
+    <div class="card"><div id="compareBody" style="padding:16px"></div></div>
   </div>
 
   <!-- WATCHED TOPICS TAB -->
@@ -446,16 +457,19 @@ async function patchFromSupabase(mpId){
 }
 async function loadComments(mpId, el){
   const sb = await ensureAuth(); if(!sb){ el.innerHTML=""; return; }
-  const { data } = await sb.from("comments").select("body,created_at,status").eq("mp_id",mpId).order("created_at",{ascending:false}).limit(50);
-  const list = (data||[]).map(c=>`<div style="border-top:1px solid var(--line);padding:8px 0;font-size:13px">${escapeHtml(c.body)}
+  const { data } = await sb.from("comments").select("body,created_at,status,author_name").eq("mp_id",mpId).order("created_at",{ascending:false}).limit(50);
+  const list = (data||[]).map(c=>`<div style="border-top:1px solid var(--line);padding:8px 0;font-size:13px">
+    <b style="font-size:12.5px">${escapeHtml(c.author_name)||'مجهول'}</b>: ${escapeHtml(c.body)}
     ${c.status!=='approved'?'<span class="muted" style="font-size:11px"> · بانتظار المراجعة</span>':''}</div>`).join("") || `<div class="muted">لا تعليقات بعد.</div>`;
-  el.innerHTML = `<textarea class="ctext" id="cbody" rows="2" placeholder="اكتب رأيك…"></textarea>
+  el.innerHTML = `<input class="ctext" id="cname" placeholder="اسمك (اختياري)" style="margin-bottom:6px">
+    <textarea class="ctext" id="cbody" rows="2" placeholder="اكتب رأيك…"></textarea>
     <button class="cbtn" id="csend">إرسال</button>
     <span class="muted" style="font-size:11px;margin-right:8px">تُراجَع قبل النشر</span>
     <div style="margin-top:8px">${list}</div>`;
   el.querySelector("#csend").onclick=async()=>{
     const body=el.querySelector("#cbody").value.trim(); if(body.length<2) return;
-    const { error } = await sb.from("comments").insert({mp_id:mpId,user_id:SBUSER.id,body});
+    const name=el.querySelector("#cname").value.trim().slice(0,40);
+    const { error } = await sb.from("comments").insert({mp_id:mpId,user_id:SBUSER.id,body,author_name:name||null});
     if(!error) loadComments(mpId, el); else alert(error.message);
   };
 }
@@ -660,6 +674,8 @@ function openProfile(name){
   const gc = gradeColor(m.grade);
   const beats = Math.round(ds.mps.filter(x=>x.mpii < m.mpii).length / ds.mps.length * 100);
   const photo = m.photo ? `<img class="pf-photo" src="${m.photo}" alt="">` : `<div class="pf-avatar">${initials(m.name)}</div>`;
+  const shareUrl = location.origin + location.pathname + "#mp=" + m.member_id;
+  const waLink = "https://wa.me/?text=" + encodeURIComponent(`تقييم النائب ${m.name}: ${m.mpii.toFixed(1)}/100 (${m.grade})\n${shareUrl}`);
 
   const meta = [
     ["الرقم الانتخابي", m.voting_number ?? "—"],
@@ -769,6 +785,7 @@ function openProfile(name){
           ${m.eligible ? `<span class="pf-badge">يتفوّق على ${beats}% من النواب</span>
           <span class="pf-badge" style="color:${expC};border-color:${expC}55">${m.expected_label}</span>`
           : `<span class="pf-badge" style="color:${cssv("--d")};border-color:${cssv("--d")}55">غير مصنّف — نشاط غير كافٍ</span>`}
+          <a class="pf-badge" href="${waLink}" target="_blank" rel="noopener" style="color:#25d366;border-color:#25d36655">🟢 شارك واتساب</a>
         </div>
         ${social ? `<div class="social">${social}</div>` : ""}
       </div>
@@ -823,6 +840,9 @@ function openProfile(name){
 }
 
 function closeProfile(){ document.getElementById("profileModal").classList.add("hidden"); }
+function openProfileById(id){ const m=data().mps.find(x=>String(x.member_id)===String(id)); if(m) openProfile(m.name); }
+function checkDeepLink(){ const h=(location.hash||"").match(/mp=(\d+)/); if(h) openProfileById(h[1]); }
+window.addEventListener("hashchange", checkDeepLink);
 
 function renderGroups(){
   const rows = data().groups[state.groupBy] || [];
@@ -1068,10 +1088,34 @@ function renderWatch(){
       </div></div>`).join("")}`).join("");
 }
 
-function renderAll(){ renderKpis(); renderList(); renderUnranked(); renderBuzz(); renderWatch(); renderGroups(); renderStats(); renderCats(); renderMethodology(); renderPresidency(); renderCharts(); }
+function renderCompare(){
+  const mps = data().mps;
+  const selA=document.getElementById("cmpA"), selB=document.getElementById("cmpB");
+  if(selA && (!selA.options.length || selA.dataset.mode!==state.mode)){
+    const opts = mps.map(m=>`<option value="${m.member_id}">${m.name}</option>`).join("");
+    selA.innerHTML=opts; selB.innerHTML=opts; selA.dataset.mode=selB.dataset.mode=state.mode;
+    selA.value=state.cmpA||mps[0].member_id; selB.value=state.cmpB||mps[1].member_id;
+    selA.onchange=()=>{state.cmpA=selA.value; renderCompare();};
+    selB.onchange=()=>{state.cmpB=selB.value; renderCompare();};
+  }
+  const a=mps.find(m=>String(m.member_id)===String(selA.value)), b=mps.find(m=>String(m.member_id)===String(selB.value));
+  if(!a||!b) return;
+  const dm=data().dim_meta, td="padding:9px;text-align:center;border-bottom:1px solid var(--line)";
+  const rows=dm.map(d=>{
+    const va=a[d.key]??0, vb=b[d.key]??0;
+    return `<tr><td style="${td};color:${gradeColor(gradeOf(va))};font-weight:700">${va.toFixed(1)}</td>
+      <td style="${td};color:var(--muted)">${d.label}</td>
+      <td style="${td};color:${gradeColor(gradeOf(vb))};font-weight:700">${vb.toFixed(1)}</td></tr>`;
+  }).join("");
+  const head=m=>`<td style="${td};font-weight:800;font-size:16px;color:${gradeColor(m.grade)}">${m.name}<br>${m.mpii.toFixed(1)} · ${m.grade}<br><span class="muted" style="font-size:12px;font-weight:400">#${m.rank_overall??'—'}</span></td>`;
+  document.getElementById("compareBody").innerHTML=
+    `<table style="width:100%;border-collapse:collapse"><tr>${head(a)}<td style="${td};color:var(--muted)">مقابل</td>${head(b)}</tr>${rows}</table>`;
+}
+
+function renderAll(){ renderKpis(); renderList(); renderUnranked(); renderCompare(); renderBuzz(); renderWatch(); renderGroups(); renderStats(); renderCats(); renderMethodology(); renderPresidency(); renderCharts(); }
 
 // events — both filter rows (ranking + stats tabs) write to the same state
-const TABS = ["ranking","unranked","buzz","watch","presidency","cats","stats","groups","method"];
+const TABS = ["ranking","unranked","compare","buzz","watch","presidency","cats","stats","groups","method"];
 document.querySelectorAll("#buzzNav button").forEach(b=>b.onclick=()=>{
   state.period=b.dataset.period;
   document.querySelectorAll("#buzzNav button").forEach(x=>x.classList.toggle("on",x===b));
@@ -1102,7 +1146,7 @@ document.querySelectorAll(".tabbar button").forEach(b=>b.onclick=()=>{
 document.querySelectorAll("#profileModal [data-close]").forEach(el=>el.onclick=closeProfile);
 document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeProfile(); });
 
-fillFilters(); renderAll();
+fillFilters(); renderAll(); checkDeepLink();
 </script>
 </body>
 </html>

@@ -92,7 +92,33 @@ _TYPES = [
 ]
 
 
+def classify_llm(title: str):
+    """Accurate classification via the Claude API. Active only when
+    ANTHROPIC_API_KEY is set (and USE_LLM_CLASSIFY=1). Returns None otherwise."""
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key or not os.environ.get("USE_LLM_CLASSIFY"):
+        return None
+    import json as _json
+    prompt = ('صنّف هذا العنوان الإخباري عن نائب عراقي. أعد JSON فقط:'
+              ' {"sentiment":"إيجابي|محايد|سلبي","type":"أمني/حادث|فساد/قضاء|تشريعي|رقابي|دبلوماسي/زيارة|تصريح|عام"}.'
+              f'\nالعنوان: {title}')
+    body = {"model": "claude-haiku-4-5-20251001", "max_tokens": 60,
+            "messages": [{"role": "user", "content": prompt}]}
+    req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=_json.dumps(body).encode(),
+        headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"})
+    try:
+        r = _json.loads(urllib.request.urlopen(req, timeout=30, context=_ctx()).read())
+        txt = r["content"][0]["text"]
+        m = _json.loads(txt[txt.find("{"):txt.rfind("}") + 1])
+        return {"sentiment": m.get("sentiment", "محايد"), "type": m.get("type", "عام")}
+    except Exception:
+        return None
+
+
 def classify(title: str) -> dict:
+    llm = classify_llm(title)
+    if llm:
+        return llm
     t = title or ""
     typ = next((label for label, kws in _TYPES if any(k in t for k in kws)), "عام")
     if any(k in t for k in _NEG):
