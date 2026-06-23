@@ -3,7 +3,7 @@ as the previous Next.js API routes, so the frontend swaps base URL only."""
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.services import ai, cache, network, news, trends, x
+from app.services import ai, cache, campaign, network, news, trends, x
 
 NEWS_TTL = 300   # seconds — repeated identical queries return instantly
 X_TTL = 180
@@ -167,6 +167,34 @@ async def monitor_discover(req: KeywordReq = KeywordReq()):  # noqa: B008
     sentiments = [c.get("sentiment", "محايد") for c in cls]
 
     result = trends.discover(tweets, users, sentiments)
+    cache.put(key, result)
+    return result
+
+
+@router.post("/campaign")
+async def monitor_campaign(req: KeywordReq):
+    """Coordinated-campaign detection — 9-signal Coordination Score (0-100)."""
+    if not req.keywords:
+        return {"coordination_score": 0, "alert_level": {"level": "organic"}}
+    kw = req.keywords[0]
+    rng = req.range or "week"
+    key = f"camp:{rng}:" + kw
+    cached = cache.get(key, 180)
+    if cached is not None:
+        return cached
+
+    tw = await x.fetch_trend(kw, want=200, range=rng)
+    if "error" in tw:
+        return {"coordination_score": 0, "alert_level": {"level": "organic"},
+                "error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
+    tweets, users = tw["tweets"], tw["users"]
+    cls = await ai.classify_all([t["text"] for t in tweets])
+    for t, c in zip(tweets, cls):
+        t["type"] = c.get("type", "عام")
+
+    news_res = await monitor_news(KeywordReq(keywords=[kw], range=req.range))
+    win = {"day": "آخر 24 ساعة", "week": "آخر 7 أيام", "month": "آخر شهر", "year": "آخر سنة"}.get(rng, rng)
+    result = campaign.detect(kw, tweets, users, news_res.get("count", 0), window_label=win)
     cache.put(key, result)
     return result
 

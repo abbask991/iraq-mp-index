@@ -165,11 +165,13 @@ async def fetch_trend(keyword: str, want: int = 150, range: str = "week"):
                     if dom and "twitter.com" not in dom and "x.com" not in dom:
                         domains.append(dom)
                 hashtags = [h.get("tag") for h in (ent.get("hashtags", []) or []) if h.get("tag")]
+                mentions = [mn.get("username") for mn in (ent.get("mentions", []) or []) if mn.get("username")]
+                links = [u_.get("expanded_url") or u_.get("url") for u_ in (ent.get("urls", []) or [])]
                 tweets.append({
                     "text": t["text"], "author_id": t["author_id"], "created_at": t.get("created_at"),
                     "engagement": m.get("like_count", 0) + m.get("retweet_count", 0)
                     + m.get("reply_count", 0) + m.get("quote_count", 0),
-                    "domains": domains, "hashtags": hashtags,
+                    "domains": domains, "hashtags": hashtags, "mentions": mentions, "links": links,
                 })
             next_token = j.get("meta", {}).get("next_token")
             loops += 1
