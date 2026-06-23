@@ -7,6 +7,7 @@ needs disambiguation + human review (see the README / data caveats).
 
 from __future__ import annotations
 
+import concurrent.futures as _cf
 import csv
 import datetime
 import os
@@ -16,8 +17,53 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
+# Iraqi news domains (well-indexed in Google News) for deep per-source monitoring.
+IRAQI_SOURCES = ["shafaq.com", "ina.iq", "baghdadtoday.news", "almadapaper.net", "ninanews.com",
+    "mawazin.net", "sotaliraq.com", "basnews.com", "nrttv.com", "kurdistan24.net", "almasalah.com",
+    "alghadpress.com", "964media.com", "rudaw.net", "alaalem.com", "burathanews.com", "alsharqiya.com",
+    "almustakbalpaper.net", "alsabaah.iq", "imn.iq", "almothaqaf.com", "alrabiaa.tv",
+    "ultrairaq.ultrasawt.com", "altaghier.tv"]
+
 MENTION_COLUMNS = ["mp_id", "date", "source", "title", "link"]
 WATCH_COLUMNS = ["term", "date", "source", "title", "link"]
+
+
+def _fetch_source(term, domain, per_source, ctx, region, lang):
+    try:
+        q = urllib.parse.quote(f'"{term}" site:{domain}')
+        url = f"https://news.google.com/rss/search?q={q}&hl={lang}&gl={region}&ceid={region}:{lang}"
+        raw = urllib.request.urlopen(
+            urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"}), timeout=20, context=ctx).read()
+        out = []
+        for it in ET.fromstring(raw).findall(".//item")[:per_source]:
+            s = it.find("{*}source")
+            date = (it.findtext("pubDate") or "").strip()
+            try:
+                date = datetime.datetime.strptime(date[:25].strip(), "%a, %d %b %Y %H:%M:%S").strftime("%Y-%m-%d")
+            except Exception:
+                date = date[:16]
+            out.append({"title": (it.findtext("title") or "").strip(),
+                        "source": s.text if s is not None else domain,
+                        "link": (it.findtext("link") or "").strip(), "date": date})
+        return out
+    except Exception:
+        return []
+
+
+def fetch_per_source(term, sources, per_source=12, ctx=None, region="IQ", lang="ar"):
+    """Query EACH source separately (in parallel) and aggregate — gives deep,
+    diverse coverage instead of one query dominated by 1-2 outlets."""
+    ctx = ctx or _ctx()
+    hits = []
+    with _cf.ThreadPoolExecutor(max_workers=10) as ex:
+        for r in ex.map(lambda d: _fetch_source(term, d, per_source, ctx, region, lang), sources):
+            hits += r
+    seen, uniq = set(), []
+    for h in hits:
+        if h["link"] and h["link"] not in seen:
+            seen.add(h["link"]); uniq.append(h)
+    uniq.sort(key=lambda x: x.get("date", ""), reverse=True)
+    return uniq
 
 
 def _supabase_env():
@@ -298,17 +344,18 @@ def update_watch(out_csv: str, per_term: int = 6) -> dict:
     """Fetch news for each settings.watch_terms topic; write to out_csv."""
     settings = load_settings()
     terms = settings.get("watch_terms") or []
+    sources = settings.get("sources") or IRAQI_SOURCES
+    region, lang = settings.get("region", "IQ"), settings.get("language", "ar")
     ctx, rows, counts = _ctx(), [], {}
     for term in terms:
         try:
-            hits = fetch_mentions(term, per_term, ctx, settings)
+            hits = fetch_per_source(term, sources, per_source=12, ctx=ctx, region=region, lang=lang)[:per_term]
         except Exception:
             hits = []
         counts[term] = len(hits)
         for h in hits:
             rows.append({"term": term, "date": h["date"], "source": h["source"],
                          "title": h["title"], "link": h["link"]})
-        time.sleep(0.4)
 
     os.makedirs(os.path.dirname(out_csv) or ".", exist_ok=True)
     with open(out_csv, "w", newline="", encoding="utf-8") as f:
