@@ -38,6 +38,26 @@ EXCLUDE_HASHTAGS = {
     "تونس", "السودان", "ليبيا", "عمان", "افغانستان",
 }
 
+# adult/spam hashtag fragments that flood Arabic Twitter via bot accounts
+_SPAM_SUBSTR = ("ديوت", "ديوث", "ديااث", "ممحون", "ممحوون", "معصيت", "حصريات", "سكس", "نيك",
+                "عاهر", "ساقط", "شرامي", "احا", "كس_", "زب_", "تحرش", "ميقا_حصري", "اغراء", "مثير")
+
+
+def is_spam_hashtag(h: str) -> bool:
+    return any(s in h for s in _SPAM_SUBSTR)
+
+
+def credible_authors(users: dict) -> set:
+    """Author ids that look like real accounts (not spam bots): low bot score +
+    a minimum follower base. Used to keep auto-discovery clean."""
+    out = set()
+    for aid, u in users.items():
+        score = network.bot_score(u)[0]
+        foll = u.get("public_metrics", {}).get("followers_count", 0)
+        if score < 55 and foll >= 30:
+            out.add(aid)
+    return out
+
 WEIGHTS = {
     "mention_velocity": 0.25,
     "engagement_velocity": 0.15,
@@ -295,11 +315,13 @@ def discover(tweets, users, sentiments):
         out.sort(key=lambda x: -x["heat"])
         return out
 
-    hashtags = _items(_agg(lambda t: [h for h in t.get("hashtags", []) if h not in EXCLUDE_HASHTAGS]),
-                      "hashtag", 2)[:20]
-    keywords = _items(
-        _agg(lambda t: {w for w in _AR_WORD.findall(t.get("text", "")) if w not in AR_STOP}),
-        "keyword", 3)[:15]
+    cred = credible_authors(users)   # drop spam-bot accounts at the source
+    hashtags = _items(_agg(lambda t: (
+        [h for h in t.get("hashtags", []) if h not in EXCLUDE_HASHTAGS and not is_spam_hashtag(h)]
+        if t["author_id"] in cred else [])), "hashtag", 2)[:20]
+    keywords = _items(_agg(lambda t: (
+        {w for w in _AR_WORD.findall(t.get("text", "")) if w not in AR_STOP}
+        if t["author_id"] in cred else set())), "keyword", 3)[:15]
 
     return {
         "hashtags": hashtags, "keywords": keywords,

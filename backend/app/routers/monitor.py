@@ -198,8 +198,11 @@ async def monitor_campaign_scan(req: KeywordReq = KeywordReq()):  # noqa: B008
     for t, c in zip(tweets, cls):
         t["type"] = c.get("type", "عام")
 
-    htags = _C(h for t in tweets for h in t.get("hashtags", []) if h not in trends.EXCLUDE_HASHTAGS)
-    candidates = [h for h, c in htags.most_common(14) if c >= 5]
+    cred = trends.credible_authors(users)
+    htags = _C(h for t in tweets if t["author_id"] in cred
+               for h in t.get("hashtags", [])
+               if h not in trends.EXCLUDE_HASHTAGS and not trends.is_spam_hashtag(h))
+    candidates = [h for h, c in htags.most_common(14) if c >= 4]
     win = {"day": "آخر 24 ساعة", "week": "آخر 7 أيام"}.get(rng, rng)
 
     campaigns = []
