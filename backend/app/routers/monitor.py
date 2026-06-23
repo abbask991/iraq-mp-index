@@ -176,6 +176,25 @@ async def monitor_discover(req: KeywordReq = KeywordReq()):  # noqa: B008
     return result
 
 
+@router.post("/new-accounts")
+async def monitor_new_accounts(req: KeywordReq = KeywordReq()):  # noqa: B008
+    """Newly-created accounts active in the Iraqi feed, grouped by age band +
+    same-day creation clusters. No AI needed (account metadata only) → fast."""
+    seed = (req.keywords[0] if req.keywords else "") or DISCOVER_SEED
+    rng = req.range or "day"
+    key = f"newacc:{rng}:{seed}"
+    cached = cache.get(key, 300)
+    if cached is not None:
+        return cached
+    tw = await x.fetch_trend(seed, want=500, range=rng)
+    if "error" in tw:
+        return {"bands": [], "error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
+    result = network.new_accounts_report(tw["tweets"], tw["users"])
+    result["scanned"] = len(tw["tweets"])
+    cache.put(key, result)
+    return result
+
+
 @router.post("/campaign-scan")
 async def monitor_campaign_scan(req: KeywordReq = KeywordReq()):  # noqa: B008
     """Auto-detect coordinated campaigns — scans the broad feed, finds emerging

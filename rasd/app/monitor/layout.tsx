@@ -27,6 +27,7 @@ const SECTORS: { sector: string; items: { icon: string; label: string; href?: st
     sector: "القطاع الثالث · البيانات والذكاء",
     items: [
       { icon: "🧠", label: "البيانات الضخمة والتحليلات", href: "/monitor/network" },
+      { icon: "🆕", label: "الحسابات الجديدة", href: "/monitor/new-accounts" },
       { icon: "🚨", label: "رادار الحملات", href: "/monitor/campaigns" },
       { icon: "🕵️", label: "فحص حملة محدّدة", href: "/monitor/campaign" },
       { icon: "🌡️", label: "ترندات الآن", href: "/monitor/discover" },
