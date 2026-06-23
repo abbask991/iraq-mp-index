@@ -130,6 +130,45 @@ async def fetch_network(keyword: str, want: int = 100, range: str = ""):
     return {"tweets": tweets, "users": users}
 
 
+async def fetch_trend(keyword: str, want: int = 150, range: str = "week"):
+    """Fetch recent tweets WITH timestamps + per-tweet engagement + author
+    profiles — everything the trend engine needs from one paginated call."""
+    if not X_BEARER_TOKEN:
+        return {"error": "X_TOKEN_MISSING"}
+    start_time = _start_time(range or "week")
+    fields = ("tweet.fields=created_at,public_metrics&expansions=author_id"
+              "&user.fields=created_at,public_metrics,verified,description,profile_image_url")
+    tweets, users, next_token, loops = [], {}, None, 0
+    async with httpx.AsyncClient() as client:
+        while len(tweets) < want and loops < 10:
+            per = min(100, max(10, want - len(tweets)))
+            url = f"{_BASE}?query={quote(keyword + ' -is:retweet')}&max_results={per}&{fields}"
+            if start_time:
+                url += f"&start_time={start_time}"
+            if next_token:
+                url += f"&next_token={next_token}"
+            r = await client.get(url, headers=_headers(), timeout=25)
+            if r.status_code != 200:
+                if tweets:
+                    break
+                return {"error": r.status_code}
+            j = r.json()
+            for u in j.get("includes", {}).get("users", []):
+                users[u["id"]] = u
+            for t in j.get("data", []):
+                m = t.get("public_metrics", {})
+                tweets.append({
+                    "text": t["text"], "author_id": t["author_id"], "created_at": t.get("created_at"),
+                    "engagement": m.get("like_count", 0) + m.get("retweet_count", 0)
+                    + m.get("reply_count", 0) + m.get("quote_count", 0),
+                })
+            next_token = j.get("meta", {}).get("next_token")
+            loops += 1
+            if not next_token:
+                break
+    return {"tweets": tweets, "users": users}
+
+
 async def fetch_replies(tweet_id: str, want: int = 60):
     if not X_BEARER_TOKEN:
         return {"error": "X_TOKEN_MISSING"}

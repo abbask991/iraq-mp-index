@@ -3,7 +3,7 @@ as the previous Next.js API routes, so the frontend swaps base URL only."""
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.services import ai, cache, network, news, x
+from app.services import ai, cache, network, news, trends, x
 
 NEWS_TTL = 300   # seconds — repeated identical queries return instantly
 X_TTL = 180
@@ -141,6 +141,37 @@ async def monitor_index(req: KeywordReq):
 
     result = {"composite": composite, "grade": grade, "total": total, "dims": dims,
               "pos": pos, "neg": neg, "engagement": eng, "sources": distinct}
+    cache.put(key, result)
+    return result
+
+
+@router.post("/trends")
+async def monitor_trends(req: KeywordReq):
+    """Early trend detection — composite Trend Score (0-100) + alert + report."""
+    if not req.keywords:
+        return {"trend_score": 0, "alert": {"level": "normal"}}
+    kw = req.keywords[0]
+    key = f"trend:{req.range or 'week'}:" + kw
+    cached = cache.get(key, 180)
+    if cached is not None:
+        return cached
+
+    tw = await x.fetch_trend(kw, want=150, range=req.range or "week")
+    if "error" in tw:
+        return {"trend_score": 0, "alert": {"level": "normal"}, "error": tw["error"],
+                "message": "تعذّر — تأكد من توكن X"}
+    tweets, users = tw["tweets"], tw["users"]
+
+    cls = await ai.classify_all([t["text"] for t in tweets])
+    sentiments = [c.get("sentiment", "محايد") for c in cls]
+    for t, c in zip(tweets, cls):
+        t["type"] = c.get("type", "عام")
+
+    news_res = await monitor_news(KeywordReq(keywords=[kw], range=req.range))
+    news_count = news_res.get("count", 0)
+    platforms_present = 1 + (1 if news_count else 0)  # X + news (live platforms)
+
+    result = trends.analyze(kw, tweets, users, sentiments, news_count, platforms_present)
     cache.put(key, result)
     return result
 
