@@ -28,6 +28,7 @@ export default function MonitorReport({ params }: { params: { id: string } }) {
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(true);
   const [stage, setStage] = useState("جارٍ جمع البيانات…");
+  const [downloading, setDownloading] = useState(false);
 
   const build = useCallback(async (m: any) => {
     setLoading(true);
@@ -66,6 +67,24 @@ export default function MonitorReport({ params }: { params: { id: string } }) {
       if (data) build(data); else setLoading(false);
     })();
   }, [params.id, build]);
+
+  const downloadPdf = async () => {
+    setDownloading(true);
+    try {
+      const html2pdf = (await import("html2pdf.js")).default;
+      const el = document.querySelector(".paper");
+      await html2pdf().set({
+        margin: [8, 8, 10, 8],
+        filename: `تقرير-رصد-${mon?.name || "هدف"}.pdf`,
+        image: { type: "jpeg", quality: 0.96 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", windowWidth: 980 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"], before: ".break" },
+      }).from(el).save();
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const exportCsv = () => {
     const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -115,7 +134,10 @@ export default function MonitorReport({ params }: { params: { id: string } }) {
         <Link href={`/monitor/${params.id}`} className="muted">← رجوع للوحة</Link>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn ghost" onClick={exportCsv}>⬇︎ تصدير CSV</button>
-          <button className="btn" onClick={() => window.print()}>📄 تحميل PDF (طباعة)</button>
+          <button className="btn ghost" onClick={() => window.print()}>🖨️ طباعة</button>
+          <button className="btn" onClick={downloadPdf} disabled={downloading}>
+            {downloading ? "جارٍ التحميل…" : "⬇︎ تحميل PDF"}
+          </button>
         </div>
       </div>
 
