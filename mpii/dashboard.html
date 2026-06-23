@@ -384,6 +384,13 @@
       <div class="chartbox"><h4>متوسط الدرجة حسب المحافظة</h4><div id="chGov"></div></div>
       <div class="chartbox"><h4>متوسط الدرجة حسب الكتلة (أكبر 12)</h4><div id="chBloc"></div></div>
     </div>
+
+    <div class="pf-sec" style="margin:22px 4px 12px" dir="rtl">تحليل التغطية الإعلامية للنواب</div>
+    <div class="pf-charts" dir="rtl">
+      <div class="chartbox"><h4>🔴 أكثر 5 نواب تغطيةً سلبية</h4><div id="topNeg"></div></div>
+      <div class="chartbox"><h4>🟢 أكثر 5 نواب تغطيةً إيجابية</h4><div id="topPos"></div></div>
+    </div>
+    <div class="card" style="margin-top:16px" dir="rtl"><h3>أكثر القضايا ذكراً في الإعلام</h3><div id="topIssues" style="padding:12px 18px"></div></div>
   </div>
 
   <!-- METHODOLOGY TAB -->
@@ -666,6 +673,26 @@ function renderCharts(){
   // 4. by bloc (top 12)
   document.getElementById("chBloc").innerHTML =
     barList((ds.groups.bloc||[]).slice(0,12).map(r=>({label:r.bloc, v:r.mpii_mean})));
+
+  // 5. media coverage analytics — most positive/negative MPs + top issues
+  const men = PAYLOAD.mentions || {};
+  const nameOf = id => { const m=ds.mps.find(x=>String(x.member_id)===String(id)); return m?m.name:("#"+id); };
+  const negBy=[], posBy=[];
+  Object.entries(men).forEach(([id,arr])=>{
+    const neg=arr.filter(x=>x.sentiment==='سلبي').length, pos=arr.filter(x=>x.sentiment==='إيجابي').length;
+    if(neg) negBy.push({name:nameOf(id), c:neg});
+    if(pos) posBy.push({name:nameOf(id), c:pos});
+  });
+  negBy.sort((a,b)=>b.c-a.c); posBy.sort((a,b)=>b.c-a.c);
+  const topList=(arr,color)=>arr.slice(0,5).map((x,i)=>`<div class="dperf" style="grid-template-columns:22px 1fr 40px"><div class="muted">${i+1}</div><div>${x.name}</div><div class="val" style="color:${color}">${x.c}</div></div>`).join("")||'<span class="muted">لا بيانات</span>';
+  document.getElementById("topNeg").innerHTML=topList(negBy,cssv('--f'));
+  document.getElementById("topPos").innerHTML=topList(posBy,cssv('--a'));
+  // top issues (news type) across MP mentions + watched topics
+  const tc={};
+  Object.values(men).forEach(arr=>arr.forEach(x=>{const t=x.type||'عام'; tc[t]=(tc[t]||0)+1;}));
+  (PAYLOAD.watch||[]).forEach(x=>{const t=x.type||'عام'; tc[t]=(tc[t]||0)+1;});
+  const issues=Object.entries(tc).sort((a,b)=>b[1]-a[1]); const maxI=Math.max(1,...issues.map(i=>i[1]));
+  document.getElementById("topIssues").innerHTML=issues.map(([t,c])=>`<div class="dperf" style="grid-template-columns:150px 1fr 44px"><div>${t}</div><div class="bar" style="width:auto"><i style="width:${c/maxI*100}%;background:linear-gradient(90deg,var(--accent2),var(--accent))"></i></div><div class="val">${c}</div></div>`).join("");
 }
 
 function openProfile(name){
