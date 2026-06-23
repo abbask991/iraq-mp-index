@@ -5,7 +5,7 @@ import { getSetting, setSetting } from "@/lib/admin";
 const C = { neg: "#f43f5e", neu: "#8a97ad", pos: "#22c55e" };
 const sColor = (s: string) => (s === "سلبي" ? C.neg : s === "إيجابي" ? C.pos : C.neu);
 
-function donut(parts: { v: number; c: string }[], size = 168) {
+function donut(parts: { v: number; c: string }[], unit = "ذِكر", size = 168) {
   const cx = size / 2, cy = size / 2, R = size / 2 - 6, r = R * 0.62;
   const tot = parts.reduce((s, p) => s + p.v, 0) || 1;
   let a0 = -Math.PI / 2, g = "";
@@ -17,7 +17,7 @@ function donut(parts: { v: number; c: string }[], size = 168) {
     g += `<path d="M${x0},${y0} A${R},${R} 0 ${la} 1 ${x1},${y1} L${xi1},${yi1} A${r},${r} 0 ${la} 0 ${xi0},${yi0} Z" fill="${p.c}"/>`;
     a0 = a1;
   }
-  return `<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:${size}px;display:block;margin:0 auto">${g}<text x="${cx}" y="${cy - 2}" fill="#e8eef9" font-size="26" font-weight="800" text-anchor="middle">${tot}</text><text x="${cx}" y="${cy + 16}" fill="#8a97ad" font-size="11" text-anchor="middle">تغريدة</text></svg>`;
+  return `<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:${size}px;display:block;margin:0 auto">${g}<text x="${cx}" y="${cy - 2}" fill="#e8eef9" font-size="26" font-weight="800" text-anchor="middle">${tot}</text><text x="${cx}" y="${cy + 16}" fill="#8a97ad" font-size="11" text-anchor="middle">${unit}</text></svg>`;
 }
 
 export default function AdminX() {
@@ -28,8 +28,12 @@ export default function AdminX() {
   const [hits, setHits] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
+  const [platform, setPlatform] = useState<"x" | "youtube">("x");
 
   useEffect(() => { getSetting("x_targets").then(setTargets); }, []);
+  const isYT = platform === "youtube";
+  const UNIT = isYT ? "فيديو" : "تغريدة";
+  const ACCT = isYT ? "القنوات" : "الحسابات";
 
   const persist = async (next: string[]) => {
     setTargets(next);
@@ -47,9 +51,10 @@ export default function AdminX() {
     if (sel === t) { setSel(""); setHits([]); }
   };
 
-  const view = useCallback(async (name: string) => {
-    setSel(name); setLoading(true); setNotice(""); setHits([]);
-    const res = await fetch("/api/x-fetch", {
+  const view = useCallback(async (name: string, plat: "x" | "youtube") => {
+    setSel(name); setPlatform(plat); setLoading(true); setNotice(""); setHits([]);
+    const endpoint = plat === "youtube" ? "/api/youtube-fetch" : "/api/x-fetch";
+    const res = await fetch(endpoint, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ keywords: [name], limit: 150 }),
     });
@@ -74,8 +79,13 @@ export default function AdminX() {
 
   return (
     <div>
-      <h2>𝕏 رصد X — أهداف مخصّصة</h2>
-      <p className="muted">أضِف اسم شخص أو مؤسسة، واضغط «عرض» لجلب كل التغريدات عنه وتحليلها (نبرة، أكثر الحسابات، التفاعل).</p>
+      <h2>📡 رصد مخصّص — X ويوتيوب</h2>
+      <p className="muted">أضِف اسم شخص أو مؤسسة، اختر المنصّة، واضغط «عرض» لجلب كل المحتوى عنه وتحليله (نبرة، أكثر {ACCT}، التفاعل).</p>
+
+      <div className="src-toggle" style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <button className={`btn ${!isYT ? "" : "ghost"}`} onClick={() => { setPlatform("x"); if (sel) view(sel, "x"); }} disabled={loading}>𝕏 منصّة X</button>
+        <button className={`btn ${isYT ? "" : "ghost"}`} onClick={() => { setPlatform("youtube"); if (sel) view(sel, "youtube"); }} disabled={loading}>▶️ يوتيوب</button>
+      </div>
 
       <div className="card" style={{ marginBottom: 14 }}>
         <b>➕ إضافة هدف (شخص / مؤسسة)</b>
@@ -94,7 +104,7 @@ export default function AdminX() {
               borderRadius: 8, padding: "5px 10px", fontSize: 13, display: "inline-flex", gap: 8, alignItems: "center",
             }}>
               {t}
-              <button className="btn ghost" style={{ padding: "2px 8px", fontSize: 12 }} onClick={() => view(t)}>عرض</button>
+              <button className="btn ghost" style={{ padding: "2px 8px", fontSize: 12 }} onClick={() => view(t, platform)}>عرض</button>
               <button onClick={() => remove(t)}
                 style={{ background: "none", border: 0, color: "#f43f5e", cursor: "pointer" }}>✕</button>
             </span>
@@ -112,8 +122,8 @@ export default function AdminX() {
       {sel && (
         <div className="mon-hero" style={{ marginTop: 6 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-            <h3 style={{ margin: 0 }}>نتائج: {sel}</h3>
-            <button className="btn" onClick={() => view(sel)} disabled={loading}>↻ تحديث</button>
+            <h3 style={{ margin: 0 }}>{isYT ? "▶️" : "𝕏"} نتائج: {sel}</h3>
+            <button className="btn" onClick={() => view(sel, platform)} disabled={loading}>↻ تحديث</button>
           </div>
         </div>
       )}
@@ -123,16 +133,16 @@ export default function AdminX() {
       {sel && !loading && !notice && (
         <>
           <div className="stat-grid" style={{ marginTop: 14 }}>
-            <div className="stat"><div className="v">{hits.length}</div><div className="l">تغريدة</div></div>
+            <div className="stat"><div className="v">{hits.length}</div><div className="l">{UNIT}</div></div>
             <div className="stat"><div className="v" style={{ color: idxC }}>{idx}<span style={{ fontSize: 14 }}>/100</span></div><div className="l">المؤشر</div></div>
             <div className="stat"><div className="v" style={{ color: neg ? C.neg : undefined }}>{neg}</div><div className="l">سلبية</div></div>
-            <div className="stat"><div className="v">{totalEng.toLocaleString()}</div><div className="l">إجمالي التفاعل ♥</div></div>
+            <div className="stat"><div className="v">{totalEng.toLocaleString()}</div><div className="l">إجمالي التفاعل {isYT ? "👍💬" : "♥"}</div></div>
           </div>
 
           <div className="mon-grid" style={{ marginTop: 16 }}>
             <div className="cbox">
               <h4>توزيع النبرة</h4>
-              <div dangerouslySetInnerHTML={{ __html: donut([{ v: neg, c: C.neg }, { v: neu, c: C.neu }, { v: pos, c: C.pos }]) }} />
+              <div dangerouslySetInnerHTML={{ __html: donut([{ v: neg, c: C.neg }, { v: neu, c: C.neu }, { v: pos, c: C.pos }], UNIT) }} />
               <div className="legend" style={{ marginTop: 12 }}>
                 <div className="row"><span className="dot" style={{ background: C.neg }} /> سلبي: <b>{neg}</b></div>
                 <div className="row"><span className="dot" style={{ background: C.neu }} /> محايد: <b>{neu}</b></div>
@@ -140,7 +150,7 @@ export default function AdminX() {
               </div>
             </div>
             <div className="cbox">
-              <h4>أكثر الحسابات ذِكراً</h4>
+              <h4>أكثر {ACCT} ذِكراً</h4>
               {topAcc.length === 0 && <span className="muted">لا حسابات.</span>}
               {topAcc.map(([s, c]) => (
                 <div className="srcrow" key={s}><div>{s}</div><div className="bar"><i style={{ width: `${(c / maxAcc) * 100}%` }} /></div><div className="num">{c}</div></div>
@@ -150,13 +160,14 @@ export default function AdminX() {
 
           {topTweets.length > 0 && (
             <div className="cbox" style={{ marginTop: 16 }}>
-              <h4>أكثر التغريدات تأثيراً</h4>
+              <h4>أكثر {isYT ? "الفيديوهات" : "التغريدات"} تأثيراً</h4>
               {topTweets.map((h, i) => (
                 <div className="newsitem" key={i}>
                   <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
                   <div className="meta">
                     <span>{h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
-                    <span className="chip" style={{ color: "var(--accent)" }}>♥ {h.engagement}</span>
+                    {isYT && h.views != null && <span className="chip" style={{ color: "var(--accent2)" }}>👁 {(+h.views).toLocaleString()}</span>}
+                    <span className="chip" style={{ color: "var(--accent)" }}>{isYT ? "👍💬" : "♥"} {h.engagement}</span>
                     <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
                   </div>
                 </div>
@@ -164,14 +175,15 @@ export default function AdminX() {
             </div>
           )}
 
-          <div className="section-title">كل التغريدات (الأحدث أولاً) · {hits.length}</div>
-          {hits.length === 0 && <p className="muted">لا تغريدات مطابقة حالياً.</p>}
+          <div className="section-title">{isYT ? "كل الفيديوهات" : "كل التغريدات"} (الأحدث أولاً) · {hits.length}</div>
+          {hits.length === 0 && <p className="muted">لا نتائج مطابقة حالياً.</p>}
           {hits.map((h, i) => (
             <div className="newsitem" key={i}>
               <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
               <div className="meta">
                 <span>{h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
-                <span className="chip" style={{ color: "var(--accent)" }}>♥ {h.engagement}</span>
+                {isYT && h.views != null && <span className="chip" style={{ color: "var(--accent2)" }}>👁 {(+h.views).toLocaleString()}</span>}
+                <span className="chip" style={{ color: "var(--accent)" }}>{isYT ? "👍💬" : "♥"} {h.engagement}</span>
                 <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
                 <span className="chip" style={{ color: "var(--accent2)" }}>{h.type}</span>
               </div>

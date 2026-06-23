@@ -25,13 +25,13 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
   const [mon, setMon] = useState<any>(null);
   const [hits, setHits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [platform, setPlatform] = useState<"news" | "x">("news");
+  const [platform, setPlatform] = useState<"news" | "x" | "youtube">("news");
   const [notice, setNotice] = useState<string>("");
 
-  const run = useCallback(async (m: any, plat: "news" | "x") => {
+  const run = useCallback(async (m: any, plat: "news" | "x" | "youtube") => {
     setLoading(true);
     setNotice("");
-    const endpoint = plat === "x" ? "/api/x-fetch" : "/api/monitor-fetch";
+    const endpoint = plat === "x" ? "/api/x-fetch" : plat === "youtube" ? "/api/youtube-fetch" : "/api/monitor-fetch";
     const res = await fetch(endpoint, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ keywords: m.keywords }),
@@ -42,7 +42,7 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
     setLoading(false);
   }, []);
 
-  const switchTo = (plat: "news" | "x") => { setPlatform(plat); if (mon) run(mon, plat); };
+  const switchTo = (plat: "news" | "x" | "youtube") => { setPlatform(plat); if (mon) run(mon, plat); };
 
   useEffect(() => {
     (async () => {
@@ -54,6 +54,10 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
 
   if (!mon && !loading) return <p className="muted">الرصد غير موجود.</p>;
   const isX = platform === "x";
+  const isYT = platform === "youtube";
+  const isSocial = isX || isYT;
+  const ACCT = isYT ? "القنوات" : isX ? "الحسابات" : "المصادر";
+  const UNIT = isYT ? "الفيديوهات" : isX ? "التغريدات" : "الأخبار";
 
   const neg = hits.filter((h) => h.sentiment === "سلبي").length;
   const pos = hits.filter((h) => h.sentiment === "إيجابي").length;
@@ -83,8 +87,9 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
           <button className="btn" onClick={() => mon && run(mon, platform)} disabled={loading}>↻ تحديث</button>
         </div>
         <div className="src-toggle" style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <button className={`btn ${!isX ? "" : "ghost"}`} onClick={() => switchTo("news")} disabled={loading}>📰 الأخبار</button>
-          <button className={`btn ${isX ? "" : "ghost"}`} onClick={() => switchTo("x")} disabled={loading}>𝕏 منصّة X</button>
+          <button className={`btn ${platform === "news" ? "" : "ghost"}`} onClick={() => switchTo("news")} disabled={loading}>📰 الأخبار</button>
+          <button className={`btn ${platform === "x" ? "" : "ghost"}`} onClick={() => switchTo("x")} disabled={loading}>𝕏 منصّة X</button>
+          <button className={`btn ${platform === "youtube" ? "" : "ghost"}`} onClick={() => switchTo("youtube")} disabled={loading}>▶️ يوتيوب</button>
         </div>
       </div>
 
@@ -100,7 +105,7 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
             <div className="stat"><div className="v">{hits.length}</div><div className="l">إجمالي الذكر</div></div>
             <div className="stat"><div className="v" style={{ color: idxC }}>{idx}<span style={{ fontSize: 14 }}>/100</span></div><div className="l">المؤشر الإعلامي</div></div>
             <div className="stat"><div className="v" style={{ color: neg ? C.neg : undefined }}>{neg}</div><div className="l">أخبار سلبية</div></div>
-            <div className="stat"><div className="v">{topSrc.length}</div><div className="l">{isX ? "حسابات" : "مصادر"}</div></div>
+            <div className="stat"><div className="v">{topSrc.length}</div><div className="l">{isYT ? "قنوات" : isX ? "حسابات" : "مصادر"}</div></div>
           </div>
 
           <div className="mon-grid" style={{ marginTop: 16 }}>
@@ -126,21 +131,22 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
           </div>
 
           <div className="cbox" style={{ marginTop: 16 }}>
-            <h4>{isX ? "أكثر الحسابات ذِكراً" : "المصادر الأكثر تغطية"}</h4>
-            {topSrc.length === 0 && <span className="muted">{isX ? "لا حسابات." : "لا مصادر."}</span>}
+            <h4>{isSocial ? `أكثر ${ACCT} ذِكراً` : "المصادر الأكثر تغطية"}</h4>
+            {topSrc.length === 0 && <span className="muted">لا {ACCT}.</span>}
             {topSrc.map(([s, c]) => (
               <div className="srcrow" key={s}><div>{s}</div><div className="bar"><i style={{ width: `${(c / maxSrc) * 100}%` }} /></div><div className="num">{c}</div></div>
             ))}
           </div>
 
-          <div className="section-title">{isX ? "التغريدات (الأحدث أولاً)" : "الأخبار (الأحدث أولاً)"} · {hits.length}</div>
-          {hits.length === 0 && !notice && <p className="muted">{isX ? "لا تغريدات مطابقة حالياً — جرّب كلمات أوسع." : "لا أخبار مطابقة حالياً — جرّب كلمات أوسع."}</p>}
+          <div className="section-title">{UNIT} (الأحدث أولاً) · {hits.length}</div>
+          {hits.length === 0 && !notice && <p className="muted">لا نتائج مطابقة حالياً — جرّب كلمات أوسع.</p>}
           {hits.map((h, i) => (
             <div className="newsitem" key={i}>
               <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
               <div className="meta">
-                <span>{isX && h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
-                {isX && h.engagement != null && <span className="chip" style={{ color: "var(--accent)" }}>♥ {h.engagement}</span>}
+                <span>{isSocial && h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
+                {isYT && h.views != null && <span className="chip" style={{ color: "var(--accent2)" }}>👁 {(+h.views).toLocaleString()}</span>}
+                {isSocial && h.engagement != null && <span className="chip" style={{ color: "var(--accent)" }}>{isYT ? "👍💬" : "♥"} {h.engagement}</span>}
                 <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
                 <span className="chip" style={{ color: "var(--accent2)" }}>{h.type}</span>
               </div>

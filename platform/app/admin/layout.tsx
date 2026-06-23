@@ -12,7 +12,7 @@ const NAV = [
     ["⚙️", "الإعدادات", "/admin/settings"],
     ["📤", "استيراد", "/admin/import"],
   ] },
-  { grp: "الرصد", items: [["𝕏", "رصد X", "/admin/x"]] },
+  { grp: "الرصد", items: [["📡", "رصد X/يوتيوب", "/admin/x"]] },
   { grp: "المجتمع", items: [["💬", "التعليقات", "/admin/comments"]] },
 ];
 
