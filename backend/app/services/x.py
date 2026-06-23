@@ -96,11 +96,12 @@ async def fetch_x(keywords: list[str], per_keyword: int = 50, cap: int = 200, ra
     return {"items": uniq[:cap]}
 
 
-async def fetch_network(keyword: str, want: int = 100):
+async def fetch_network(keyword: str, want: int = 100, range: str = ""):
     """Fetch tweets about a keyword WITH full author profiles, for bot/campaign
     analysis. Returns {tweets:[{text,author_id,created_at}], users:{id:{...}}}."""
     if not X_BEARER_TOKEN:
         return {"error": "X_TOKEN_MISSING"}
+    start_time = _start_time(range)
     fields = ("tweet.fields=created_at&expansions=author_id"
               "&user.fields=created_at,public_metrics,description,verified,profile_image_url")
     tweets, users, next_token, loops = [], {}, None, 0
@@ -108,6 +109,8 @@ async def fetch_network(keyword: str, want: int = 100):
         while len(tweets) < want and loops < 8:
             per = min(100, max(10, want - len(tweets)))
             url = f"{_BASE}?query={quote(keyword + ' -is:retweet')}&max_results={per}&{fields}"
+            if start_time:
+                url += f"&start_time={start_time}"
             if next_token:
                 url += f"&next_token={next_token}"
             r = await client.get(url, headers=_headers(), timeout=25)

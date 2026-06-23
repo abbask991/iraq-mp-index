@@ -2,12 +2,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { apiPost } from "@/lib/api";
+import RangeSelect, { Range } from "@/components/RangeSelect";
 
 export default function Network() {
   const [monitors, setMonitors] = useState<any[]>([]);
   const [term, setTerm] = useState("");
   const [res, setRes] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [range, setRange] = useState<Range>("week");
 
   useEffect(() => {
     supabase.from("monitors").select("name,keywords").then(({ data }) => setMonitors(data || []));
@@ -16,7 +18,7 @@ export default function Network() {
   const run = async (q: string) => {
     if (!q.trim()) return;
     setTerm(q); setLoading(true); setRes(null);
-    const r = await apiPost("network", { keywords: [q] }).catch(() => null);
+    const r = await apiPost("network", { keywords: [q], range }).catch(() => null);
     setRes(r); setLoading(false);
   };
 
@@ -32,6 +34,12 @@ export default function Network() {
           <input placeholder="اكتب موضوعاً/اسماً (مثال: محمد الحلبوسي)" value={term}
             onChange={(e) => setTerm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && run(term)} />
           <button className="btn" onClick={() => run(term)} disabled={loading}>{loading ? "جارٍ التحليل…" : "🔍 حلّل"}</button>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <RangeSelect value={range} onChange={setRange} disabled={loading} />
+          {(range === "month" || range === "year") && (
+            <span className="muted" style={{ fontSize: 11, marginInlineStart: 8 }}>⚠️ X يحلّل آخر ٧ أيام فقط</span>
+          )}
         </div>
         {monitors.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { apiPost } from "@/lib/api";
+import RangeSelect, { Range } from "@/components/RangeSelect";
 
 const DIMS: [string, string][] = [
   ["visibility", "الحضور"],
@@ -19,6 +20,7 @@ export default function IndexReport() {
   const [scores, setScores] = useState<Record<number, any>>({});
   const [scanning, setScanning] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
+  const [range, setRange] = useState<Range>("week");
 
   useEffect(() => {
     supabase.from("monitors").select("*").then(({ data }) => setMonitors(data || []));
@@ -28,11 +30,11 @@ export default function IndexReport() {
     setScanning(true);
     for (const m of list) {
       setScores((s) => ({ ...s, [m.id]: "loading" }));
-      const r = await apiPost("index", { keywords: m.keywords }).catch(() => null);
+      const r = await apiPost("index", { keywords: m.keywords, range }).catch(() => null);
       setScores((s) => ({ ...s, [m.id]: r || { composite: 0, grade: "—" } }));
     }
     setScanning(false);
-  }, []);
+  }, [range]);
 
   const ranked = [...monitors].sort((a, b) => {
     const ca = scores[a.id]?.composite ?? -1, cb = scores[b.id]?.composite ?? -1;
@@ -46,9 +48,12 @@ export default function IndexReport() {
           <h2>📊 المؤشرات والدراسات</h2>
           <p className="muted">مؤشر الأداء الإعلامي (0-100) لكل هدف — الحضور + النبرة + التفاعل + تنوّع المصادر + الزخم.</p>
         </div>
-        <button className="btn" onClick={() => scan(monitors)} disabled={scanning || !monitors.length}>
-          {scanning ? "جارٍ الحساب…" : "📈 احسب المؤشر"}
-        </button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <RangeSelect value={range} onChange={setRange} disabled={scanning} />
+          <button className="btn" onClick={() => scan(monitors)} disabled={scanning || !monitors.length}>
+            {scanning ? "جارٍ الحساب…" : "📈 احسب المؤشر"}
+          </button>
+        </div>
       </div>
 
       {!monitors.length && <p className="muted">لا أهداف بعد — أنشئ عملية رصد من <Link href="/monitor">عمليات الرصد</Link>.</p>}

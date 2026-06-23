@@ -106,13 +106,13 @@ async def monitor_index(req: KeywordReq):
     import math
     from datetime import datetime, timedelta
 
-    key = "idx:" + ",".join(sorted(req.keywords))
+    key = f"idx:{req.range or ''}:" + ",".join(sorted(req.keywords))
     cached = cache.get(key, NEWS_TTL)
     if cached is not None:
         return cached
 
-    news_res = await monitor_news(KeywordReq(keywords=req.keywords))
-    x_res = await monitor_x(KeywordReq(keywords=req.keywords))
+    news_res = await monitor_news(KeywordReq(keywords=req.keywords, range=req.range))
+    x_res = await monitor_x(KeywordReq(keywords=req.keywords, range=req.range))
     hits = (news_res.get("hits") or []) + (x_res.get("hits") or [])
     total = len(hits)
     if not total:
@@ -150,11 +150,11 @@ async def monitor_network(req: KeywordReq):
     """Big-data: fake-account scoring + organized-campaign detection for a term."""
     if not req.keywords:
         return {"accounts": 0, "verdict": "—"}
-    key = "net:" + req.keywords[0]
+    key = f"net:{req.range or ''}:" + req.keywords[0]
     cached = cache.get(key, NEWS_TTL)
     if cached is not None:
         return cached
-    res = await x.fetch_network(req.keywords[0], want=100)
+    res = await x.fetch_network(req.keywords[0], want=100, range=req.range or "")
     if "error" in res:
         return {"accounts": 0, "error": res["error"], "verdict": "تعذّر — تأكد من توكن X"}
     result = network.analyze(res["tweets"], res["users"])
@@ -170,8 +170,8 @@ async def monitor_risk(req: KeywordReq):
         return {"total": 0, "level": "low"}
     from datetime import datetime, timedelta
 
-    news_res = await monitor_news(KeywordReq(keywords=req.keywords))
-    x_res = await monitor_x(KeywordReq(keywords=req.keywords))
+    news_res = await monitor_news(KeywordReq(keywords=req.keywords, range=req.range))
+    x_res = await monitor_x(KeywordReq(keywords=req.keywords, range=req.range))
     hits = (news_res.get("hits") or []) + (x_res.get("hits") or [])
 
     cutoff = (datetime.utcnow() - timedelta(days=2)).strftime("%Y-%m-%d")

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { apiPost } from "@/lib/api";
+import RangeSelect, { Range } from "@/components/RangeSelect";
 
 const LEVEL = {
   high: { c: "#f43f5e", bg: "#2a0f16", label: "خطر مرتفع", icon: "🔴" },
@@ -16,6 +17,7 @@ export default function Alerts() {
   const [monitors, setMonitors] = useState<any[]>([]);
   const [risks, setRisks] = useState<Record<number, Risk | "loading">>({});
   const [scanning, setScanning] = useState(false);
+  const [range, setRange] = useState<Range>("week");
 
   useEffect(() => {
     supabase.from("monitors").select("*").order("created_at", { ascending: false })
@@ -27,11 +29,11 @@ export default function Alerts() {
     // scan sequentially so each card fills in as it resolves (cache makes repeats instant)
     for (const m of list) {
       setRisks((r) => ({ ...r, [m.id]: "loading" }));
-      const res = await apiPost("risk", { keywords: m.keywords }).catch(() => null);
+      const res = await apiPost("risk", { keywords: m.keywords, range }).catch(() => null);
       setRisks((r) => ({ ...r, [m.id]: res || { level: "low", total: 0, neg: 0, recent_neg: 0, neg_ratio: 0, score: 0, top_negative: [] } }));
     }
     setScanning(false);
-  }, []);
+  }, [range]);
 
   const ranked = [...monitors].sort((a, b) => {
     const ra = risks[a.id], rb = risks[b.id];
@@ -48,9 +50,12 @@ export default function Alerts() {
           <h2>🔔 الإنذار المبكر</h2>
           <p className="muted">يفحص أهدافك ويكشف ارتفاع الذِكر السلبي قبل ما يتحوّل لأزمة.</p>
         </div>
-        <button className="btn" onClick={() => scan(monitors)} disabled={scanning || !monitors.length}>
-          {scanning ? "جارٍ الفحص…" : "🔍 افحص الآن"}
-        </button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <RangeSelect value={range} onChange={setRange} disabled={scanning} />
+          <button className="btn" onClick={() => scan(monitors)} disabled={scanning || !monitors.length}>
+            {scanning ? "جارٍ الفحص…" : "🔍 افحص الآن"}
+          </button>
+        </div>
       </div>
 
       {!monitors.length && <p className="muted">لا أهداف بعد — أنشئ عملية رصد أولاً من <Link href="/monitor">عمليات الرصد</Link>.</p>}
