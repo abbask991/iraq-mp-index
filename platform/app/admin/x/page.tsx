@@ -1,0 +1,184 @@
+"use client";
+import { useCallback, useEffect, useState } from "react";
+import { getSetting, setSetting } from "@/lib/admin";
+
+const C = { neg: "#f43f5e", neu: "#8a97ad", pos: "#22c55e" };
+const sColor = (s: string) => (s === "سلبي" ? C.neg : s === "إيجابي" ? C.pos : C.neu);
+
+function donut(parts: { v: number; c: string }[], size = 168) {
+  const cx = size / 2, cy = size / 2, R = size / 2 - 6, r = R * 0.62;
+  const tot = parts.reduce((s, p) => s + p.v, 0) || 1;
+  let a0 = -Math.PI / 2, g = "";
+  for (const p of parts) {
+    if (p.v <= 0) continue;
+    const a1 = a0 + (p.v / tot) * 2 * Math.PI, la = a1 - a0 > Math.PI ? 1 : 0;
+    const P = (a: number, rad: number) => [(cx + Math.cos(a) * rad).toFixed(1), (cy + Math.sin(a) * rad).toFixed(1)];
+    const [x0, y0] = P(a0, R), [x1, y1] = P(a1, R), [xi1, yi1] = P(a1, r), [xi0, yi0] = P(a0, r);
+    g += `<path d="M${x0},${y0} A${R},${R} 0 ${la} 1 ${x1},${y1} L${xi1},${yi1} A${r},${r} 0 ${la} 0 ${xi0},${yi0} Z" fill="${p.c}"/>`;
+    a0 = a1;
+  }
+  return `<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:${size}px;display:block;margin:0 auto">${g}<text x="${cx}" y="${cy - 2}" fill="#e8eef9" font-size="26" font-weight="800" text-anchor="middle">${tot}</text><text x="${cx}" y="${cy + 16}" fill="#8a97ad" font-size="11" text-anchor="middle">تغريدة</text></svg>`;
+}
+
+export default function AdminX() {
+  const [targets, setTargets] = useState<string[]>([]);
+  const [val, setVal] = useState("");
+  const [msg, setMsg] = useState("");
+  const [sel, setSel] = useState<string>("");
+  const [hits, setHits] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => { getSetting("x_targets").then(setTargets); }, []);
+
+  const persist = async (next: string[]) => {
+    setTargets(next);
+    const e = await setSetting("x_targets", next);
+    setMsg(e ? `خطأ: ${e}` : "✅ تم الحفظ");
+    setTimeout(() => setMsg(""), 2500);
+  };
+  const add = () => {
+    const v = val.trim();
+    if (v && !targets.includes(v)) persist([...targets, v]);
+    setVal("");
+  };
+  const remove = (t: string) => {
+    persist(targets.filter((x) => x !== t));
+    if (sel === t) { setSel(""); setHits([]); }
+  };
+
+  const view = useCallback(async (name: string) => {
+    setSel(name); setLoading(true); setNotice(""); setHits([]);
+    const res = await fetch("/api/x-fetch", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keywords: [name], limit: 150 }),
+    });
+    const j = await res.json();
+    setHits(j.hits || []);
+    if (j.message) setNotice(j.message);
+    setLoading(false);
+  }, []);
+
+  const neg = hits.filter((h) => h.sentiment === "سلبي").length;
+  const pos = hits.filter((h) => h.sentiment === "إيجابي").length;
+  const neu = hits.length - neg - pos;
+  const idx = hits.length ? Math.round(50 + (50 * (pos - neg)) / hits.length) : 50;
+  const idxC = idx >= 60 ? C.pos : idx <= 40 ? C.neg : C.neu;
+
+  const accs: Record<string, number> = {};
+  hits.forEach((h) => (accs[h.source] = (accs[h.source] || 0) + 1));
+  const topAcc = Object.entries(accs).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const maxAcc = Math.max(1, ...topAcc.map(([, c]) => c));
+  const totalEng = hits.reduce((s, h) => s + (h.engagement || 0), 0);
+  const topTweets = [...hits].sort((a, b) => (b.engagement || 0) - (a.engagement || 0)).slice(0, 5);
+
+  return (
+    <div>
+      <h2>𝕏 رصد X — أهداف مخصّصة</h2>
+      <p className="muted">أضِف اسم شخص أو مؤسسة، واضغط «عرض» لجلب كل التغريدات عنه وتحليلها (نبرة، أكثر الحسابات، التفاعل).</p>
+
+      <div className="card" style={{ marginBottom: 14 }}>
+        <b>➕ إضافة هدف (شخص / مؤسسة)</b>
+        <div style={{ display: "flex", gap: 8, margin: "10px 0" }}>
+          <input placeholder='مثال: محمد الحلبوسي · وزارة النفط · مقتدى الصدر' value={val}
+            onChange={(e) => setVal(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && add()} />
+          <button className="btn" onClick={add}>إضافة</button>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {targets.length === 0 && <span className="muted">لا أهداف بعد — أضِف أول اسم.</span>}
+          {targets.map((t) => (
+            <span key={t} style={{
+              background: sel === t ? "#13233a" : "#0e1626",
+              border: `1px solid ${sel === t ? "var(--accent)" : "var(--line)"}`,
+              borderRadius: 8, padding: "5px 10px", fontSize: 13, display: "inline-flex", gap: 8, alignItems: "center",
+            }}>
+              {t}
+              <button className="btn ghost" style={{ padding: "2px 8px", fontSize: 12 }} onClick={() => view(t)}>عرض</button>
+              <button onClick={() => remove(t)}
+                style={{ background: "none", border: 0, color: "#f43f5e", cursor: "pointer" }}>✕</button>
+            </span>
+          ))}
+        </div>
+        {msg && <div className="muted" style={{ marginTop: 8 }}>{msg}</div>}
+      </div>
+
+      {notice && (
+        <div className="card" style={{ borderColor: "#f59e0b55", background: "#f59e0b12" }}>
+          <b>𝕏 ملاحظة:</b> <span className="muted">{notice}</span>
+        </div>
+      )}
+
+      {sel && (
+        <div className="mon-hero" style={{ marginTop: 6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+            <h3 style={{ margin: 0 }}>نتائج: {sel}</h3>
+            <button className="btn" onClick={() => view(sel)} disabled={loading}>↻ تحديث</button>
+          </div>
+        </div>
+      )}
+
+      {loading && <div className="spinner" />}
+
+      {sel && !loading && !notice && (
+        <>
+          <div className="stat-grid" style={{ marginTop: 14 }}>
+            <div className="stat"><div className="v">{hits.length}</div><div className="l">تغريدة</div></div>
+            <div className="stat"><div className="v" style={{ color: idxC }}>{idx}<span style={{ fontSize: 14 }}>/100</span></div><div className="l">المؤشر</div></div>
+            <div className="stat"><div className="v" style={{ color: neg ? C.neg : undefined }}>{neg}</div><div className="l">سلبية</div></div>
+            <div className="stat"><div className="v">{totalEng.toLocaleString()}</div><div className="l">إجمالي التفاعل ♥</div></div>
+          </div>
+
+          <div className="mon-grid" style={{ marginTop: 16 }}>
+            <div className="cbox">
+              <h4>توزيع النبرة</h4>
+              <div dangerouslySetInnerHTML={{ __html: donut([{ v: neg, c: C.neg }, { v: neu, c: C.neu }, { v: pos, c: C.pos }]) }} />
+              <div className="legend" style={{ marginTop: 12 }}>
+                <div className="row"><span className="dot" style={{ background: C.neg }} /> سلبي: <b>{neg}</b></div>
+                <div className="row"><span className="dot" style={{ background: C.neu }} /> محايد: <b>{neu}</b></div>
+                <div className="row"><span className="dot" style={{ background: C.pos }} /> إيجابي: <b>{pos}</b></div>
+              </div>
+            </div>
+            <div className="cbox">
+              <h4>أكثر الحسابات ذِكراً</h4>
+              {topAcc.length === 0 && <span className="muted">لا حسابات.</span>}
+              {topAcc.map(([s, c]) => (
+                <div className="srcrow" key={s}><div>{s}</div><div className="bar"><i style={{ width: `${(c / maxAcc) * 100}%` }} /></div><div className="num">{c}</div></div>
+              ))}
+            </div>
+          </div>
+
+          {topTweets.length > 0 && (
+            <div className="cbox" style={{ marginTop: 16 }}>
+              <h4>أكثر التغريدات تأثيراً</h4>
+              {topTweets.map((h, i) => (
+                <div className="newsitem" key={i}>
+                  <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
+                  <div className="meta">
+                    <span>{h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
+                    <span className="chip" style={{ color: "var(--accent)" }}>♥ {h.engagement}</span>
+                    <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="section-title">كل التغريدات (الأحدث أولاً) · {hits.length}</div>
+          {hits.length === 0 && <p className="muted">لا تغريدات مطابقة حالياً.</p>}
+          {hits.map((h, i) => (
+            <div className="newsitem" key={i}>
+              <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
+              <div className="meta">
+                <span>{h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
+                <span className="chip" style={{ color: "var(--accent)" }}>♥ {h.engagement}</span>
+                <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
+                <span className="chip" style={{ color: "var(--accent2)" }}>{h.type}</span>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}

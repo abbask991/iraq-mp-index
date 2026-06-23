@@ -36,21 +36,30 @@ async function classifyAll(titles: string[]) {
   return out;
 }
 
-async function searchX(term: string, token: string) {
-  // last-7-days recent search; Arabic, exclude retweets, English-name fallback kept simple
+async function searchX(term: string, token: string, want = 50) {
+  // last-7-days recent search; Arabic, exclude retweets. Paginates via next_token
+  // until `want` tweets are collected (or no more pages).
   const q = encodeURIComponent(`"${term}" -is:retweet`);
   const fields = "tweet.fields=created_at,public_metrics,lang&expansions=author_id&user.fields=username,name,verified";
-  const url = `https://api.twitter.com/2/tweets/search/recent?query=${q}&max_results=50&${fields}`;
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!r.ok) return { error: r.status, body: await r.text().catch(() => "") };
-  const j = await r.json();
-  const users: Record<string, any> = {};
-  for (const u of j.includes?.users || []) users[u.id] = u;
-  return {
-    items: (j.data || []).map((t: any) => {
+  const items: any[] = [];
+  let next: string | undefined;
+  let pages = 0;
+  while (items.length < want && pages < 6) {
+    const per = Math.min(100, Math.max(10, want - items.length));
+    const url = `https://api.twitter.com/2/tweets/search/recent?query=${q}&max_results=${per}&${fields}` +
+      (next ? `&next_token=${next}` : "");
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) {
+      if (items.length) break;           // keep what we have from earlier pages
+      return { error: r.status, body: await r.text().catch(() => "") };
+    }
+    const j = await r.json();
+    const users: Record<string, any> = {};
+    for (const u of j.includes?.users || []) users[u.id] = u;
+    for (const t of j.data || []) {
       const u = users[t.author_id] || {};
       const m = t.public_metrics || {};
-      return {
+      items.push({
         term,
         title: t.text,
         link: `https://x.com/${u.username || "i/web"}/status/${t.id}`,
@@ -60,14 +69,20 @@ async function searchX(term: string, token: string) {
         engagement: (m.like_count || 0) + (m.retweet_count || 0) + (m.reply_count || 0) + (m.quote_count || 0),
         likes: m.like_count || 0,
         retweets: m.retweet_count || 0,
-      };
-    }),
-  };
+      });
+    }
+    next = j.meta?.next_token;
+    pages++;
+    if (!next) break;
+  }
+  return { items };
 }
 
 export async function POST(req: NextRequest) {
-  const { keywords } = await req.json().catch(() => ({ keywords: [] }));
+  const { keywords, limit } = await req.json().catch(() => ({ keywords: [] }));
   if (!Array.isArray(keywords) || !keywords.length) return NextResponse.json({ hits: [] });
+  // tweets to pull PER keyword (admin "X target" view asks for more; monitor center uses default)
+  const perKw = Math.min(200, Math.max(10, Number(limit) || 50));
 
   const token = process.env.X_BEARER_TOKEN;
   if (!token) {
@@ -81,7 +96,7 @@ export async function POST(req: NextRequest) {
   let hits: any[] = [];
   let apiError: any = null;
   for (const k of keywords.slice(0, 5)) {
-    const res = await searchX(k, token);
+    const res = await searchX(k, token, perKw);
     if ("error" in res) { apiError = res; continue; }
     hits = hits.concat(res.items);
   }
@@ -98,7 +113,7 @@ export async function POST(req: NextRequest) {
   const seen = new Set<string>();
   hits = hits.filter((h) => h.link && h.title && !seen.has(h.link) && seen.add(h.link));
   hits.sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.engagement || 0) - (a.engagement || 0));
-  hits = hits.slice(0, 120);
+  hits = hits.slice(0, Math.min(200, perKw * keywords.length));
 
   const cls = await classifyAll(hits.map((h) => h.title));
   hits = hits.map((h, i) => ({ ...h, sentiment: cls[i]?.sentiment || "محايد", type: cls[i]?.type || "عام" }));
