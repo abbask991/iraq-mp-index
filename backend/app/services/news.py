@@ -41,7 +41,7 @@ def _parse(xml: str, term: str, limit: int) -> list[dict]:
     return out
 
 
-# time-range → Google News `when:` operator
+# time-range  Google News `when:` operator
 RANGE_WHEN = {"day": "1d", "week": "7d", "month": "30d", "year": "365d"}
 
 

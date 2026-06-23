@@ -6,14 +6,14 @@ cross-platform spread, novelty, and coordination. Pure functions over data the
 collectors already provide — no continuous storage required for the X window
 because X recent-search returns timestamped posts for the last 7 days.
 
-Module map (spec → here):
-  velocity_calculator   → _velocity / _eng_velocity
-  influencer_scoring    → influence_score / _influencer_weight
-  sentiment_analyzer    → (sentiment passed in) / _sentiment_shift
-  coordination_detector → network.analyze (reused)
-  trend_scoring         → score()
-  alert_engine          → alert_level()
-  report_generator      → early_warning_report()
+Module map (spec  here):
+  velocity_calculator    _velocity / _eng_velocity
+  influencer_scoring     influence_score / _influencer_weight
+  sentiment_analyzer     (sentiment passed in) / _sentiment_shift
+  coordination_detector  network.analyze (reused)
+  trend_scoring          score()
+  alert_engine           alert_level()
+  report_generator       early_warning_report()
 """
 import math
 import re

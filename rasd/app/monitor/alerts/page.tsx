@@ -6,9 +6,9 @@ import { apiPost } from "@/lib/api";
 import RangeSelect, { Range } from "@/components/RangeSelect";
 
 const LEVEL = {
-  high: { c: "#f43f5e", bg: "#2a0f16", label: "خطر مرتفع", icon: "🔴" },
-  medium: { c: "#f59e0b", bg: "#2a1f0a", label: "انتباه", icon: "🟡" },
-  low: { c: "#22c55e", bg: "#0f2418", label: "طبيعي", icon: "🟢" },
+  high: { c: "#f43f5e", bg: "#2a0f16", label: "خطر مرتفع", icon: "" },
+  medium: { c: "#f59e0b", bg: "#2a1f0a", label: "انتباه", icon: "" },
+  low: { c: "#22c55e", bg: "#0f2418", label: "طبيعي", icon: "" },
 } as const;
 
 type Risk = { level: "high" | "medium" | "low"; total: number; neg: number; recent_neg: number; neg_ratio: number; score: number; top_negative: any[] };
@@ -44,67 +44,67 @@ export default function Alerts() {
   const highCount = monitors.filter((m) => { const r = risks[m.id]; return r && r !== "loading" && r.level === "high"; }).length;
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-        <div>
-          <h2>🔔 الإنذار المبكر</h2>
-          <p className="muted">يفحص أهدافك ويكشف ارتفاع الذِكر السلبي قبل ما يتحوّل لأزمة.</p>
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <RangeSelect value={range} onChange={setRange} disabled={scanning} />
-          <button className="btn" onClick={() => scan(monitors)} disabled={scanning || !monitors.length}>
-            {scanning ? "جارٍ الفحص…" : "🔍 افحص الآن"}
-          </button>
-        </div>
-      </div>
+ <div>
+ <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+ <div>
+ <h2> الإنذار المبكر</h2>
+ <p className="muted">يفحص أهدافك ويكشف ارتفاع الذِكر السلبي قبل ما يتحوّل لأزمة.</p>
+ </div>
+ <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+ <RangeSelect value={range} onChange={setRange} disabled={scanning} />
+ <button className="btn" onClick={() => scan(monitors)} disabled={scanning || !monitors.length}>
+            {scanning ? "جارٍ الفحص…" : " افحص الآن"}
+ </button>
+ </div>
+ </div>
 
       {!monitors.length && <p className="muted">لا أهداف بعد — أنشئ عملية رصد أولاً من <Link href="/monitor">عمليات الرصد</Link>.</p>}
 
       {Object.keys(risks).length > 0 && (
-        <div className="stat-grid" style={{ margin: "14px 0" }}>
-          <div className="stat"><div className="v">{monitors.length}</div><div className="l">أهداف مرصودة</div></div>
-          <div className="stat"><div className="v" style={{ color: highCount ? LEVEL.high.c : undefined }}>{highCount}</div><div className="l">تنبيهات خطر مرتفع</div></div>
-        </div>
+ <div className="stat-grid" style={{ margin: "14px 0" }}>
+ <div className="stat"><div className="v">{monitors.length}</div><div className="l">أهداف مرصودة</div></div>
+ <div className="stat"><div className="v" style={{ color: highCount ? LEVEL.high.c : undefined }}>{highCount}</div><div className="l">تنبيهات خطر مرتفع</div></div>
+ </div>
       )}
 
       {ranked.map((m) => {
         const r = risks[m.id];
         const lv = r && r !== "loading" ? LEVEL[r.level] : null;
         return (
-          <div className="card" key={m.id} style={{ marginBottom: 10, borderInlineStart: lv ? `4px solid ${lv.c}` : undefined }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-              <div>
-                <b>📡 {m.name}</b>
-                <div className="muted" style={{ fontSize: 12 }}>{(m.keywords || []).join(" · ")}</div>
-              </div>
+ <div className="card" key={m.id} style={{ marginBottom: 10, borderInlineStart: lv ? `4px solid ${lv.c}` : undefined }}>
+ <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+ <div>
+ <b> {m.name}</b>
+ <div className="muted" style={{ fontSize: 12 }}>{(m.keywords || []).join(" · ")}</div>
+ </div>
               {r === "loading" ? <span className="muted">جارٍ الفحص…</span>
                 : r ? (
-                  <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                    <span style={{ color: lv!.c, fontWeight: 800 }}>{lv!.icon} {lv!.label}</span>
-                    <span className="muted" style={{ fontSize: 12 }}>سلبي حديث: <b style={{ color: LEVEL.high.c }}>{r.recent_neg}</b> · إجمالي سلبي: {r.neg}/{r.total}</span>
-                    <Link href={`/monitor/${m.id}`} className="btn ghost" style={{ padding: "4px 10px", fontSize: 12 }}>التفاصيل</Link>
-                  </div>
+ <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+ <span style={{ color: lv!.c, fontWeight: 800 }}>{lv!.icon} {lv!.label}</span>
+ <span className="muted" style={{ fontSize: 12 }}>سلبي حديث: <b style={{ color: LEVEL.high.c }}>{r.recent_neg}</b> · إجمالي سلبي: {r.neg}/{r.total}</span>
+ <Link href={`/monitor/${m.id}`} className="btn ghost" style={{ padding: "4px 10px", fontSize: 12 }}>التفاصيل</Link>
+ </div>
                 ) : <span className="muted">—</span>}
-            </div>
+ </div>
             {r && r !== "loading" && r.level !== "low" && r.top_negative?.length > 0 && (
-              <div style={{ marginTop: 10, background: lv!.bg, borderRadius: 8, padding: "8px 12px" }}>
-                <div className="muted" style={{ fontSize: 11, marginBottom: 6 }}>أبرز المنشورات السلبية:</div>
+ <div style={{ marginTop: 10, background: lv!.bg, borderRadius: 8, padding: "8px 12px" }}>
+ <div className="muted" style={{ fontSize: 11, marginBottom: 6 }}>أبرز المنشورات السلبية:</div>
                 {r.top_negative.slice(0, 4).map((h: any, i: number) => (
-                  <div key={i} style={{ fontSize: 12.5, padding: "3px 0" }}>
-                    <span style={{ opacity: 0.6 }}>{h.platform === "x" ? "𝕏" : "📰"}</span>{" "}
-                    <a href={h.link} target="_blank" rel="noopener" style={{ color: "var(--text)" }}>{h.title}</a>
-                    <span className="muted"> — {h.source} · {h.date}</span>
-                  </div>
+ <div key={i} style={{ fontSize: 12.5, padding: "3px 0" }}>
+ <span style={{ opacity: 0.6 }}>{h.platform === "x" ? "𝕏" : ""}</span>{" "}
+ <a href={h.link} target="_blank" rel="noopener" style={{ color: "var(--text)" }}>{h.title}</a>
+ <span className="muted"> — {h.source} · {h.date}</span>
+ </div>
                 ))}
-              </div>
+ </div>
             )}
-          </div>
+ </div>
         );
       })}
 
       {monitors.length > 0 && Object.keys(risks).length === 0 && (
-        <p className="muted" style={{ marginTop: 14 }}>اضغط «افحص الآن» لبدء تقييم المخاطر لأهدافك.</p>
+ <p className="muted" style={{ marginTop: 14 }}>اضغط «افحص الآن» لبدء تقييم المخاطر لأهدافك.</p>
       )}
-    </div>
+ </div>
   );
 }

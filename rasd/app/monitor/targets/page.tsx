@@ -60,7 +60,7 @@ export default function AdminX() {
     setTargets([...targets, v]);
     const { error } = await supabase.from("user_targets").insert({ name: v });
     if (error) { setMsg(`خطأ: ${error.message}`); loadTargets(); }
-    else { setMsg("✅ تم الحفظ"); setTimeout(() => setMsg(""), 2000); }
+    else { setMsg(" تم الحفظ"); setTimeout(() => setMsg(""), 2000); }
   };
   const remove = async (t: string) => {
     setTargets(targets.filter((x) => x !== t));
@@ -90,162 +90,162 @@ export default function AdminX() {
   const topTweets = [...hits].sort((a, b) => (b.engagement || 0) - (a.engagement || 0)).slice(0, 5);
 
   return (
-    <div>
-      <h2>📡 رصد مخصّص — X ويوتيوب</h2>
-      <p className="muted">أضِف اسم شخص أو مؤسسة، اختر المنصّة، واضغط «عرض» لجلب كل المحتوى عنه وتحليله (نبرة، أكثر {ACCT}، التفاعل).</p>
+ <div>
+ <h2> رصد مخصّص — X ويوتيوب</h2>
+ <p className="muted">أضِف اسم شخص أو مؤسسة، اختر المنصّة، واضغط «عرض» لجلب كل المحتوى عنه وتحليله (نبرة، أكثر {ACCT}، التفاعل).</p>
 
-      <div className="src-toggle" style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <button className={`btn ${!isYT ? "" : "ghost"}`} onClick={() => { setPlatform("x"); if (sel) view(sel, "x"); }} disabled={loading}>𝕏 منصّة X</button>
-        <button className={`btn ${isYT ? "" : "ghost"}`} onClick={() => { setPlatform("youtube"); if (sel) view(sel, "youtube"); }} disabled={loading}>▶️ يوتيوب</button>
-        <span style={{ marginInlineStart: "auto", display: "flex", gap: 6, alignItems: "center" }}>
-          <span className="muted" style={{ fontSize: 12 }}>المدة:</span>
+ <div className="src-toggle" style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+ <button className={`btn ${!isYT ? "" : "ghost"}`} onClick={() => { setPlatform("x"); if (sel) view(sel, "x"); }} disabled={loading}>𝕏 منصّة X</button>
+ <button className={`btn ${isYT ? "" : "ghost"}`} onClick={() => { setPlatform("youtube"); if (sel) view(sel, "youtube"); }} disabled={loading}>▶ يوتيوب</button>
+ <span style={{ marginInlineStart: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+ <span className="muted" style={{ fontSize: 12 }}>المدة:</span>
           {([["day", "يوم"], ["week", "أسبوع"], ["month", "شهر"], ["year", "سنة"]] as const).map(([v, l]) => (
-            <button key={v} className={`btn ${range === v ? "" : "ghost"}`} style={{ padding: "4px 10px", fontSize: 12 }}
+ <button key={v} className={`btn ${range === v ? "" : "ghost"}`} style={{ padding: "4px 10px", fontSize: 12 }}
               onClick={() => { setRange(v); if (sel) view(sel, platform, v); }} disabled={loading}>{l}</button>
           ))}
-        </span>
-      </div>
+ </span>
+ </div>
       {!isYT && (range === "month" || range === "year") && (
-        <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
-          ⚠️ منصّة X تبحث آخر ٧ أيام فقط (قيد الخطة) — النتائج ستكون لآخر أسبوع. الأخبار تدعم {range === "month" ? "الشهر" : "السنة"} كاملة.
-        </div>
+ <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
+           منصّة X تبحث آخر ٧ أيام فقط (قيد الخطة) — النتائج ستكون لآخر أسبوع. الأخبار تدعم {range === "month" ? "الشهر" : "السنة"} كاملة.
+ </div>
       )}
 
-      <div className="card" style={{ marginBottom: 14 }}>
-        <b>➕ إضافة هدف (شخص / مؤسسة)</b>
-        <div style={{ display: "flex", gap: 8, margin: "10px 0" }}>
-          <input placeholder='مثال: محمد الحلبوسي · وزارة النفط · مقتدى الصدر' value={val}
+ <div className="card" style={{ marginBottom: 14 }}>
+ <b> إضافة هدف (شخص / مؤسسة)</b>
+ <div style={{ display: "flex", gap: 8, margin: "10px 0" }}>
+ <input placeholder='مثال: محمد الحلبوسي · وزارة النفط · مقتدى الصدر' value={val}
             onChange={(e) => setVal(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && add()} />
-          <button className="btn" onClick={add}>إضافة</button>
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+ <button className="btn" onClick={add}>إضافة</button>
+ </div>
+ <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {targets.length === 0 && <span className="muted">لا أهداف بعد — أضِف أول اسم.</span>}
           {targets.map((t) => (
-            <span key={t} style={{
+ <span key={t} style={{
               background: sel === t ? "#13233a" : "#0e1626",
               border: `1px solid ${sel === t ? "var(--accent)" : "var(--line)"}`,
               borderRadius: 8, padding: "5px 10px", fontSize: 13, display: "inline-flex", gap: 8, alignItems: "center",
             }}>
               {t}
-              <button className="btn ghost" style={{ padding: "2px 8px", fontSize: 12 }} onClick={() => view(t, platform)}>عرض</button>
-              <button onClick={() => remove(t)}
-                style={{ background: "none", border: 0, color: "#f43f5e", cursor: "pointer" }}>✕</button>
-            </span>
+ <button className="btn ghost" style={{ padding: "2px 8px", fontSize: 12 }} onClick={() => view(t, platform)}>عرض</button>
+ <button onClick={() => remove(t)}
+                style={{ background: "none", border: 0, color: "#f43f5e", cursor: "pointer" }}></button>
+ </span>
           ))}
-        </div>
+ </div>
         {msg && <div className="muted" style={{ marginTop: 8 }}>{msg}</div>}
-      </div>
+ </div>
 
       {notice && (
-        <div className="card" style={{ borderColor: "#f59e0b55", background: "#f59e0b12" }}>
-          <b>𝕏 ملاحظة:</b> <span className="muted">{notice}</span>
-        </div>
+ <div className="card" style={{ borderColor: "#f59e0b55", background: "#f59e0b12" }}>
+ <b>𝕏 ملاحظة:</b> <span className="muted">{notice}</span>
+ </div>
       )}
 
       {sel && (
-        <div className="mon-hero" style={{ marginTop: 6 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-            <h3 style={{ margin: 0 }}>{isYT ? "▶️" : "𝕏"} نتائج: {sel}</h3>
-            <button className="btn" onClick={() => view(sel, platform)} disabled={loading}>↻ تحديث</button>
-          </div>
-        </div>
+ <div className="mon-hero" style={{ marginTop: 6 }}>
+ <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+ <h3 style={{ margin: 0 }}>{isYT ? "▶" : "𝕏"} نتائج: {sel}</h3>
+ <button className="btn" onClick={() => view(sel, platform)} disabled={loading}> تحديث</button>
+ </div>
+ </div>
       )}
 
       {loading && <div className="spinner" />}
 
       {sel && !loading && !notice && (
-        <>
-          <div className="stat-grid" style={{ marginTop: 14 }}>
-            <div className="stat"><div className="v">{hits.length}</div><div className="l">{UNIT}</div></div>
-            <div className="stat"><div className="v" style={{ color: idxC }}>{idx}<span style={{ fontSize: 14 }}>/100</span></div><div className="l">المؤشر</div></div>
-            <div className="stat"><div className="v" style={{ color: neg ? C.neg : undefined }}>{neg}</div><div className="l">سلبية</div></div>
-            <div className="stat"><div className="v">{totalEng.toLocaleString()}</div><div className="l">إجمالي التفاعل {isYT ? "👍💬" : "♥"}</div></div>
-          </div>
+ <>
+ <div className="stat-grid" style={{ marginTop: 14 }}>
+ <div className="stat"><div className="v">{hits.length}</div><div className="l">{UNIT}</div></div>
+ <div className="stat"><div className="v" style={{ color: idxC }}>{idx}<span style={{ fontSize: 14 }}>/100</span></div><div className="l">المؤشر</div></div>
+ <div className="stat"><div className="v" style={{ color: neg ? C.neg : undefined }}>{neg}</div><div className="l">سلبية</div></div>
+ <div className="stat"><div className="v">{totalEng.toLocaleString()}</div><div className="l">إجمالي التفاعل {isYT ? "" : ""}</div></div>
+ </div>
 
-          <div className="mon-grid" style={{ marginTop: 16 }}>
-            <div className="cbox">
-              <h4>توزيع النبرة</h4>
-              <div dangerouslySetInnerHTML={{ __html: donut([{ v: neg, c: C.neg }, { v: neu, c: C.neu }, { v: pos, c: C.pos }], UNIT) }} />
-              <div className="legend" style={{ marginTop: 12 }}>
-                <div className="row"><span className="dot" style={{ background: C.neg }} /> سلبي: <b>{neg}</b></div>
-                <div className="row"><span className="dot" style={{ background: C.neu }} /> محايد: <b>{neu}</b></div>
-                <div className="row"><span className="dot" style={{ background: C.pos }} /> إيجابي: <b>{pos}</b></div>
-              </div>
-            </div>
-            <div className="cbox">
-              <h4>أكثر {ACCT} ذِكراً</h4>
+ <div className="mon-grid" style={{ marginTop: 16 }}>
+ <div className="cbox">
+ <h4>توزيع النبرة</h4>
+ <div dangerouslySetInnerHTML={{ __html: donut([{ v: neg, c: C.neg }, { v: neu, c: C.neu }, { v: pos, c: C.pos }], UNIT) }} />
+ <div className="legend" style={{ marginTop: 12 }}>
+ <div className="row"><span className="dot" style={{ background: C.neg }} /> سلبي: <b>{neg}</b></div>
+ <div className="row"><span className="dot" style={{ background: C.neu }} /> محايد: <b>{neu}</b></div>
+ <div className="row"><span className="dot" style={{ background: C.pos }} /> إيجابي: <b>{pos}</b></div>
+ </div>
+ </div>
+ <div className="cbox">
+ <h4>أكثر {ACCT} ذِكراً</h4>
               {topAcc.length === 0 && <span className="muted">لا حسابات.</span>}
               {topAcc.map(([s, c]) => (
-                <div className="srcrow" key={s}><div>{s}</div><div className="bar"><i style={{ width: `${(c / maxAcc) * 100}%` }} /></div><div className="num">{c}</div></div>
+ <div className="srcrow" key={s}><div>{s}</div><div className="bar"><i style={{ width: `${(c / maxAcc) * 100}%` }} /></div><div className="num">{c}</div></div>
               ))}
-            </div>
-          </div>
+ </div>
+ </div>
 
           {topTweets.length > 0 && (
-            <div className="cbox" style={{ marginTop: 16 }}>
-              <h4>أكثر {isYT ? "الفيديوهات" : "التغريدات"} تأثيراً</h4>
+ <div className="cbox" style={{ marginTop: 16 }}>
+ <h4>أكثر {isYT ? "الفيديوهات" : "التغريدات"} تأثيراً</h4>
               {topTweets.map((h, i) => (
-                <div className="newsitem" key={i}>
-                  <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
-                  <div className="meta">
-                    <span>{h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
-                    {isYT && h.views != null && <span className="chip" style={{ color: "var(--accent2)" }}>👁 {(+h.views).toLocaleString()}</span>}
-                    <span className="chip" style={{ color: "var(--accent)" }}>{isYT ? "👍💬" : "♥"} {h.engagement}</span>
-                    <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
-                  </div>
-                </div>
+ <div className="newsitem" key={i}>
+ <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
+ <div className="meta">
+ <span>{h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
+                    {isYT && h.views != null && <span className="chip" style={{ color: "var(--accent2)" }}> {(+h.views).toLocaleString()}</span>}
+ <span className="chip" style={{ color: "var(--accent)" }}>{isYT ? "" : ""} {h.engagement}</span>
+ <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
+ </div>
+ </div>
               ))}
-            </div>
+ </div>
           )}
 
-          <div className="section-title">{isYT ? "كل الفيديوهات" : "كل التغريدات"} (الأحدث أولاً) · {hits.length}</div>
+ <div className="section-title">{isYT ? "كل الفيديوهات" : "كل التغريدات"} (الأحدث أولاً) · {hits.length}</div>
           {hits.length === 0 && <p className="muted">لا نتائج مطابقة حالياً.</p>}
           {hits.map((h, i) => {
             const id = tweetId(h.link);
             const rep = replies[id];
             return (
-            <div className="newsitem" key={i}>
-              <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
-              <div className="meta">
-                <span>{h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
-                {isYT && h.views != null && <span className="chip" style={{ color: "var(--accent2)" }}>👁 {(+h.views).toLocaleString()}</span>}
-                <span className="chip" style={{ color: "var(--accent)" }}>{isYT ? "👍💬" : "♥"} {h.engagement}</span>
-                <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
-                <span className="chip" style={{ color: "var(--accent2)" }}>{h.type}</span>
+ <div className="newsitem" key={i}>
+ <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
+ <div className="meta">
+ <span>{h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
+                {isYT && h.views != null && <span className="chip" style={{ color: "var(--accent2)" }}> {(+h.views).toLocaleString()}</span>}
+ <span className="chip" style={{ color: "var(--accent)" }}>{isYT ? "" : ""} {h.engagement}</span>
+ <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
+ <span className="chip" style={{ color: "var(--accent2)" }}>{h.type}</span>
                 {!isYT && id && (
-                  <button className="btn ghost" style={{ padding: "2px 8px", fontSize: 11 }}
+ <button className="btn ghost" style={{ padding: "2px 8px", fontSize: 11 }}
                     onClick={() => analyzeReplies(h)} disabled={repBusy === id}>
-                    {repBusy === id ? "جارٍ تحليل التعليقات…" : rep ? "↻ التعليقات" : "💬 حلّل التعليقات"}
-                  </button>
+                    {repBusy === id ? "جارٍ تحليل التعليقات…" : rep ? " التعليقات" : " حلّل التعليقات"}
+ </button>
                 )}
-              </div>
+ </div>
               {rep && (rep.error ? <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>تعذّر جلب التعليقات.</div>
                 : rep.count === 0 ? <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>لا تعليقات خلال آخر ٧ أيام.</div>
                 : (
-                <div className="cbox" style={{ marginTop: 8, background: "#0b1422" }}>
-                  <div style={{ display: "flex", gap: 12, fontSize: 12, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <b>💬 {rep.count} تعليق</b>
-                    <span style={{ color: C.pos }}>● إيجابي {rep.pos}</span>
-                    <span style={{ color: C.neu }}>● محايد {rep.neu}</span>
-                    <span style={{ color: C.neg }}>● سلبي {rep.neg}</span>
-                    <span className="muted">— مزاج الجمهور: {rep.pos > rep.neg ? "إيجابي غالباً" : rep.neg > rep.pos ? "سلبي غالباً" : "منقسم"}</span>
-                  </div>
+ <div className="cbox" style={{ marginTop: 8, background: "#0b1422" }}>
+ <div style={{ display: "flex", gap: 12, fontSize: 12, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
+ <b> {rep.count} تعليق</b>
+ <span style={{ color: C.pos }}>● إيجابي {rep.pos}</span>
+ <span style={{ color: C.neu }}>● محايد {rep.neu}</span>
+ <span style={{ color: C.neg }}>● سلبي {rep.neg}</span>
+ <span className="muted">— مزاج الجمهور: {rep.pos > rep.neg ? "إيجابي غالباً" : rep.neg > rep.pos ? "سلبي غالباً" : "منقسم"}</span>
+ </div>
                   {rep.replies.slice(0, 8).map((rp: any, j: number) => (
-                    <div key={j} style={{ padding: "5px 0", borderTop: j ? "1px solid var(--line)" : "0" }}>
-                      <div style={{ fontSize: 12.5 }}>{rp.text}</div>
-                      <div className="meta" style={{ marginTop: 2 }}>
-                        <span>{rp.source}</span>{rp.engagement ? <><span>·</span><span>♥ {rp.engagement}</span></> : null}
-                        <span className="chip" style={{ color: sColor(rp.sentiment), borderColor: sColor(rp.sentiment) + "55" }}>{rp.sentiment}</span>
-                      </div>
-                    </div>
+ <div key={j} style={{ padding: "5px 0", borderTop: j ? "1px solid var(--line)" : "0" }}>
+ <div style={{ fontSize: 12.5 }}>{rp.text}</div>
+ <div className="meta" style={{ marginTop: 2 }}>
+ <span>{rp.source}</span>{rp.engagement ? <><span>·</span><span> {rp.engagement}</span></> : null}
+ <span className="chip" style={{ color: sColor(rp.sentiment), borderColor: sColor(rp.sentiment) + "55" }}>{rp.sentiment}</span>
+ </div>
+ </div>
                   ))}
-                </div>
+ </div>
               ))}
-            </div>
+ </div>
           ); })}
-        </>
+ </>
       )}
-    </div>
+ </div>
   );
 }

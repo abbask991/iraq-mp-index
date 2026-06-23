@@ -4,14 +4,14 @@ Weighted attention across compared entities — not just mention count, but also
 engagement, estimated reach, source weight, prominence, and quality. Returns
 total SOV %, sentiment-adjusted SOV, platform SOV, and risk alerts.
 
-Modules (spec → here):
-  engagement_calculator → per-entity engagement sum
-  reach_estimator       → followers (X) + news readership proxy
-  source_weighting      → SOURCE_WEIGHT / X influence
-  prominence_detector   → alias-in-title vs body
-  quality_scorer        → credible-account / source share
-  share_of_voice_calc   → compute()
-  period_comparison     → (needs history → noted, not stored yet)
+Modules (spec  here):
+  engagement_calculator  per-entity engagement sum
+  reach_estimator        followers (X) + news readership proxy
+  source_weighting       SOURCE_WEIGHT / X influence
+  prominence_detector    alias-in-title vs body
+  quality_scorer         credible-account / source share
+  share_of_voice_calc    compute()
+  period_comparison      (needs history  noted, not stored yet)
 """
 from collections import Counter
 
@@ -82,9 +82,9 @@ def _alerts(r: dict, sov: float) -> list:
     tot_sent = r["pos"] + r["neg"] + r["neu"]
     neg_ratio = (r["neg"] / tot_sent) if tot_sent else 0
     if sov >= 40 and neg_ratio >= 0.6:
-        out.append("⚠️ خطر سمعة: حضور مرتفع بنبرة سلبية غالبة")
+        out.append(" خطر سمعة: حضور مرتفع بنبرة سلبية غالبة")
     if sov >= 50:
-        out.append("📢 هيمنة على المحادثة")
+        out.append(" هيمنة على المحادثة")
     return out
 
 

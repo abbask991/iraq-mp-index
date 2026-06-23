@@ -10,7 +10,7 @@ from urllib.parse import quote, urlparse
 
 import httpx
 
-# range → GDELT timespan
+# range  GDELT timespan
 _GDELT_SPAN = {"day": "1d", "week": "7d", "month": "1m", "year": "12m"}
 
 # verified working RSS feeds (pan-Arab + Iraqi covering Iraq)

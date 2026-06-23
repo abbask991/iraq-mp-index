@@ -32,7 +32,7 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const cacheRef = useRef<Record<string, { hits: any[]; at: string }>>({});
 
-  // fresh fetch from the live API → updates the cache (Supabase + in-memory)
+  // fresh fetch from the live API  updates the cache (Supabase + in-memory)
   const run = useCallback(async (m: any, plat: "news" | "x" | "youtube", rng: string) => {
     setLoading(true);
     setNotice("");
@@ -97,104 +97,104 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
   const maxT = Math.max(1, ...trend.map(([, n]) => n));
 
   return (
-    <div>
-      <Link href="/monitor" className="muted">← كل عمليات الرصد</Link>
-      <div className="mon-hero">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
-          <div>
-            <h2>📡 {mon?.name}</h2>
-            <div className="kw">{(mon?.keywords || []).map((k: string) => <span key={k}>{k}</span>)}</div>
-          </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+ <div>
+ <Link href="/monitor" className="muted"> كل عمليات الرصد</Link>
+ <div className="mon-hero">
+ <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+ <div>
+ <h2> {mon?.name}</h2>
+ <div className="kw">{(mon?.keywords || []).map((k: string) => <span key={k}>{k}</span>)}</div>
+ </div>
+ <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {updatedAt && !loading && (
-              <span className="muted" style={{ fontSize: 11 }}>
+ <span className="muted" style={{ fontSize: 11 }}>
                 آخر تحديث: {updatedAt.slice(0, 10)} {updatedAt.slice(11, 16)}
-              </span>
+ </span>
             )}
-            <Link href={`/monitor/${mon?.id}/report`} className="btn ghost" style={{ textDecoration: "none" }}>📄 تقرير PDF</Link>
-            <button className="btn" onClick={() => mon && run(mon, platform, range)} disabled={loading}>↻ تحديث</button>
-          </div>
-        </div>
-        <div className="src-toggle" style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <button className={`btn ${platform === "news" ? "" : "ghost"}`} onClick={() => switchTo("news")} disabled={loading}>📰 الأخبار</button>
-          <button className={`btn ${platform === "x" ? "" : "ghost"}`} onClick={() => switchTo("x")} disabled={loading}>𝕏 منصّة X</button>
-          <button className={`btn ${platform === "youtube" ? "" : "ghost"}`} onClick={() => switchTo("youtube")} disabled={loading}>▶️ يوتيوب</button>
-          <span style={{ marginInlineStart: "auto", display: "flex", gap: 6, alignItems: "center" }}>
-            <span className="muted" style={{ fontSize: 12 }}>المدة:</span>
+ <Link href={`/monitor/${mon?.id}/report`} className="btn ghost" style={{ textDecoration: "none" }}> تقرير PDF</Link>
+ <button className="btn" onClick={() => mon && run(mon, platform, range)} disabled={loading}> تحديث</button>
+ </div>
+ </div>
+ <div className="src-toggle" style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+ <button className={`btn ${platform === "news" ? "" : "ghost"}`} onClick={() => switchTo("news")} disabled={loading}> الأخبار</button>
+ <button className={`btn ${platform === "x" ? "" : "ghost"}`} onClick={() => switchTo("x")} disabled={loading}>𝕏 منصّة X</button>
+ <button className={`btn ${platform === "youtube" ? "" : "ghost"}`} onClick={() => switchTo("youtube")} disabled={loading}>▶ يوتيوب</button>
+ <span style={{ marginInlineStart: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+ <span className="muted" style={{ fontSize: 12 }}>المدة:</span>
             {([["day", "يوم"], ["week", "أسبوع"], ["month", "شهر"], ["year", "سنة"]] as const).map(([v, l]) => (
-              <button key={v} className={`btn ${range === v ? "" : "ghost"}`} style={{ padding: "4px 10px", fontSize: 12 }}
+ <button key={v} className={`btn ${range === v ? "" : "ghost"}`} style={{ padding: "4px 10px", fontSize: 12 }}
                 onClick={() => switchRange(v)} disabled={loading}>{l}</button>
             ))}
-          </span>
-        </div>
+ </span>
+ </div>
         {platform === "x" && (range === "month" || range === "year") && (
-          <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>
-            ⚠️ منصّة X تبحث آخر ٧ أيام فقط — لعرض {range === "month" ? "الشهر" : "السنة"} الكاملة استخدم تبويب الأخبار.
-          </div>
+ <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+             منصّة X تبحث آخر ٧ أيام فقط — لعرض {range === "month" ? "الشهر" : "السنة"} الكاملة استخدم تبويب الأخبار.
+ </div>
         )}
-      </div>
+ </div>
 
       {notice && (
-        <div className="cbox" style={{ marginTop: 16, borderColor: "#f59e0b55", background: "#f59e0b12" }}>
-          <b>𝕏 ملاحظة:</b> <span className="muted">{notice}</span>
-        </div>
+ <div className="cbox" style={{ marginTop: 16, borderColor: "#f59e0b55", background: "#f59e0b12" }}>
+ <b>𝕏 ملاحظة:</b> <span className="muted">{notice}</span>
+ </div>
       )}
 
       {loading ? <div className="spinner" /> : (
-        <>
-          <div className="stat-grid">
-            <div className="stat"><div className="v">{hits.length}</div><div className="l">إجمالي الذكر</div></div>
-            <div className="stat"><div className="v" style={{ color: idxC }}>{idx}<span style={{ fontSize: 14 }}>/100</span></div><div className="l">المؤشر الإعلامي</div></div>
-            <div className="stat"><div className="v" style={{ color: neg ? C.neg : undefined }}>{neg}</div><div className="l">أخبار سلبية</div></div>
-            <div className="stat"><div className="v">{topSrc.length}</div><div className="l">{isYT ? "قنوات" : isX ? "حسابات" : "مصادر"}</div></div>
-          </div>
+ <>
+ <div className="stat-grid">
+ <div className="stat"><div className="v">{hits.length}</div><div className="l">إجمالي الذكر</div></div>
+ <div className="stat"><div className="v" style={{ color: idxC }}>{idx}<span style={{ fontSize: 14 }}>/100</span></div><div className="l">المؤشر الإعلامي</div></div>
+ <div className="stat"><div className="v" style={{ color: neg ? C.neg : undefined }}>{neg}</div><div className="l">أخبار سلبية</div></div>
+ <div className="stat"><div className="v">{topSrc.length}</div><div className="l">{isYT ? "قنوات" : isX ? "حسابات" : "مصادر"}</div></div>
+ </div>
 
-          <div className="mon-grid" style={{ marginTop: 16 }}>
-            <div className="cbox">
-              <h4>توزيع النبرة</h4>
-              <div dangerouslySetInnerHTML={{ __html: donut([{ v: neg, c: C.neg }, { v: neu, c: C.neu }, { v: pos, c: C.pos }]) }} />
-              <div className="legend" style={{ marginTop: 12 }}>
-                <div className="row"><span className="dot" style={{ background: C.neg }} /> سلبي: <b>{neg}</b></div>
-                <div className="row"><span className="dot" style={{ background: C.neu }} /> محايد: <b>{neu}</b></div>
-                <div className="row"><span className="dot" style={{ background: C.pos }} /> إيجابي: <b>{pos}</b></div>
-              </div>
-            </div>
-            <div className="cbox">
-              <h4>التغطية عبر الزمن</h4>
+ <div className="mon-grid" style={{ marginTop: 16 }}>
+ <div className="cbox">
+ <h4>توزيع النبرة</h4>
+ <div dangerouslySetInnerHTML={{ __html: donut([{ v: neg, c: C.neg }, { v: neu, c: C.neu }, { v: pos, c: C.pos }]) }} />
+ <div className="legend" style={{ marginTop: 12 }}>
+ <div className="row"><span className="dot" style={{ background: C.neg }} /> سلبي: <b>{neg}</b></div>
+ <div className="row"><span className="dot" style={{ background: C.neu }} /> محايد: <b>{neu}</b></div>
+ <div className="row"><span className="dot" style={{ background: C.pos }} /> إيجابي: <b>{pos}</b></div>
+ </div>
+ </div>
+ <div className="cbox">
+ <h4>التغطية عبر الزمن</h4>
               {trend.length ? (
-                <div className="trend">
+ <div className="trend">
                   {trend.map(([m, n]) => (
-                    <div className="col" key={m}><b>{n}</b><i style={{ height: `${(n / maxT) * 100}%` }} /><span>{m.slice(2)}</span></div>
+ <div className="col" key={m}><b>{n}</b><i style={{ height: `${(n / maxT) * 100}%` }} /><span>{m.slice(2)}</span></div>
                   ))}
-                </div>
+ </div>
               ) : <p className="muted">لا بيانات كافية.</p>}
-            </div>
-          </div>
+ </div>
+ </div>
 
-          <div className="cbox" style={{ marginTop: 16 }}>
-            <h4>{isSocial ? `أكثر ${ACCT} ذِكراً` : "المصادر الأكثر تغطية"}</h4>
+ <div className="cbox" style={{ marginTop: 16 }}>
+ <h4>{isSocial ? `أكثر ${ACCT} ذِكراً` : "المصادر الأكثر تغطية"}</h4>
             {topSrc.length === 0 && <span className="muted">لا {ACCT}.</span>}
             {topSrc.map(([s, c]) => (
-              <div className="srcrow" key={s}><div>{s}</div><div className="bar"><i style={{ width: `${(c / maxSrc) * 100}%` }} /></div><div className="num">{c}</div></div>
+ <div className="srcrow" key={s}><div>{s}</div><div className="bar"><i style={{ width: `${(c / maxSrc) * 100}%` }} /></div><div className="num">{c}</div></div>
             ))}
-          </div>
+ </div>
 
-          <div className="section-title">{UNIT} (الأحدث أولاً) · {hits.length}</div>
+ <div className="section-title">{UNIT} (الأحدث أولاً) · {hits.length}</div>
           {hits.length === 0 && !notice && <p className="muted">لا نتائج مطابقة حالياً — جرّب كلمات أوسع.</p>}
           {hits.map((h, i) => (
-            <div className="newsitem" key={i}>
-              <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
-              <div className="meta">
-                <span>{isSocial && h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
-                {isYT && h.views != null && <span className="chip" style={{ color: "var(--accent2)" }}>👁 {(+h.views).toLocaleString()}</span>}
-                {isSocial && h.engagement != null && <span className="chip" style={{ color: "var(--accent)" }}>{isYT ? "👍💬" : "♥"} {h.engagement}</span>}
-                <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
-                <span className="chip" style={{ color: "var(--accent2)" }}>{h.type}</span>
-              </div>
-            </div>
+ <div className="newsitem" key={i}>
+ <a href={h.link} target="_blank" rel="noopener">{h.title}</a>
+ <div className="meta">
+ <span>{isSocial && h.author ? `${h.author} ` : ""}{h.source}</span><span>·</span><span>{h.date}</span>
+                {isYT && h.views != null && <span className="chip" style={{ color: "var(--accent2)" }}> {(+h.views).toLocaleString()}</span>}
+                {isSocial && h.engagement != null && <span className="chip" style={{ color: "var(--accent)" }}>{isYT ? "" : ""} {h.engagement}</span>}
+ <span className="chip" style={{ color: sColor(h.sentiment), borderColor: sColor(h.sentiment) + "55" }}>{h.sentiment}</span>
+ <span className="chip" style={{ color: "var(--accent2)" }}>{h.type}</span>
+ </div>
+ </div>
           ))}
-        </>
+ </>
       )}
-    </div>
+ </div>
   );
 }

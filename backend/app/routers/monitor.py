@@ -294,7 +294,7 @@ async def monitor_sov(req: SovReq):
 @router.post("/new-accounts")
 async def monitor_new_accounts(req: KeywordReq = KeywordReq()):  # noqa: B008
     """Newly-created accounts active in the Iraqi feed, grouped by age band +
-    same-day creation clusters. No AI needed (account metadata only) → fast."""
+    same-day creation clusters. No AI needed (account metadata only)  fast."""
     seed = (req.keywords[0] if req.keywords else "") or DISCOVER_SEED
     rng = req.range or "day"
     key = f"newacc:{rng}:{seed}"

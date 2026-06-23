@@ -4,19 +4,19 @@ Computes a 0-100 Coordination Score from 9 weighted signals. Each sub-score is
 0-100. Uses probability language and always flags "requires human review" — it
 never accuses an account or group with certainty.
 
-Module map (spec → here):
-  text_similarity_detector  → _text_similarity
-  timing_burst_detector     → _timing_sync
-  account_quality_scorer    → _account_suspicion
-  network_graph_analyzer    → _network_amplification (mention-graph approximation)
-  link_repetition_detector  → _link_repetition
-  hashtag_pattern_detector  → _hashtag_pattern
-  narrative_classifier      → _narrative_consistency
-  (cross-platform)          → _cross_platform
-  (influencer trigger)      → _influencer_trigger
-  coordination_score_engine → detect()
-  campaign_alert_engine     → _alert
-  campaign_report_generator → _explanation
+Module map (spec  here):
+  text_similarity_detector   _text_similarity
+  timing_burst_detector      _timing_sync
+  account_quality_scorer     _account_suspicion
+  network_graph_analyzer     _network_amplification (mention-graph approximation)
+  link_repetition_detector   _link_repetition
+  hashtag_pattern_detector   _hashtag_pattern
+  narrative_classifier       _narrative_consistency
+  (cross-platform)           _cross_platform
+  (influencer trigger)       _influencer_trigger
+  coordination_score_engine  detect()
+  campaign_alert_engine      _alert
+  campaign_report_generator  _explanation
 """
 import re
 from collections import Counter
@@ -49,7 +49,7 @@ def _epoch_min(created):
         return None
 
 
-# ---- signals (each → 0..100) ----
+# ---- signals (each  0..100) ----
 def _text_similarity(tweets):
     n = len(tweets)
     norm = [_norm(t["text"]) for t in tweets]

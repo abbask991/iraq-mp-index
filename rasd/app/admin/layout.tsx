@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 const NAV = [
   { grp: "إدارة المركز", items: [
-    ["👥", "العملاء والاشتراكات", "/admin"],
+    ["", "العملاء والاشتراكات", "/admin"],
   ] },
 ];
 
@@ -19,32 +19,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (state === "loading") return <p className="muted">جارٍ التحقق…</p>;
   if (state === "denied")
     return (
-      <div className="card">
-        <h2>لوحة الإدارة</h2>
-        <p className="muted">هذه الصفحة للمشرفين فقط. <Link href="/login">سجّل الدخول</Link> بحساب مشرف.</p>
-      </div>
+ <div className="card">
+ <h2>لوحة الإدارة</h2>
+ <p className="muted">هذه الصفحة للمشرفين فقط. <Link href="/login">سجّل الدخول</Link> بحساب مشرف.</p>
+ </div>
     );
 
   return (
-    <div className="admin-shell">
-      <aside className="admin-side">
+ <div className="admin-shell">
+ <aside className="admin-side">
         {NAV.map((g) => (
-          <div key={g.grp}>
-            <div className="grp">{g.grp}</div>
+ <div key={g.grp}>
+ <div className="grp">{g.grp}</div>
             {g.items.map(([icon, label, href]) => (
-              <Link key={href} href={href} className={path === href ? "active" : ""}>
-                <span>{icon}</span> {label}
-              </Link>
+ <Link key={href} href={href} className={path === href ? "active" : ""}>
+ {label}
+ </Link>
             ))}
-          </div>
+ </div>
         ))}
-        <div className="grp">أخرى</div>
-        <Link href="/">🌐 الموقع العام</Link>
-        <a href="#" onClick={async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = "/login"; }}>
-          ↩︎ تسجيل الخروج
-        </a>
-      </aside>
-      <div className="admin-main">{children}</div>
-    </div>
+ <div className="grp">أخرى</div>
+ <Link href="/"> الموقع العام</Link>
+ <a href="#" onClick={async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = "/login"; }}>
+          ︎ تسجيل الخروج
+ </a>
+ </aside>
+ <div className="admin-main">{children}</div>
+ </div>
   );
 }

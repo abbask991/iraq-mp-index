@@ -97,10 +97,10 @@ export default function MonitorReport({ params }: { params: { id: string } }) {
 
   if (!mon && !loading) return <p className="muted">الرصد غير موجود.</p>;
   if (loading) return (
-    <div style={{ textAlign: "center", padding: 60 }}>
-      <div className="spinner" />
-      <p className="muted">{stage}</p>
-    </div>
+ <div style={{ textAlign: "center", padding: 60 }}>
+ <div className="spinner" />
+ <p className="muted">{stage}</p>
+ </div>
   );
 
   const neg = hits.filter((h) => h.sentiment === "سلبي").length;
@@ -127,118 +127,118 @@ export default function MonitorReport({ params }: { params: { id: string } }) {
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="report">
-      <div className="rep-actions no-print">
-        <Link href={`/monitor/${params.id}`} className="muted">← رجوع للوحة</Link>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn ghost" onClick={exportCsv}>⬇︎ تصدير CSV</button>
-          <button className="btn ghost" onClick={() => window.print()}>🖨️ طباعة</button>
-          <button className="btn" onClick={downloadPdf} disabled={downloading}>
-            {downloading ? "جارٍ التحميل…" : "⬇︎ تحميل PDF"}
-          </button>
-        </div>
-      </div>
+ <div className="report">
+ <div className="rep-actions no-print">
+ <Link href={`/monitor/${params.id}`} className="muted"> رجوع للوحة</Link>
+ <div style={{ display: "flex", gap: 8 }}>
+ <button className="btn ghost" onClick={exportCsv}>︎ تصدير CSV</button>
+ <button className="btn ghost" onClick={() => window.print()}> طباعة</button>
+ <button className="btn" onClick={downloadPdf} disabled={downloading}>
+            {downloading ? "جارٍ التحميل…" : "︎ تحميل PDF"}
+ </button>
+ </div>
+ </div>
 
-      <div className="paper">
-        <div className="rep-head">
-          <div>
-            <div className="brand">📡 مركز الرصد</div>
-            <h1>تقرير رصد إعلامي</h1>
-            <div className="sub">الهدف: <b>{mon?.name}</b></div>
-            <div className="kw">{(mon?.keywords || []).map((k: string) => <span key={k}>{k}</span>)}</div>
-          </div>
-          <div className="rep-meta">
-            <div>تاريخ التقرير: <b>{today}</b></div>
-            <div>الكلمات المرصودة: {(mon?.keywords || []).length}</div>
-            <div>المصادر: أخبار ({hits.length - xN}) + X ({xN})</div>
-          </div>
-        </div>
+ <div className="paper">
+ <div className="rep-head">
+ <div>
+ <div className="brand"> مركز الرصد</div>
+ <h1>تقرير رصد إعلامي</h1>
+ <div className="sub">الهدف: <b>{mon?.name}</b></div>
+ <div className="kw">{(mon?.keywords || []).map((k: string) => <span key={k}>{k}</span>)}</div>
+ </div>
+ <div className="rep-meta">
+ <div>تاريخ التقرير: <b>{today}</b></div>
+ <div>الكلمات المرصودة: {(mon?.keywords || []).length}</div>
+ <div>المصادر: أخبار ({hits.length - xN}) + X ({xN})</div>
+ </div>
+ </div>
 
-        <div className="rep-kpis">
-          <div className="k"><div className="v">{hits.length}</div><div className="l">إجمالي ما نُشر</div></div>
-          <div className="k"><div className="v" style={{ color: idx >= 60 ? C.pos : idx <= 40 ? C.neg : "#0b1220" }}>{idx}/100</div><div className="l">المؤشر الإعلامي</div></div>
-          <div className="k"><div className="v" style={{ color: C.neg }}>{neg}</div><div className="l">سلبي</div></div>
-          <div className="k"><div className="v" style={{ color: C.pos }}>{pos}</div><div className="l">إيجابي</div></div>
-        </div>
+ <div className="rep-kpis">
+ <div className="k"><div className="v">{hits.length}</div><div className="l">إجمالي ما نُشر</div></div>
+ <div className="k"><div className="v" style={{ color: idx >= 60 ? C.pos : idx <= 40 ? C.neg : "#0b1220" }}>{idx}/100</div><div className="l">المؤشر الإعلامي</div></div>
+ <div className="k"><div className="v" style={{ color: C.neg }}>{neg}</div><div className="l">سلبي</div></div>
+ <div className="k"><div className="v" style={{ color: C.pos }}>{pos}</div><div className="l">إيجابي</div></div>
+ </div>
 
-        <section>
-          <h2>الملخّص التنفيذي</h2>
-          <p className="summary">{summary || "—"}</p>
-        </section>
+ <section>
+ <h2>الملخّص التنفيذي</h2>
+ <p className="summary">{summary || "—"}</p>
+ </section>
 
-        <div className="rep-grid">
-          <section>
-            <h2>توزيع النبرة</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div dangerouslySetInnerHTML={{ __html: donut([{ v: neg, c: C.neg }, { v: neu, c: C.neu }, { v: pos, c: C.pos }]) }} />
-              <div>
-                <div className="lg"><span style={{ background: C.neg }} /> سلبي: <b>{neg}</b></div>
-                <div className="lg"><span style={{ background: C.neu }} /> محايد: <b>{neu}</b></div>
-                <div className="lg"><span style={{ background: C.pos }} /> إيجابي: <b>{pos}</b></div>
-              </div>
-            </div>
-          </section>
-          <section>
-            <h2>تصنيف القضايا</h2>
+ <div className="rep-grid">
+ <section>
+ <h2>توزيع النبرة</h2>
+ <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+ <div dangerouslySetInnerHTML={{ __html: donut([{ v: neg, c: C.neg }, { v: neu, c: C.neu }, { v: pos, c: C.pos }]) }} />
+ <div>
+ <div className="lg"><span style={{ background: C.neg }} /> سلبي: <b>{neg}</b></div>
+ <div className="lg"><span style={{ background: C.neu }} /> محايد: <b>{neu}</b></div>
+ <div className="lg"><span style={{ background: C.pos }} /> إيجابي: <b>{pos}</b></div>
+ </div>
+ </div>
+ </section>
+ <section>
+ <h2>تصنيف القضايا</h2>
             {topTyp.length === 0 && <span className="muted">—</span>}
             {topTyp.map(([t, c]) => (
-              <div className="brow" key={t}><div className="bl">{t}</div><div className="bar"><i style={{ width: `${(c / hits.length) * 100}%` }} /></div><div className="bn">{c}</div></div>
+ <div className="brow" key={t}><div className="bl">{t}</div><div className="bar"><i style={{ width: `${(c / hits.length) * 100}%` }} /></div><div className="bn">{c}</div></div>
             ))}
-          </section>
-        </div>
+ </section>
+ </div>
 
-        <div className="rep-grid">
-          <section>
-            <h2>أبرز المصادر / الحسابات</h2>
+ <div className="rep-grid">
+ <section>
+ <h2>أبرز المصادر / الحسابات</h2>
             {topSrc.map(([s, c]) => (
-              <div className="brow" key={s}><div className="bl">{s}</div><div className="bar"><i style={{ width: `${(c / maxSrc) * 100}%` }} /></div><div className="bn">{c}</div></div>
+ <div className="brow" key={s}><div className="bl">{s}</div><div className="bar"><i style={{ width: `${(c / maxSrc) * 100}%` }} /></div><div className="bn">{c}</div></div>
             ))}
-          </section>
-          <section>
-            <h2>التغطية عبر الزمن</h2>
-            <div className="trendp">
+ </section>
+ <section>
+ <h2>التغطية عبر الزمن</h2>
+ <div className="trendp">
               {trend.map(([m, n]) => {
                 const mm = +m.slice(5, 7);
                 return <div className="col" key={m}><b>{n}</b><i style={{ height: `${(n / maxT) * 90}%` }} /><span>{AR_MONTH[mm]}</span></div>;
               })}
-            </div>
-          </section>
-        </div>
+ </div>
+ </section>
+ </div>
 
-        <section>
-          <h2>أبرز ما نُشر (الأكثر تفاعلاً)</h2>
+ <section>
+ <h2>أبرز ما نُشر (الأكثر تفاعلاً)</h2>
           {top.map((h, i) => (
-            <div className="item" key={i}>
-              <div className="it-t">{h.title}</div>
-              <div className="it-m">
-                <span className="pf">{h.platform === "x" ? "𝕏" : "📰"}</span>
-                <span>{h.source}</span><span>·</span><span>{h.date}</span>
-                {h.engagement ? <span>· ♥ {h.engagement}</span> : null}
-                <span className="sent" style={{ color: sColor(h.sentiment) }}>● {h.sentiment}</span>
-              </div>
-            </div>
+ <div className="item" key={i}>
+ <div className="it-t">{h.title}</div>
+ <div className="it-m">
+ <span className="pf">{h.platform === "x" ? "𝕏" : ""}</span>
+ <span>{h.source}</span><span>·</span><span>{h.date}</span>
+                {h.engagement ? <span>·  {h.engagement}</span> : null}
+ <span className="sent" style={{ color: sColor(h.sentiment) }}>● {h.sentiment}</span>
+ </div>
+ </div>
           ))}
-        </section>
+ </section>
 
-        <section className="break">
-          <h2>كل ما نُشر ({hits.length})</h2>
+ <section className="break">
+ <h2>كل ما نُشر ({hits.length})</h2>
           {hits.map((h, i) => (
-            <div className="item sm" key={i}>
-              <div className="it-t"><a href={h.link} target="_blank" rel="noopener">{h.title}</a></div>
-              <div className="it-m">
-                <span className="pf">{h.platform === "x" ? "𝕏" : "📰"}</span>
-                <span>{h.source}</span><span>·</span><span>{h.date}</span>
-                <span className="sent" style={{ color: sColor(h.sentiment) }}>● {h.sentiment}</span>
-                <span className="muted">{h.type}</span>
-              </div>
-            </div>
+ <div className="item sm" key={i}>
+ <div className="it-t"><a href={h.link} target="_blank" rel="noopener">{h.title}</a></div>
+ <div className="it-m">
+ <span className="pf">{h.platform === "x" ? "𝕏" : ""}</span>
+ <span>{h.source}</span><span>·</span><span>{h.date}</span>
+ <span className="sent" style={{ color: sColor(h.sentiment) }}>● {h.sentiment}</span>
+ <span className="muted">{h.type}</span>
+ </div>
+ </div>
           ))}
-        </section>
+ </section>
 
-        <div className="rep-foot">
+ <div className="rep-foot">
           مركز الرصد · تقرير آلي · تم التوليد في {today} — التصنيف والملخّص بمساعدة الذكاء الاصطناعي وقد يحتاج مراجعة بشرية.
-        </div>
-      </div>
-    </div>
+ </div>
+ </div>
+ </div>
   );
 }

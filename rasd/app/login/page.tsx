@@ -22,7 +22,7 @@ export default function Login() {
         if (company && data.user) {
           await supabase.from("subscriptions").update({ company }).eq("user_id", data.user.id);
         }
-        if (!data.session) { setMsg("✅ تم إنشاء الحساب. تحقّق من بريدك لتأكيد الحساب ثم سجّل الدخول."); return; }
+        if (!data.session) { setMsg(" تم إنشاء الحساب. تحقّق من بريدك لتأكيد الحساب ثم سجّل الدخول."); return; }
         router.push("/monitor");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -33,30 +33,30 @@ export default function Login() {
   }
 
   return (
-    <div className="card" style={{ maxWidth: 440, margin: "40px auto" }}>
-      <div className="auth-tabs">
-        <button className={mode === "login" ? "on" : ""} onClick={() => setMode("login")}>تسجيل الدخول</button>
-        <button className={mode === "signup" ? "on" : ""} onClick={() => setMode("signup")}>حساب جديد</button>
-      </div>
-      <p className="muted" style={{ marginTop: 10 }}>
+ <div className="card" style={{ maxWidth: 440, margin: "40px auto" }}>
+ <div className="auth-tabs">
+ <button className={mode === "login" ? "on" : ""} onClick={() => setMode("login")}>تسجيل الدخول</button>
+ <button className={mode === "signup" ? "on" : ""} onClick={() => setMode("signup")}>حساب جديد</button>
+ </div>
+ <p className="muted" style={{ marginTop: 10 }}>
         {mode === "signup" ? "أنشئ حسابك وابدأ بتجربة مجانية ٧ أيام." : "ادخل لمتابعة لوحة الرصد."}
-      </p>
+ </p>
 
       {mode === "signup" && (
-        <input placeholder="اسم الجهة / الشركة (اختياري)" value={company}
+ <input placeholder="اسم الجهة / الشركة (اختياري)" value={company}
           onChange={(e) => setCompany(e.target.value)} style={{ margin: "8px 0" }} />
       )}
-      <input type="email" placeholder="البريد الإلكتروني" value={email}
+ <input type="email" placeholder="البريد الإلكتروني" value={email}
         onChange={(e) => setEmail(e.target.value)} style={{ margin: "8px 0" }} />
-      <input type="password" placeholder="كلمة السر" value={password}
+ <input type="password" placeholder="كلمة السر" value={password}
         onChange={(e) => setPassword(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && submit()} style={{ margin: "8px 0" }} />
-      <button className="btn" onClick={submit} disabled={busy} style={{ width: "100%" }}>
+ <button className="btn" onClick={submit} disabled={busy} style={{ width: "100%" }}>
         {busy ? "…" : mode === "signup" ? "إنشاء الحساب" : "دخول"}
-      </button>
+ </button>
 
       {err && <p style={{ color: "#f43f5e", marginTop: 12 }}>{err}</p>}
       {msg && <p style={{ color: "#22c55e", marginTop: 12 }}>{msg}</p>}
-    </div>
+ </div>
   );
 }
