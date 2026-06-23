@@ -159,7 +159,7 @@ async def monitor_discover(req: KeywordReq = KeywordReq()):  # noqa: B008
     if cached is not None:
         return cached
 
-    tw = await x.fetch_trend(seed, want=300, range=rng)
+    tw = await x.fetch_trend(seed, want=500, range=rng)
     if "error" in tw:
         return {"hashtags": [], "keywords": [], "error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
     tweets, users = tw["tweets"], tw["users"]
@@ -185,7 +185,7 @@ async def monitor_campaign_scan(req: KeywordReq = KeywordReq()):  # noqa: B008
     if cached is not None:
         return cached
 
-    tw = await x.fetch_trend(seed, want=300, range=rng)
+    tw = await x.fetch_trend(seed, want=500, range=rng)
     if "error" in tw:
         return {"campaigns": [], "error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
     tweets, users = tw["tweets"], tw["users"]
