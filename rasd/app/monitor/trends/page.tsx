@@ -101,6 +101,51 @@ export default function Trends() {
             ))}
           </div>
 
+          {res.spread && (res.spread.first_poster || res.spread.amplifiers?.length > 0) && (
+            <div className="cbox" style={{ marginBottom: 14 }}>
+              <h4>🧬 أصل الهاشتاج وانتشاره</h4>
+              {res.spread.first_poster && (
+                <div style={{ padding: "8px 0", borderTop: "1px solid var(--line)" }}>
+                  <span className="chip" style={{ color: "#f59e0b" }}>أول من نشر</span>{" "}
+                  <a href={`https://x.com/${res.spread.first_poster.username}`} target="_blank" rel="noopener" style={{ color: "var(--text)", fontWeight: 700 }}>
+                    {res.spread.first_poster.name} <span className="muted">@{res.spread.first_poster.username}</span>
+                  </a>
+                  <span className="muted" style={{ fontSize: 12 }}> — قبل {res.spread.first_poster.hours_ago} ساعة · {Number(res.spread.first_poster.followers).toLocaleString()} متابع</span>
+                </div>
+              )}
+              {res.spread.first_influential && (
+                <div style={{ padding: "8px 0", borderTop: "1px solid var(--line)" }}>
+                  <span className="chip" style={{ color: "var(--accent)" }}>أول حساب مؤثّر</span>{" "}
+                  <a href={`https://x.com/${res.spread.first_influential.username}`} target="_blank" rel="noopener" style={{ color: "var(--text)", fontWeight: 700 }}>
+                    {res.spread.first_influential.name} <span className="muted">@{res.spread.first_influential.username}</span>
+                  </a>
+                  <span className="muted" style={{ fontSize: 12 }}> — قبل {res.spread.first_influential.hours_ago} ساعة · وزن {res.spread.first_influential.influence}</span>
+                </div>
+              )}
+              {res.spread.most_shared_domain && (
+                <div style={{ padding: "8px 0", borderTop: "1px solid var(--line)", fontSize: 13 }}>
+                  <span className="chip" style={{ color: "var(--accent2)" }}>أكثر رابط منشور</span>{" "}
+                  <b>{res.spread.most_shared_domain.domain}</b> <span className="muted">(×{res.spread.most_shared_domain.count})</span>
+                </div>
+              )}
+              {res.spread.amplifiers?.length > 0 && (
+                <div style={{ paddingTop: 8, borderTop: "1px solid var(--line)" }}>
+                  <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>من ساهم بنشره (المضخّمون) — {res.spread.unique_accounts} حساب مشارك:</div>
+                  {res.spread.amplifiers.map((m: any, i: number) => (
+                    <div className="srcrow" key={i} style={{ marginBottom: 4 }}>
+                      <div style={{ width: 18, color: "var(--muted)", fontWeight: 700 }}>{i + 1}</div>
+                      <div style={{ flex: 1, fontSize: 13 }}>
+                        <a href={`https://x.com/${m.username}`} target="_blank" rel="noopener" style={{ color: "var(--text)" }}>{m.name} <span className="muted">@{m.username}</span></a>
+                      </div>
+                      <span className="muted" style={{ fontSize: 11 }}>{m.posts} منشور · ♥ {Number(m.engagement).toLocaleString()}</span>
+                      <span className="chip" style={{ color: "var(--accent)", marginInlineStart: 6, fontSize: 11 }}>وزن {m.influence}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {res.top_influencers?.length > 0 && (
             <div className="cbox">
               <h4>أبرز المؤثّرين في الموضوع</h4>

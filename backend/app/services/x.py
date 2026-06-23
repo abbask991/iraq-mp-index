@@ -136,7 +136,7 @@ async def fetch_trend(keyword: str, want: int = 150, range: str = "week"):
     if not X_BEARER_TOKEN:
         return {"error": "X_TOKEN_MISSING"}
     start_time = _start_time(range or "week")
-    fields = ("tweet.fields=created_at,public_metrics&expansions=author_id"
+    fields = ("tweet.fields=created_at,public_metrics,entities&expansions=author_id"
               "&user.fields=created_at,public_metrics,verified,description,profile_image_url")
     tweets, users, next_token, loops = [], {}, None, 0
     async with httpx.AsyncClient() as client:
@@ -157,10 +157,17 @@ async def fetch_trend(keyword: str, want: int = 150, range: str = "week"):
                 users[u["id"]] = u
             for t in j.get("data", []):
                 m = t.get("public_metrics", {})
+                domains = []
+                for u_ in (t.get("entities", {}).get("urls", []) or []):
+                    disp = (u_.get("display_url") or u_.get("expanded_url") or "")
+                    dom = disp.split("/")[0].replace("www.", "").lower()
+                    if dom and "twitter.com" not in dom and "x.com" not in dom:
+                        domains.append(dom)
                 tweets.append({
                     "text": t["text"], "author_id": t["author_id"], "created_at": t.get("created_at"),
                     "engagement": m.get("like_count", 0) + m.get("retweet_count", 0)
                     + m.get("reply_count", 0) + m.get("quote_count", 0),
+                    "domains": domains,
                 })
             next_token = j.get("meta", {}).get("next_token")
             loops += 1

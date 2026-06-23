@@ -172,9 +172,62 @@ def analyze(keyword, tweets, users, sentiments, news_count, platforms_present, t
             "influence": influence_score(u),
         } for u in top_accounts],
         "most_engaged_post": (tweets[top_eng_i].get("text", "")[:160]) if top_eng_i is not None else None,
+        "spread": spread_analysis(tweets, users, times),
     }
     out["report"] = early_warning_report(out)
     return out
+
+
+def spread_analysis(tweets, users, times):
+    """Influencer-trigger detection: who started the hashtag and who amplified it
+    (within the fetched window — X recent search = last 7 days)."""
+    if not tweets:
+        return {}
+
+    def acct(i):
+        u = users.get(tweets[i]["author_id"], {})
+        m = u.get("public_metrics", {})
+        return {"username": u.get("username"), "name": u.get("name"),
+                "followers": m.get("followers_count", 0), "influence": influence_score(u),
+                "hours_ago": round(times[i], 1)}
+
+    oldest = max(range(len(tweets)), key=lambda i: times[i])           # earliest post
+    first_poster = acct(oldest)
+
+    infl_idx = [i for i in range(len(tweets))
+                if influence_score(users.get(tweets[i]["author_id"], {})) >= 7]
+    first_influential = acct(max(infl_idx, key=lambda i: times[i])) if infl_idx else None
+
+    # amplifiers: aggregate per author, rank by engagement generated + influence
+    agg: dict = {}
+    for i, t in enumerate(tweets):
+        a = t["author_id"]
+        u = users.get(a, {})
+        d = agg.setdefault(a, {
+            "username": u.get("username"), "name": u.get("name"),
+            "influence": influence_score(u),
+            "followers": u.get("public_metrics", {}).get("followers_count", 0),
+            "posts": 0, "engagement": 0, "first_hours_ago": 0.0,
+        })
+        d["posts"] += 1
+        d["engagement"] += t.get("engagement", 0)
+        d["first_hours_ago"] = max(d["first_hours_ago"], round(times[i], 1))
+    amplifiers = sorted(agg.values(), key=lambda d: d["engagement"] + d["influence"] * 50, reverse=True)[:10]
+
+    domains = Counter()
+    for t in tweets:
+        for dom in t.get("domains", []):
+            if "t.co" not in dom:
+                domains[dom] += 1
+    top_domain = domains.most_common(1)
+
+    return {
+        "first_poster": first_poster,
+        "first_influential": first_influential,
+        "amplifiers": amplifiers,
+        "unique_accounts": len(agg),
+        "most_shared_domain": ({"domain": top_domain[0][0], "count": top_domain[0][1]} if top_domain else None),
+    }
 
 
 def alert_level(score: int) -> dict:
