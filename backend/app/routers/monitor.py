@@ -8,8 +8,14 @@ import asyncio
 from app.config import CRON_SECRET
 from app.services import ai, bigdata, cache, campaign, db, network, news, notify, sources_extra, sov, trends, x
 
-NEWS_TTL = 300   # seconds — repeated identical queries return instantly
-X_TTL = 180
+# Freshness windows. With stale-while-revalidate the user never WAITS this long
+# — once a key is warm they always get an instant answer and the refresh happens
+# in the background. Generous windows keep X-API/AI usage bounded (a key is
+# recomputed at most once per window, only while it's actively viewed).
+NEWS_TTL = 900   # 15 min
+X_TTL = 600      # 10 min
+HEAVY_TTL = 900  # content / dossier / bigdata
+OVERVIEW_TTL = 600
 
 router = APIRouter(prefix="/monitor", tags=["monitor"])
 
@@ -47,27 +53,26 @@ async def monitor_news(req: KeywordReq):
         return {"hits": [], "count": 0, "sources": 0}
     rng = req.range or ""
     key = f"news:{rng}:" + ",".join(sorted(req.keywords))
-    cached = cache.get(key, NEWS_TTL)
-    if cached is not None:
-        return cached
-    # Google News RSS (per-source) + GDELT + direct RSS + Telegram, in parallel
-    gnews, extra = await asyncio.gather(
-        news.fetch_news(req.keywords, cap=100, range=rng),
-        sources_extra.fetch_extra(req.keywords[0], rng),
-    )
-    for h in gnews:
-        h.setdefault("src_type", "Google News")
-    seen = {h["link"] for h in gnews}
-    hits = gnews + [h for h in extra if h["link"] not in seen]
-    hits.sort(key=lambda h: h.get("date", ""), reverse=True)
-    hits = hits[:130]
-    cls = await ai.classify_all([h["title"] for h in hits])
-    for h, c in zip(hits, cls):
-        h["sentiment"], h["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
-    result = {"hits": hits, "count": len(hits), "sources": _distinct_sources(hits),
-              "source_types": sorted({h.get("src_type", "Google News") for h in hits})}
-    cache.put(key, result)
-    return result
+
+    async def _build():
+        # Google News RSS (per-source) + GDELT + direct RSS + Telegram, in parallel
+        gnews, extra = await asyncio.gather(
+            news.fetch_news(req.keywords, cap=100, range=rng),
+            sources_extra.fetch_extra(req.keywords[0], rng),
+        )
+        for h in gnews:
+            h.setdefault("src_type", "Google News")
+        seen = {h["link"] for h in gnews}
+        hits = gnews + [h for h in extra if h["link"] not in seen]
+        hits.sort(key=lambda h: h.get("date", ""), reverse=True)
+        hits = hits[:130]
+        cls = await ai.classify_all([h["title"] for h in hits])
+        for h, c in zip(hits, cls):
+            h["sentiment"], h["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
+        return {"hits": hits, "count": len(hits), "sources": _distinct_sources(hits),
+                "source_types": sorted({h.get("src_type", "Google News") for h in hits})}
+
+    return await cache.swr(key, NEWS_TTL, _build)
 
 
 @router.post("/x")
@@ -130,94 +135,92 @@ async def monitor_dossier(req: KeywordReq):
     name = req.keywords[0]
     rng = req.range or "week"
     key = f"dossier:{rng}:" + name
-    cached = cache.get(key, 300)
-    if cached is not None:
-        return cached
 
-    tw, news_res = await asyncio.gather(
+    async def _build():
+      tw, news_res = await asyncio.gather(
         x.fetch_trend(name, want=150, range=rng),
         monitor_news(KeywordReq(keywords=[name], range=rng)),
-    )
-    tweets = [] if "error" in tw else tw["tweets"]
-    users = {} if "error" in tw else tw["users"]
-    cls = await ai.classify_all([t["text"] for t in tweets])
-    for t, c in zip(tweets, cls):
+      )
+      tweets = [] if "error" in tw else tw["tweets"]
+      users = {} if "error" in tw else tw["users"]
+      cls = await ai.classify_all([t["text"] for t in tweets])
+      for t, c in zip(tweets, cls):
         t["sentiment"], t["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
-    news_hits = news_res.get("hits") or []
+      news_hits = news_res.get("hits") or []
 
-    all_hits = ([{**h, "platform": "x"} for h in
-                 ({"title": t["text"], "source": "@" + (users.get(t["author_id"], {}).get("username") or "x"),
-                   "sentiment": t["sentiment"], "type": t["type"], "engagement": t.get("engagement", 0),
-                   "link": ""} for t in tweets)] +
-                [{**h, "platform": "news"} for h in news_hits])
-    total = len(all_hits)
-    if total == 0:
+      all_hits = ([{**h, "platform": "x"} for h in
+                   ({"title": t["text"], "source": "@" + (users.get(t["author_id"], {}).get("username") or "x"),
+                     "sentiment": t["sentiment"], "type": t["type"], "engagement": t.get("engagement", 0),
+                     "link": ""} for t in tweets)] +
+                  [{**h, "platform": "news"} for h in news_hits])
+      total = len(all_hits)
+      if total == 0:
         return {"total": 0, "message": "لا محتوى كافٍ عن هذه الشخصية."}
 
-    pos = sum(1 for h in all_hits if h.get("sentiment") == "إيجابي")
-    neg = sum(1 for h in all_hits if h.get("sentiment") == "سلبي")
-    neu = total - pos - neg
-    media_index = round(50 + 50 * (pos - neg) / total)
+      pos = sum(1 for h in all_hits if h.get("sentiment") == "إيجابي")
+      neg = sum(1 for h in all_hits if h.get("sentiment") == "سلبي")
+      neu = total - pos - neg
+      media_index = round(50 + 50 * (pos - neg) / total)
 
-    by_src: dict = {}
-    for h in all_hits:
+      by_src: dict = {}
+      for h in all_hits:
         s = h.get("source") or "—"
         d = by_src.setdefault(s, {"source": s, "pos": 0, "neg": 0, "neu": 0, "total": 0})
         d[{"إيجابي": "pos", "سلبي": "neg"}.get(h.get("sentiment"), "neu")] += 1
         d["total"] += 1
-    sources = sorted(by_src.values(), key=lambda d: -d["total"])[:8]
-    for d in sources:
+      sources = sorted(by_src.values(), key=lambda d: -d["total"])[:8]
+      for d in sources:
         d["lean"] = round((d["pos"] - d["neg"]) / d["total"] * 100)
-    themes = [{"label": trends.NARRATIVE_MAP.get(t, t), "count": c}
-              for t, c in _C(h.get("type") for h in all_hits if h.get("type") and h["type"] != "عام").most_common(6)]
-    words = _C()
-    for h in all_hits:
+      themes = [{"label": trends.NARRATIVE_MAP.get(t, t), "count": c}
+                for t, c in _C(h.get("type") for h in all_hits if h.get("type") and h["type"] != "عام").most_common(6)]
+      words = _C()
+      for h in all_hits:
         for w in _re.findall(r"[؀-ۿ]{4,}", h.get("title", "")):
             if w not in trends.AR_STOP and w not in name:
                 words[w] += 1
-    key_terms = [{"term": w, "count": c} for w, c in words.most_common(18) if c >= 2]
+      key_terms = [{"term": w, "count": c} for w, c in words.most_common(18) if c >= 2]
 
-    bd = bigdata.analyze(name, tweets, users) if len(tweets) >= 5 else {}
+      bd = bigdata.analyze(name, tweets, users) if len(tweets) >= 5 else {}
 
-    # every engine, same data → a section each
-    import math
-    from datetime import timedelta
-    sentiments = [t.get("sentiment", "محايد") for t in tweets]
-    platforms_present = 1 + (1 if news_hits else 0)
-    trend = trends.analyze(name, tweets, users, sentiments, len(news_hits), platforms_present) if len(tweets) >= 3 else {}
-    camp = campaign.detect(name, tweets, users, len(news_hits)) if len(tweets) >= 5 else {}
-    new_acc = network.new_accounts_report(tweets, users) if tweets else {}
+      # every engine, same data → a section each
+      import math
+      from datetime import timedelta
+      sentiments = [t.get("sentiment", "محايد") for t in tweets]
+      platforms_present = 1 + (1 if news_hits else 0)
+      trend = trends.analyze(name, tweets, users, sentiments, len(news_hits), platforms_present) if len(tweets) >= 3 else {}
+      camp = campaign.detect(name, tweets, users, len(news_hits)) if len(tweets) >= 5 else {}
+      new_acc = network.new_accounts_report(tweets, users) if tweets else {}
 
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=2)).strftime("%Y-%m-%d")
-    eng = sum(int(t.get("engagement") or 0) for t in tweets)
-    distinct = len({h.get("source") for h in all_hits})
-    recent_neg = sum(1 for t in tweets if t.get("sentiment") == "سلبي"
-                     and (t.get("created_at") or "")[:10] >= cutoff)
-    neg_ratio = neg / total
-    risk_level = ("high" if recent_neg >= 5 or (neg_ratio > 0.5 and total >= 8)
-                  else "medium" if recent_neg >= 2 or neg_ratio > 0.3 else "low")
-    dims = {
+      cutoff = (datetime.now(timezone.utc) - timedelta(days=2)).strftime("%Y-%m-%d")
+      eng = sum(int(t.get("engagement") or 0) for t in tweets)
+      distinct = len({h.get("source") for h in all_hits})
+      recent_neg = sum(1 for t in tweets if t.get("sentiment") == "سلبي"
+                       and (t.get("created_at") or "")[:10] >= cutoff)
+      neg_ratio = neg / total
+      risk_level = ("high" if recent_neg >= 5 or (neg_ratio > 0.5 and total >= 8)
+                    else "medium" if recent_neg >= 2 or neg_ratio > 0.3 else "low")
+      dims = {
         "visibility": min(100, round(total / 2)),
         "sentiment": round((pos - neg) / total * 50 + 50),
         "engagement": min(100, round(math.log10(eng + 1) * 20)),
         "diversity": min(100, distinct * 3),
-    }
-    perf = round(0.3 * dims["visibility"] + 0.3 * dims["sentiment"] + 0.2 * dims["engagement"] + 0.2 * dims["diversity"])
+      }
+      perf = round(0.3 * dims["visibility"] + 0.3 * dims["sentiment"] + 0.2 * dims["engagement"] + 0.2 * dims["diversity"])
 
-    samples = [{"title": h["title"], "sentiment": h.get("sentiment"), "source": h.get("source")} for h in all_hits[:40]]
-    facts = (f"إجمالي {total} منشور ({len(news_hits)} خبر، {len(tweets)} تغريدة). "
-             f"المؤشر الإعلامي {media_index}/100 (إيجابي {pos}، سلبي {neg}، محايد {neu}). "
-             f"مؤشّر التلاعب {bd.get('manipulation_index', '—')}. "
-             f"أبرز القضايا: {'، '.join(t['label'] for t in themes[:4])}.")
-    content, conclusion = await asyncio.gather(
+      samples = [{"title": h["title"], "sentiment": h.get("sentiment"), "source": h.get("source")} for h in all_hits[:40]]
+      facts = (f"إجمالي {total} منشور ({len(news_hits)} خبر، {len(tweets)} تغريدة). "
+               f"المؤشر الإعلامي {media_index}/100 (إيجابي {pos}، سلبي {neg}، محايد {neu}). "
+               f"مؤشّر التلاعب {bd.get('manipulation_index', '—')}. "
+               f"أبرز القضايا: {'، '.join(t['label'] for t in themes[:4])}.")
+      content, conclusion = await asyncio.gather(
         ai.content_analysis(name, samples),
         ai.dossier_conclusion(name, facts),
-    )
+      )
 
-    spread = bd.get("network") and trends.spread_analysis(
+      spread = bd.get("network") and trends.spread_analysis(
         tweets, users, [trends._hours_ago(t["created_at"], datetime.now(timezone.utc)) for t in tweets]) or {}
 
-    result = {
+      result = {
         "entity": name, "period": rng, "total": total, "news": len(news_hits), "x": len(tweets),
         "sentiment": {"pos": pos, "neg": neg, "neu": neu}, "media_index": media_index,
         "executive": conclusion,
@@ -250,10 +253,10 @@ async def monitor_dossier(req: KeywordReq):
         "top_items": [{"title": h["title"], "source": h.get("source"), "sentiment": h.get("sentiment"),
                        "platform": h.get("platform"), "link": h.get("link")}
                       for h in sorted(all_hits, key=lambda h: h.get("engagement", 0), reverse=True)[:10]],
-    }
-    if conclusion or content.get("brief"):
-        cache.put(key, result)
-    return result
+      }
+      return result
+
+    return await cache.swr(key, HEAVY_TTL, _build)
 
 
 @router.post("/content")
@@ -268,62 +271,59 @@ async def monitor_content(req: KeywordReq):
     kw = req.keywords[0]
     rng = req.range or "week"
     key = f"content:{rng}:" + kw
-    cached = cache.get(key, 300)
-    if cached is not None:
-        return cached
 
-    nr, xr = await asyncio.gather(
-        monitor_news(KeywordReq(keywords=req.keywords, range=rng)),
-        monitor_x(KeywordReq(keywords=req.keywords, range=rng)),
-    )
-    hits = [{**h, "platform": "news"} for h in (nr.get("hits") or [])] + \
-           [{**h, "platform": "x"} for h in (xr.get("hits") or [])]
-    total = len(hits)
-    if total == 0:
-        return {"total": 0, "message": "لا محتوى كافٍ لهذا الموضوع."}
+    async def _build():
+        nr, xr = await asyncio.gather(
+            monitor_news(KeywordReq(keywords=req.keywords, range=rng)),
+            monitor_x(KeywordReq(keywords=req.keywords, range=rng)),
+        )
+        hits = [{**h, "platform": "news"} for h in (nr.get("hits") or [])] + \
+               [{**h, "platform": "x"} for h in (xr.get("hits") or [])]
+        total = len(hits)
+        if total == 0:
+            return {"total": 0, "message": "لا محتوى كافٍ لهذا الموضوع."}
 
-    pos = sum(1 for h in hits if h.get("sentiment") == "إيجابي")
-    neg = sum(1 for h in hits if h.get("sentiment") == "سلبي")
-    neu = total - pos - neg
-    media_index = round(50 + 50 * (pos - neg) / total)
+        pos = sum(1 for h in hits if h.get("sentiment") == "إيجابي")
+        neg = sum(1 for h in hits if h.get("sentiment") == "سلبي")
+        neu = total - pos - neg
+        media_index = round(50 + 50 * (pos - neg) / total)
 
-    # source bias: per-source sentiment lean
-    by_src: dict = {}
-    for h in hits:
-        s = h.get("source") or "—"
-        d = by_src.setdefault(s, {"source": s, "pos": 0, "neg": 0, "neu": 0, "total": 0})
-        d[{"إيجابي": "pos", "سلبي": "neg"}.get(h.get("sentiment"), "neu")] += 1
-        d["total"] += 1
-    sources = sorted(by_src.values(), key=lambda d: -d["total"])[:10]
-    for d in sources:
-        d["lean"] = round((d["pos"] - d["neg"]) / d["total"] * 100)
+        # source bias: per-source sentiment lean
+        by_src: dict = {}
+        for h in hits:
+            s = h.get("source") or "—"
+            d = by_src.setdefault(s, {"source": s, "pos": 0, "neg": 0, "neu": 0, "total": 0})
+            d[{"إيجابي": "pos", "سلبي": "neg"}.get(h.get("sentiment"), "neu")] += 1
+            d["total"] += 1
+        sources = sorted(by_src.values(), key=lambda d: -d["total"])[:10]
+        for d in sources:
+            d["lean"] = round((d["pos"] - d["neg"]) / d["total"] * 100)
 
-    # themes (issue types) + key terms
-    themes = [{"label": trends.NARRATIVE_MAP.get(t, t), "count": c}
-              for t, c in _C(h.get("type") for h in hits if h.get("type") and h["type"] != "عام").most_common(6)]
-    words = _C()
-    for h in hits:
-        for w in _re.findall(r"[؀-ۿ]{4,}", h.get("title", "")):
-            if w not in trends.AR_STOP and w not in kw:
-                words[w] += 1
-    key_terms = [{"term": w, "count": c} for w, c in words.most_common(20) if c >= 2]
+        # themes (issue types) + key terms
+        themes = [{"label": trends.NARRATIVE_MAP.get(t, t), "count": c}
+                  for t, c in _C(h.get("type") for h in hits if h.get("type") and h["type"] != "عام").most_common(6)]
+        words = _C()
+        for h in hits:
+            for w in _re.findall(r"[؀-ۿ]{4,}", h.get("title", "")):
+                if w not in trends.AR_STOP and w not in kw:
+                    words[w] += 1
+        key_terms = [{"term": w, "count": c} for w, c in words.most_common(20) if c >= 2]
 
-    samples = [{"title": h["title"], "sentiment": h.get("sentiment"), "source": h.get("source")} for h in hits[:50]]
-    ai_res = await ai.content_analysis(kw, samples)
+        samples = [{"title": h["title"], "sentiment": h.get("sentiment"), "source": h.get("source")} for h in hits[:50]]
+        ai_res = await ai.content_analysis(kw, samples)
 
-    result = {
-        "keyword": kw, "total": total, "news": len(nr.get("hits") or []), "x": len(xr.get("hits") or []),
-        "sentiment": {"pos": pos, "neg": neg, "neu": neu}, "media_index": media_index,
-        "sources": sources, "themes": themes, "key_terms": key_terms,
-        "narratives": ai_res.get("narratives", []), "frames": ai_res.get("frames", []),
-        "tone": ai_res.get("tone", {}), "key_messages": ai_res.get("key_messages", []),
-        "brief": ai_res.get("brief", ""),
-        "top_items": [{"title": h["title"], "source": h.get("source"), "sentiment": h.get("sentiment"),
-                       "link": h.get("link"), "platform": h.get("platform")} for h in hits[:12]],
-    }
-    if ai_res.get("brief") or ai_res.get("narratives"):  # don't cache a failed AI pass
-        cache.put(key, result)
-    return result
+        return {
+            "keyword": kw, "total": total, "news": len(nr.get("hits") or []), "x": len(xr.get("hits") or []),
+            "sentiment": {"pos": pos, "neg": neg, "neu": neu}, "media_index": media_index,
+            "sources": sources, "themes": themes, "key_terms": key_terms,
+            "narratives": ai_res.get("narratives", []), "frames": ai_res.get("frames", []),
+            "tone": ai_res.get("tone", {}), "key_messages": ai_res.get("key_messages", []),
+            "brief": ai_res.get("brief", ""),
+            "top_items": [{"title": h["title"], "source": h.get("source"), "sentiment": h.get("sentiment"),
+                           "link": h.get("link"), "platform": h.get("platform")} for h in hits[:12]],
+        }
+
+    return await cache.swr(key, HEAVY_TTL, _build)
 
 
 @router.post("/index")
@@ -448,58 +448,56 @@ async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
 
     rng = req.range or "day"
     key = f"overview:{rng}"
-    cached = cache.get(key, 240)
-    if cached is not None:
-        return cached
 
-    tw = await x.fetch_trend(DISCOVER_SEED, want=500, range=rng)
-    if "error" in tw:
-        return {"error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
-    tweets, users = tw["tweets"], tw["users"]
-    cls = await ai.classify_all([t["text"] for t in tweets])
-    sentiments = [c.get("sentiment", "محايد") for c in cls]
-    for t, c in zip(tweets, cls):
-        t["sentiment"], t["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
+    async def _build():
+        tw = await x.fetch_trend(DISCOVER_SEED, want=500, range=rng)
+        if "error" in tw:
+            return {"error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
+        tweets, users = tw["tweets"], tw["users"]
+        cls = await ai.classify_all([t["text"] for t in tweets])
+        sentiments = [c.get("sentiment", "محايد") for c in cls]
+        for t, c in zip(tweets, cls):
+            t["sentiment"], t["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
 
-    disc = trends.discover(tweets, users, sentiments)
+        disc = trends.discover(tweets, users, sentiments)
 
-    # suspected campaigns from credible-account hashtags
-    cred = trends.credible_authors(users)
-    htags = _C(h for t in tweets if t["author_id"] in cred
-               for h in t.get("hashtags", [])
-               if h not in trends.EXCLUDE_HASHTAGS and not trends.is_spam_hashtag(h))
-    campaigns = []
-    for h, c in htags.most_common(12):
-        if c < 5:
-            continue
-        subset = [t for t in tweets if h in t.get("hashtags", [])]
-        sub_users = {t["author_id"]: users[t["author_id"]] for t in subset if t["author_id"] in users}
-        det = campaign.detect(h, subset, sub_users, 0, window_label=rng)
-        if det.get("coordination_score", 0) >= 30:
-            campaigns.append({"hashtag": h, "coordination_score": det["coordination_score"],
-                              "alert_level": det["alert_level"], "total_posts": det["total_posts"]})
-    campaigns.sort(key=lambda r: -r["coordination_score"])
+        # suspected campaigns from credible-account hashtags
+        cred = trends.credible_authors(users)
+        htags = _C(h for t in tweets if t["author_id"] in cred
+                   for h in t.get("hashtags", [])
+                   if h not in trends.EXCLUDE_HASHTAGS and not trends.is_spam_hashtag(h))
+        campaigns = []
+        for h, c in htags.most_common(12):
+            if c < 5:
+                continue
+            subset = [t for t in tweets if h in t.get("hashtags", [])]
+            sub_users = {t["author_id"]: users[t["author_id"]] for t in subset if t["author_id"] in users}
+            det = campaign.detect(h, subset, sub_users, 0, window_label=rng)
+            if det.get("coordination_score", 0) >= 30:
+                campaigns.append({"hashtag": h, "coordination_score": det["coordination_score"],
+                                  "alert_level": det["alert_level"], "total_posts": det["total_posts"]})
+        campaigns.sort(key=lambda r: -r["coordination_score"])
 
-    newacc = network.new_accounts_report(tweets, users)
-    pos = sentiments.count("إيجابي")
-    neg = sentiments.count("سلبي")
-    neu = len(sentiments) - pos - neg
-    issues = [{"label": trends.NARRATIVE_MAP.get(t, t), "count": c}
-              for t, c in _C(t.get("type") for t in tweets if t.get("type") and t["type"] != "عام").most_common(6)]
+        newacc = network.new_accounts_report(tweets, users)
+        pos = sentiments.count("إيجابي")
+        neg = sentiments.count("سلبي")
+        neu = len(sentiments) - pos - neg
+        issues = [{"label": trends.NARRATIVE_MAP.get(t, t), "count": c}
+                  for t, c in _C(t.get("type") for t in tweets if t.get("type") and t["type"] != "عام").most_common(6)]
 
-    result = {
-        "scanned": len(tweets), "accounts": len(users), "window": rng,
-        "sentiment": {"pos": pos, "neg": neg, "neu": neu},
-        "media_index": round(50 + (50 * (pos - neg) / len(tweets))) if tweets else 50,
-        "trending": disc["hashtags"][:8], "keywords": disc["keywords"][:8],
-        "campaigns": campaigns[:5],
-        "new_accounts": {"new_today": newacc["bands"][0]["count"] if newacc["bands"] else 0,
-                         "new_total": newacc["new_accounts"],
-                         "clusters": newacc["creation_clusters"][:3]},
-        "issues": issues,
-    }
-    cache.put(key, result)
-    return result
+        return {
+            "scanned": len(tweets), "accounts": len(users), "window": rng,
+            "sentiment": {"pos": pos, "neg": neg, "neu": neu},
+            "media_index": round(50 + (50 * (pos - neg) / len(tweets))) if tweets else 50,
+            "trending": disc["hashtags"][:8], "keywords": disc["keywords"][:8],
+            "campaigns": campaigns[:5],
+            "new_accounts": {"new_today": newacc["bands"][0]["count"] if newacc["bands"] else 0,
+                             "new_total": newacc["new_accounts"],
+                             "clusters": newacc["creation_clusters"][:3]},
+            "issues": issues,
+        }
+
+    return await cache.swr(key, HEAVY_TTL, _build)
 
 
 @router.post("/discover")
@@ -695,21 +693,21 @@ async def monitor_bigdata(req: KeywordReq):
     kw = req.keywords[0]
     rng = req.range or "week"
     key = f"bigdata:{rng}:" + kw
-    cached = cache.get(key, 240)
-    if cached is not None:
-        return cached
-    tw = await x.fetch_trend(kw, want=200, range=rng)
-    if "error" in tw:
-        return {"sparse": True, "error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
-    tweets, users = tw["tweets"], tw["users"]
-    cls = await ai.classify_all([t["text"] for t in tweets])
-    for t, c in zip(tweets, cls):
-        t["sentiment"] = c.get("sentiment", "محايد")
-    result = bigdata.analyze(kw, tweets, users)
-    if not result.get("sparse"):
-        result["analyst_brief"] = await ai.analyst_brief(kw, bigdata.brief_facts(result))
-    cache.put(key, result)
-    return result
+
+    async def _build():
+        tw = await x.fetch_trend(kw, want=200, range=rng)
+        if "error" in tw:
+            return {"sparse": True, "error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
+        tweets, users = tw["tweets"], tw["users"]
+        cls = await ai.classify_all([t["text"] for t in tweets])
+        for t, c in zip(tweets, cls):
+            t["sentiment"] = c.get("sentiment", "محايد")
+        result = bigdata.analyze(kw, tweets, users)
+        if not result.get("sparse"):
+            result["analyst_brief"] = await ai.analyst_brief(kw, bigdata.brief_facts(result))
+        return result
+
+    return await cache.swr(key, OVERVIEW_TTL, _build)
 
 
 @router.post("/network")
