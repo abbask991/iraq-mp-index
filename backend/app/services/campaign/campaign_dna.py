@@ -5,6 +5,8 @@ The fingerprint is small + JSON-serializable so it persists in the campaign_dna
 table and compares cheaply (set-Jaccard + narrative match + sub-score cosine)."""
 import hashlib
 import math
+from collections import Counter
+from datetime import datetime
 
 from app.services.campaign._util import TOK
 
@@ -16,8 +18,55 @@ def _phrase_tokens(top_phrases, limit=40):
     return sorted(toks)[:limit]
 
 
-def fingerprint(result: dict) -> dict:
-    """Build a campaign DNA signature from a detect() result."""
+def _posting_schedule(tweets):
+    """Normalized 24-hour posting histogram (a campaign's daily rhythm)."""
+    hours = [0] * 24
+    for t in tweets or []:
+        try:
+            dt = datetime.fromisoformat((t.get("created_at") or "").replace("Z", "+00:00"))
+            hours[dt.hour] += 1
+        except Exception:
+            pass
+    total = sum(hours) or 1
+    return [round(h / total, 3) for h in hours]
+
+
+def _platform_distribution(result, tweets):
+    plats = result.get("platforms_detected") or []
+    dist = {p: 0 for p in plats} or {"X": 0}
+    for t in tweets or []:
+        dist["X"] = dist.get("X", 0) + 1
+    total = sum(dist.values()) or 1
+    return {k: round(v / total, 3) for k, v in dist.items()}
+
+
+def _language_pattern(tweets):
+    """Aggregate stylometric markers across the campaign (writing-hand profile)."""
+    from app.services import stylometry
+    fps = [stylometry.fingerprint(t.get("text", "")) for t in (tweets or []) if t.get("text")]
+    fps = [f for f in fps if f["tokens"] >= 4]
+    if not fps:
+        return {}
+    n = len(fps)
+    func_keys = set().union(*(f["func_dist"].keys() for f in fps))
+    return {
+        "avg_sentence_len": round(sum(f["avg_sentence_len"] for f in fps) / n, 2),
+        "emoji_rate": round(sum(f["emoji_rate"] for f in fps) / n, 3),
+        "punct_rate": round(sum(f["punct_rate"] for f in fps) / n, 3),
+        "repetition": round(sum(f["repetition"] for f in fps) / n, 3),
+        "func_dist": {k: round(sum(f["func_dist"].get(k, 0) for f in fps) / n, 3) for k in func_keys},
+    }
+
+
+def _geo_spread(users):
+    locs = Counter((u.get("location") or "").strip() for u in (users or {}).values()
+                   if (u.get("location") or "").strip())
+    return [{"location": loc, "count": c} for loc, c in locs.most_common(8)]
+
+
+def fingerprint(result: dict, tweets=None, users=None) -> dict:
+    """Build a campaign DNA signature. With `tweets`/`users` it also captures the
+    posting schedule, platform distribution, language patterns, and geo spread."""
     hashtags = sorted({h["hashtag"] for h in result.get("top_hashtags", [])})[:12]
     domains = sorted({l["link"].split("/")[2] for l in result.get("top_links", [])
                       if "//" in l.get("link", "")})[:12]
@@ -29,6 +78,10 @@ def fingerprint(result: dict) -> dict:
         "narrative": result.get("main_narrative", ""),
         "phrase_tokens": _phrase_tokens(result.get("top_repeated_phrases")),
         "sub_vector": {k: sub.get(k, 0) for k in sorted(sub)},
+        "posting_schedule": _posting_schedule(tweets),
+        "platform_distribution": _platform_distribution(result, tweets),
+        "language_pattern": _language_pattern(tweets),
+        "geo_spread": _geo_spread(users),
         "sig": hashlib.sha1(sig_src.encode("utf-8")).hexdigest()[:16],
     }
 
@@ -50,16 +103,28 @@ def _cosine(va: dict, vb: dict):
     return dot / (na * nb) if na and nb else 0.0
 
 
-def similarity(a: dict, b: dict) -> float:
-    """0..1 similarity between two DNA fingerprints."""
+def _schedule_cosine(a, b):
     if not a or not b:
         return 0.0
+    return _cosine({str(i): v for i, v in enumerate(a)}, {str(i): v for i, v in enumerate(b)})
+
+
+def similarity(a: dict, b: dict) -> float:
+    """0..1 similarity between two DNA fingerprints across every captured trait:
+    hashtags, domains, phrasing, narrative, signal profile, posting rhythm, and
+    writing style."""
+    if not a or not b:
+        return 0.0
+    lang_a = (a.get("language_pattern") or {}).get("func_dist", {})
+    lang_b = (b.get("language_pattern") or {}).get("func_dist", {})
     parts = [
-        (0.30, _jaccard(a.get("hashtags"), b.get("hashtags"))),
-        (0.20, _jaccard(a.get("domains"), b.get("domains"))),
-        (0.20, _jaccard(a.get("phrase_tokens"), b.get("phrase_tokens"))),
-        (0.10, 1.0 if a.get("narrative") and a.get("narrative") == b.get("narrative") else 0.0),
-        (0.20, _cosine(a.get("sub_vector", {}), b.get("sub_vector", {}))),
+        (0.24, _jaccard(a.get("hashtags"), b.get("hashtags"))),
+        (0.16, _jaccard(a.get("domains"), b.get("domains"))),
+        (0.16, _jaccard(a.get("phrase_tokens"), b.get("phrase_tokens"))),
+        (0.08, 1.0 if a.get("narrative") and a.get("narrative") == b.get("narrative") else 0.0),
+        (0.16, _cosine(a.get("sub_vector", {}), b.get("sub_vector", {}))),
+        (0.10, _schedule_cosine(a.get("posting_schedule"), b.get("posting_schedule"))),
+        (0.10, _cosine(lang_a, lang_b)),
     ]
     return round(sum(w * s for w, s in parts), 3)
 

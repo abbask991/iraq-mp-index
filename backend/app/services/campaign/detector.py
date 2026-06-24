@@ -65,6 +65,6 @@ def detect(topic, tweets, users, news_count, window_label="آخر 7 أيام"):
         "explanation": scoring.explanation(sub, {"dup": dup_ratio, "peak": peak_ratio, "susp": susp_ratio}),
         "disclaimer": "تحليل احتمالي آلي — لا يثبت التنسيق بشكل قاطع ويتطلّب مراجعة بشرية، خصوصاً بالقضايا السياسية والقانونية.",
     }
-    # attach a DNA fingerprint so callers can match against prior campaigns
-    result["dna"] = campaign_dna.fingerprint(result)
+    # attach a full DNA fingerprint (incl. schedule/platform/language/geo)
+    result["dna"] = campaign_dna.fingerprint(result, tweets, users)
     return result

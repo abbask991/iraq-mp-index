@@ -12,7 +12,10 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.config import ANTHROPIC_API_KEY, SUMMARY_MODEL
-from app.services import db, entity_resolver, knowledge_graph, redis_client, timeline
+from app.services import (
+    db, digital_twin, entity_resolver, knowledge_graph, narrative_engine,
+    redis_client, scenario_simulator, stylometry, timeline,
+)
 
 router = APIRouter(prefix="/api/intelligence", tags=["intelligence"])
 
@@ -27,6 +30,15 @@ class ReportReq(BaseModel):
     kind: str = "profile"          # profile | campaign | executive | government
     target: str = ""
     range: str = "week"
+
+
+class ScenarioReq(BaseModel):
+    entity_id: str
+    scenario: str                  # official_response | no_response | delete_post | ...
+
+
+class StyloReq(BaseModel):
+    posts: list[dict] = []         # [{text:...}, ...]
 
 
 async def _entity_facts(entity_id: str, days: int = 30):
@@ -135,6 +147,42 @@ async def ask(req: AskReq):
         answer = "تعذّر توليد الإجابة حالياً."
     return {"answer": answer, "grounded": True, "entity_id": entity_id,
             "evidence_count": len(evidence["mentions"]) + len(evidence["metrics"])}
+
+
+@router.get("/twin/{entity_id}")
+async def twin(entity_id: str):
+    """Central Political Digital Twin — fuses every engine for one entity."""
+    return await digital_twin.build(entity_id)
+
+
+@router.get("/scores/{entity_id}")
+async def entity_scores(entity_id: str):
+    """The 8 strategic scores for an entity (from its digital twin)."""
+    t = await digital_twin.build(entity_id)
+    return {"entity_id": entity_id, "scores": t["scores"], "headline": t["scores_headline"]}
+
+
+@router.get("/narrative-evolution/{entity_id}")
+async def narrative_evolution(entity_id: str, window: str = "day"):
+    rows = await db.select(
+        "mentions",
+        f"select=text,sentiment,created_at&entity_id=eq.{entity_id}"
+        f"&order=created_at.desc&limit=500")
+    posts = [{"title": r.get("text", ""), "type": "عام", "sentiment": r.get("sentiment"),
+              "created_at": r.get("created_at")} for r in rows]
+    return narrative_engine.evolution(posts, window=window)
+
+
+@router.post("/scenario")
+async def scenario(req: ScenarioReq):
+    """Project the likely media reaction to a strategic decision."""
+    return await scenario_simulator.simulate_entity(req.entity_id, req.scenario)
+
+
+@router.post("/stylometry")
+async def stylometry_analyze(req: StyloReq):
+    """Cluster posts by writing style → flag likely same-author groups."""
+    return stylometry.cluster_authors(req.posts)
 
 
 @router.post("/report")
