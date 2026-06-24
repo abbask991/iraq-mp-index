@@ -178,6 +178,32 @@ async def monitor_dossier(req: KeywordReq):
     key_terms = [{"term": w, "count": c} for w, c in words.most_common(18) if c >= 2]
 
     bd = bigdata.analyze(name, tweets, users) if len(tweets) >= 5 else {}
+
+    # every engine, same data → a section each
+    import math
+    from datetime import timedelta
+    sentiments = [t.get("sentiment", "محايد") for t in tweets]
+    platforms_present = 1 + (1 if news_hits else 0)
+    trend = trends.analyze(name, tweets, users, sentiments, len(news_hits), platforms_present) if len(tweets) >= 3 else {}
+    camp = campaign.detect(name, tweets, users, len(news_hits)) if len(tweets) >= 5 else {}
+    new_acc = network.new_accounts_report(tweets, users) if tweets else {}
+
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=2)).strftime("%Y-%m-%d")
+    eng = sum(int(t.get("engagement") or 0) for t in tweets)
+    distinct = len({h.get("source") for h in all_hits})
+    recent_neg = sum(1 for t in tweets if t.get("sentiment") == "سلبي"
+                     and (t.get("created_at") or "")[:10] >= cutoff)
+    neg_ratio = neg / total
+    risk_level = ("high" if recent_neg >= 5 or (neg_ratio > 0.5 and total >= 8)
+                  else "medium" if recent_neg >= 2 or neg_ratio > 0.3 else "low")
+    dims = {
+        "visibility": min(100, round(total / 2)),
+        "sentiment": round((pos - neg) / total * 50 + 50),
+        "engagement": min(100, round(math.log10(eng + 1) * 20)),
+        "diversity": min(100, distinct * 3),
+    }
+    perf = round(0.3 * dims["visibility"] + 0.3 * dims["sentiment"] + 0.2 * dims["engagement"] + 0.2 * dims["diversity"])
+
     samples = [{"title": h["title"], "sentiment": h.get("sentiment"), "source": h.get("source")} for h in all_hits[:40]]
     facts = (f"إجمالي {total} منشور ({len(news_hits)} خبر، {len(tweets)} تغريدة). "
              f"المؤشر الإعلامي {media_index}/100 (إيجابي {pos}، سلبي {neg}، محايد {neu}). "
@@ -197,12 +223,28 @@ async def monitor_dossier(req: KeywordReq):
         "executive": conclusion,
         "content": content,
         "sources": sources, "themes": themes, "key_terms": key_terms,
+        "performance": {"score": perf, "dims": dims},
+        "early_warning": {"level": risk_level, "neg": neg, "recent_neg": recent_neg, "neg_ratio": round(neg_ratio, 2)},
+        "trend": {"score": trend.get("trend_score"), "alert": trend.get("alert", {}).get("label"),
+                  "mention_velocity": trend.get("metrics", {}).get("mention_velocity"),
+                  "influencer_weight": trend.get("metrics", {}).get("influencer_weight"),
+                  "narrative": trend.get("narrative")},
+        "campaign": {"score": camp.get("coordination_score"), "level": camp.get("alert_level", {}).get("label"),
+                     "sub_scores": camp.get("sub_scores", {}), "explanation": camp.get("explanation"),
+                     "duplicate_ratio": camp.get("duplicate_content_ratio"),
+                     "suspicious_ratio": camp.get("suspicious_account_ratio")},
         "bigdata": {"manipulation_index": bd.get("manipulation_index"), "level": bd.get("level"),
-                    "drivers": bd.get("drivers"), "automation": len(bd.get("automation_suspects", [])),
-                    "waves": len(bd.get("coordination_waves", [])),
-                    "related_hashtags": bd.get("related_hashtags", [])[:6],
+                    "drivers": bd.get("drivers"), "bot_histogram": bd.get("bot_histogram"),
+                    "age_cohorts": bd.get("age_cohorts"), "activity_by_hour": bd.get("activity_by_hour"),
+                    "automation_suspects": bd.get("automation_suspects", [])[:6],
+                    "coordination_waves": bd.get("coordination_waves", [])[:5],
+                    "related_hashtags": bd.get("related_hashtags", [])[:8],
+                    "duplicate_clusters": bd.get("duplicate_clusters", [])[:5],
                     "network_accounts": len(bd.get("network", {}).get("nodes", [])),
                     "network_edges": len(bd.get("network", {}).get("edges", []))},
+        "new_accounts": {"new_total": new_acc.get("new_accounts", 0), "total": new_acc.get("total_accounts", 0),
+                         "clusters": new_acc.get("creation_clusters", [])[:3],
+                         "today": (new_acc.get("bands", [{}])[0].get("count", 0) if new_acc.get("bands") else 0)},
         "spread": {"first_poster": spread.get("first_poster"), "first_influential": spread.get("first_influential"),
                    "amplifiers": spread.get("amplifiers", [])[:6]},
         "top_items": [{"title": h["title"], "source": h.get("source"), "sentiment": h.get("sentiment"),

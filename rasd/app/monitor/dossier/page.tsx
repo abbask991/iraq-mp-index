@@ -6,6 +6,10 @@ import RangeSelect, { Range } from "@/components/RangeSelect";
 const sColor = (s: string) => (s === "سلبي" ? "#f43f5e" : s === "إيجابي" ? "#22c55e" : "#8a97ad");
 const PERIOD: Record<string, string> = { day: "آخر 24 ساعة", week: "آخر 7 أيام", month: "آخر شهر", year: "آخر سنة" };
 const lvlColor = (l: string) => (l?.includes("جداً") ? "#f43f5e" : l === "مرتفع" ? "#fb923c" : l === "متوسط" ? "#f59e0b" : "#22c55e");
+const DIM_AR: Record<string, string> = { visibility: "الحضور", sentiment: "النبرة", engagement: "التفاعل", diversity: "تنوّع المصادر" };
+const RISK_AR: Record<string, string> = { high: "مرتفع", medium: "متوسط", low: "منخفض" };
+const RISK_C: Record<string, string> = { high: "#dc2626", medium: "#f59e0b", low: "#16a34a" };
+const SIG_AR: Record<string, string> = { text_similarity: "تشابه نصّي", timing_sync: "تزامن التوقيت", account_suspicion: "جودة الحسابات", network_amplification: "التضخيم الشبكي", link_repetition: "تكرار الروابط", hashtag_pattern: "نمط الهاشتاغ", cross_platform: "عبر المنصّات", narrative_consistency: "تماسك السردية", influencer_trigger: "تحريك المؤثّرين" };
 
 export default function Dossier() {
   const [name, setName] = useState("");
@@ -124,19 +128,66 @@ export default function Dossier() {
             ))}
           </section>
 
+          <div className="rep-grid">
+            <section><h2>المؤشّر الإعلامي (الأداء)</h2>
+              <p style={{ fontSize: 13, marginBottom: 6 }}><b>الدرجة الكلية:</b> {d.performance?.score}/100</p>
+              {Object.entries(d.performance?.dims || {}).map(([k, v]: any) => (
+                <div className="brow" key={k}><div className="bl">{DIM_AR[k] || k}</div><div className="bar"><i style={{ width: `${v}%` }} /></div><div className="bn">{v}</div></div>
+              ))}
+            </section>
+            <section><h2>الإنذار المبكر (المخاطر)</h2>
+              <p style={{ fontSize: 14 }}><b>مستوى الخطر:</b> <span style={{ color: RISK_C[d.early_warning?.level], fontWeight: 800 }}>{RISK_AR[d.early_warning?.level] || "—"}</span></p>
+              <p className="muted" style={{ fontSize: 12.5 }}>منشورات سلبية: {d.early_warning?.neg} (حديثة آخر يومين: {d.early_warning?.recent_neg}) · نسبة السلبي: {Math.round((d.early_warning?.neg_ratio || 0) * 100)}%</p>
+              {d.early_warning?.level === "high" && <p style={{ fontSize: 12.5, color: "#dc2626" }}>تحذير: مؤشرات أزمة سمعة محتملة — يُنصح بالمتابعة.</p>}
+            </section>
+          </div>
+
+          {d.trend?.score != null && (
+            <section><h2>اكتشاف الترند</h2>
+              <p style={{ fontSize: 13 }}><b>درجة الترند:</b> {d.trend.score}/100 ({d.trend.alert}) · تسارع الذِكر {d.trend.mention_velocity}× · وزن أعلى مؤثّر {d.trend.influencer_weight}/10 · السردية: {d.trend.narrative}</p>
+            </section>
+          )}
+
+          {d.campaign?.score != null && (
+            <section className="break"><h2>كشف الحملات المنظّمة (٩ إشارات)</h2>
+              <p style={{ fontSize: 14, marginBottom: 8 }}><b>درجة التنسيق:</b> <span style={{ color: lvlColor(d.campaign.level), fontWeight: 800 }}>{d.campaign.score}/100 ({d.campaign.level})</span></p>
+              <div className="rep-grid">
+                {Object.entries(d.campaign.sub_scores || {}).map(([k, v]: any) => (
+                  <div className="brow" key={k}><div className="bl">{SIG_AR[k] || k}</div><div className="bar"><i style={{ width: `${v}%`, background: v >= 60 ? "#dc2626" : v >= 35 ? "#f59e0b" : undefined }} /></div><div className="bn">{v}</div></div>
+                ))}
+              </div>
+              <p className="muted" style={{ fontSize: 11.5, marginTop: 6 }}>{d.campaign.explanation}</p>
+            </section>
+          )}
+
           <section className="break"><h2>تحليل النشاط الرقمي (البيانات الضخمة)</h2>
-            <div className="rep-grid">
+            <p style={{ fontSize: 14 }}><b>مؤشّر التلاعب:</b> <span style={{ color: lvlColor(bd.level) }}>{bd.manipulation_index ?? "—"}/100 ({bd.level || "—"})</span></p>
+            {bd.drivers && <p className="muted" style={{ fontSize: 12.5 }}>حسابات مشبوهة {bd.drivers.bot_pct}% · محتوى مكرّر {bd.drivers.dup_ratio}% · حسابات جديدة {bd.drivers.new_pct}% · تركيز زمني {bd.drivers.burst}%</p>}
+            <p style={{ fontSize: 13 }}>شبكة التأثير: {bd.network_accounts} حساب · {bd.network_edges} رابط</p>
+            <div className="rep-grid" style={{ marginTop: 8 }}>
               <div>
-                <p style={{ fontSize: 13 }}><b>مؤشّر التلاعب:</b> <span style={{ color: lvlColor(bd.level) }}>{bd.manipulation_index ?? "—"} ({bd.level || "—"})</span></p>
-                {bd.drivers && <p className="muted" style={{ fontSize: 12.5 }}>حسابات مشبوهة {bd.drivers.bot_pct}% · محتوى مكرّر {bd.drivers.dup_ratio}% · حسابات جديدة {bd.drivers.new_pct}% · تركيز زمني {bd.drivers.burst}%</p>}
-                <p style={{ fontSize: 13 }}>شبكة التأثير: {bd.network_accounts} حساب · {bd.network_edges} رابط · موجات تزامن: {bd.waves} · حسابات آلية: {bd.automation}</p>
+                <b style={{ fontSize: 12 }}>توزيع درجات البوت</b>
+                {(bd.bot_histogram || []).map((cnt: number, i: number) => (
+                  <div className="brow" key={i}><div className="bl">{i * 20}-{i * 20 + 20}</div><div className="bar"><i style={{ width: `${(cnt / Math.max(1, ...(bd.bot_histogram || [1]))) * 100}%`, background: ["#16a34a", "#84cc16", "#f59e0b", "#fb923c", "#dc2626"][i] }} /></div><div className="bn">{cnt}</div></div>
+                ))}
               </div>
               <div>
-                {d.spread?.first_poster && <p style={{ fontSize: 13 }}><b>أول من نشر:</b> @{d.spread.first_poster.username} (قبل {d.spread.first_poster.hours_ago} ساعة)</p>}
-                {d.spread?.first_influential && <p style={{ fontSize: 13 }}><b>أول حساب مؤثّر:</b> @{d.spread.first_influential.username}</p>}
-                {(d.spread?.amplifiers || []).length > 0 && <p style={{ fontSize: 12.5 }}><b>أبرز المضخّمين:</b> {d.spread.amplifiers.map((a: any) => "@" + a.username).join("، ")}</p>}
+                <b style={{ fontSize: 12 }}>أعمار الحسابات</b>
+                {(bd.age_cohorts || []).map((co: any) => (
+                  <div className="brow" key={co.label}><div className="bl">{co.label}</div><div className="bar"><i style={{ width: `${(co.count / Math.max(1, ...(bd.age_cohorts || []).map((x: any) => x.count))) * 100}%`, background: co.label.includes("شهر") && co.label.includes("<") ? "#dc2626" : undefined }} /></div><div className="bn">{co.count}</div></div>
+                ))}
               </div>
             </div>
+            {(bd.coordination_waves || []).length > 0 && <p style={{ fontSize: 12.5, marginTop: 6 }}><b>موجات نشر متزامن:</b> {bd.coordination_waves.map((w: any) => `${w.time} (${w.accounts})`).join("، ")}</p>}
+            {(bd.automation_suspects || []).length > 0 && <p style={{ fontSize: 12.5 }}><b>حسابات بإيقاع آلي:</b> {bd.automation_suspects.map((a: any) => "@" + a.username).join("، ")}</p>}
+            {(bd.related_hashtags || []).length > 0 && <p style={{ fontSize: 12.5 }}><b>هاشتاغات مرافقة:</b> {bd.related_hashtags.map((h: any) => "#" + h.hashtag).join("  ")}</p>}
+          </section>
+
+          <section><h2>أصل الانتشار والمضخّمون</h2>
+            {d.spread?.first_poster && <p style={{ fontSize: 13 }}><b>أول من نشر:</b> @{d.spread.first_poster.username} (قبل {d.spread.first_poster.hours_ago} ساعة · {Number(d.spread.first_poster.followers).toLocaleString()} متابع)</p>}
+            {d.spread?.first_influential && <p style={{ fontSize: 13 }}><b>أول حساب مؤثّر:</b> @{d.spread.first_influential.username} (وزن {d.spread.first_influential.influence})</p>}
+            {(d.spread?.amplifiers || []).length > 0 && <p style={{ fontSize: 12.5 }}><b>أبرز المضخّمين:</b> {d.spread.amplifiers.map((a: any) => "@" + a.username).join("، ")}</p>}
+            <p style={{ fontSize: 12.5, marginTop: 4 }}><b>الحسابات الجديدة النشطة:</b> {d.new_accounts?.new_total || 0} (اليوم: {d.new_accounts?.today || 0}){(d.new_accounts?.clusters || []).length > 0 ? ` · تكتّلات إنشاء: ${d.new_accounts.clusters.map((c: any) => `${c.date} (${c.count})`).join("، ")}` : ""}</p>
           </section>
 
           <div className="rep-grid">
