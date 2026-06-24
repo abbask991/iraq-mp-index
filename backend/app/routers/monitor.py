@@ -8,7 +8,7 @@ import asyncio
 from app.config import CRON_SECRET
 from app.services import (
     ai, alerts, bigdata, cache, campaign, db, network, news, notify,
-    sources_extra, sov, trends, x,
+    sources_extra, sources_social, store, sov, trends, x,
 )
 
 # Freshness windows. With stale-while-revalidate the user never WAITS this long
@@ -58,22 +58,26 @@ async def monitor_news(req: KeywordReq):
     key = f"news:{rng}:" + ",".join(sorted(req.keywords))
 
     async def _build():
-        # Google News RSS (per-source) + GDELT + direct RSS + Telegram, in parallel
-        gnews, extra = await asyncio.gather(
+        # Google News RSS + GDELT + direct RSS + Telegram + Reddit + gov feeds, in parallel
+        gnews, extra, social = await asyncio.gather(
             news.fetch_news(req.keywords, cap=100, range=rng),
             sources_extra.fetch_extra(req.keywords[0], rng),
+            sources_social.fetch_social(req.keywords[0]),
         )
         for h in gnews:
             h.setdefault("src_type", "Google News")
         seen = {h["link"] for h in gnews}
-        hits = gnews + [h for h in extra if h["link"] not in seen]
+        hits = gnews + [h for h in (extra + social) if h.get("link") and h["link"] not in seen]
         hits.sort(key=lambda h: h.get("date", ""), reverse=True)
         hits = hits[:130]
         cls = await ai.classify_all([h["title"] for h in hits])
         for h, c in zip(hits, cls):
             h["sentiment"], h["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
-        return {"hits": hits, "count": len(hits), "sources": _distinct_sources(hits),
-                "source_types": sorted({h.get("src_type", "Google News") for h in hits})}
+        result = {"hits": hits, "count": len(hits), "sources": _distinct_sources(hits),
+                  "source_types": sorted({h.get("src_type", "Google News") for h in hits})}
+        if db.enabled():                       # persist to the intelligence layer (best-effort)
+            asyncio.create_task(store.store_mentions(hits, keyword=req.keywords[0]))
+        return result
 
     return await cache.swr(key, NEWS_TTL, _build)
 
@@ -100,6 +104,10 @@ async def monitor_x(req: KeywordReq):
         h["sentiment"], h["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
     result = {"hits": hits, "count": len(hits), "sources": _distinct_sources(hits), "platform": "x"}
     cache.put(key, result)
+    if db.enabled():                           # persist to the intelligence layer (best-effort)
+        for h in hits:
+            h.setdefault("platform", "x")
+        asyncio.create_task(store.store_mentions(hits, keyword=req.keywords[0]))
     return result
 
 
@@ -123,6 +131,24 @@ async def monitor_x_replies(req: RepliesReq):
 @router.post("/summarize")
 async def monitor_summarize(req: SummaryReq):
     return {"summary": await ai.summarize(req.name, req.stats, req.samples)}
+
+
+@router.post("/ingest")
+async def monitor_ingest(req: KeywordReq):
+    """Fetch + persist mentions for a keyword (deterministic backfill). Powers the
+    Digital Twin / scores / knowledge graph / grounded ask with real data."""
+    if not req.keywords:
+        return {"stored": 0}
+    rng = req.range or "week"
+    nr, xr = await asyncio.gather(
+        monitor_news(KeywordReq(keywords=req.keywords, range=rng)),
+        monitor_x(KeywordReq(keywords=req.keywords, range=rng)),
+    )
+    hits = ([{**h, "platform": "news"} for h in (nr.get("hits") or [])]
+            + [{**h, "platform": "x"} for h in (xr.get("hits") or [])])
+    n = await store.store_mentions(hits, keyword=req.keywords[0])
+    return {"stored": n, "entity_id": store.resolve_entity_id(req.keywords[0]),
+            "news": len(nr.get("hits") or []), "x": len(xr.get("hits") or [])}
 
 
 @router.post("/dossier")
@@ -409,6 +435,7 @@ async def cron_snapshot(secret: str = "", limit: int = 12):
         total = len(hits)
         if total == 0:
             continue
+        await store.store_mentions(hits, keyword=kws[0], owner=m.get("owner"))  # durable layer
         pos = sum(1 for h in hits if h.get("sentiment") == "إيجابي")
         neg = sum(1 for h in hits if h.get("sentiment") == "سلبي")
         neu = total - pos - neg

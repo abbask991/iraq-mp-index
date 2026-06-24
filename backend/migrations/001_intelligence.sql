@@ -10,8 +10,8 @@ create extension if not exists pg_trgm;
 -- ============================================================
 create table if not exists mentions (
   id           bigint generated always as identity primary key,
-  external_id  text,
-  platform     text not null default 'x',          -- x | telegram | news
+  external_id  text not null default '',           -- link / tweet id (dedup key)
+  platform     text not null default 'x',          -- x | telegram | news | reddit
   source       text,                               -- outlet / channel / @handle
   source_id    text,
   entity_id    text,                               -- resolved canonical entity
@@ -27,7 +27,7 @@ create table if not exists mentions (
   inserted_at  timestamptz not null default now(),
   fts          tsvector generated always as (to_tsvector('simple', coalesce(text, ''))) stored
 );
-create unique index if not exists mentions_external_uniq on mentions (platform, external_id) where external_id is not null;
+create unique index if not exists mentions_ext_uniq on mentions (platform, external_id);
 create index if not exists mentions_created_idx   on mentions (created_at desc);
 create index if not exists mentions_platform_idx  on mentions (platform);
 create index if not exists mentions_entity_idx    on mentions (entity_id);

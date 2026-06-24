@@ -30,6 +30,7 @@ class ReportReq(BaseModel):
     kind: str = "profile"          # profile | campaign | executive | government
     target: str = ""
     range: str = "week"
+    format: str = "pdf"            # pdf | docx | pptx
 
 
 class ScenarioReq(BaseModel):
@@ -191,14 +192,15 @@ async def report(req: ReportReq):
     when no queue is configured. Returns a job id to poll, or the result inline."""
     from app import jobq
     job = jobq.enqueue("app.tasks.generate_report", req.kind, req.target, req.range,
-                       job_timeout=900)
+                       req.format, job_timeout=900)
     if job is not None:
         await redis_client.set_job(job.id, {"id": job.id, "status": "queued",
-                                            "kind": req.kind, "target": req.target})
+                                            "kind": req.kind, "target": req.target,
+                                            "format": req.format})
         return {"job_id": job.id, "status": "queued"}
     # inline fallback (no worker): render now
     from app.services import reports
-    out = await reports.build(req.kind, req.target, req.range)
+    out = await reports.build(req.kind, req.target, req.range, req.format)
     return {"job_id": None, "status": "done", **out}
 
 

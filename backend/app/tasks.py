@@ -60,16 +60,17 @@ def detect_campaign(keyword, rng="week"):
     return _run(m.monitor_campaign(m.KeywordReq(keywords=[keyword], range=rng)))
 
 
-def generate_report(kind, target, rng="week", job_id=None):
-    """Render a server-side PDF report and return its storage path/bytes ref."""
+def generate_report(kind, target, rng="week", fmt="pdf", job_id=None):
+    """Render a server-side report (pdf|docx|pptx) and return its bytes ref."""
     from app.services import reports
 
     async def _go():
         if job_id:
-            await _record(job_id, "running", kind=kind, target=target)
-        out = await reports.build(kind, target, rng)
+            await _record(job_id, "running", kind=kind, target=target, format=fmt)
+        out = await reports.build(kind, target, rng, fmt)
         if job_id:
-            await _record(job_id, "done", kind=kind, target=target, **out)
+            await _record(job_id, "done", kind=kind, target=target,
+                          format=fmt, bytes=out.get("bytes"))
         return out
 
     return _run(_go())

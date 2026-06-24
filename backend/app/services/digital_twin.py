@@ -79,14 +79,19 @@ async def build(entity_id: str, days: int = 30) -> dict:
         f"&order=day.asc&limit={days}")
     mentions = await db.select(
         "mentions",
-        f"select=text,sentiment,source,platform&entity_id=eq.{entity_id}"
-        f"&order=created_at.desc&limit=200")
+        f"select=text,sentiment,source,platform,created_at&entity_id=eq.{entity_id}"
+        f"&order=created_at.desc&limit=300")
 
     pos = sum(m.get("pos", 0) for m in metrics) or sum(1 for x in mentions if x.get("sentiment") == "إيجابي")
     neg = sum(m.get("neg", 0) for m in metrics) or sum(1 for x in mentions if x.get("sentiment") == "سلبي")
     neu = sum(m.get("neu", 0) for m in metrics) or max(0, len(mentions) - pos - neg)
     total = pos + neg + neu
-    series = [m.get("mentions", 0) for m in metrics] or [len(mentions)]
+    if metrics:
+        series = [m.get("mentions", 0) for m in metrics]
+    else:                                          # derive a per-day series from raw mentions
+        from collections import Counter
+        by_day = Counter((x.get("created_at") or "")[:10] for x in mentions if x.get("created_at"))
+        series = [c for _, c in sorted(by_day.items())] or [len(mentions)]
 
     posts = [{"title": x.get("text", ""), "type": "عام", "sentiment": x.get("sentiment"),
               "source": x.get("source")} for x in mentions]

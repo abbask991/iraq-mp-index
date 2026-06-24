@@ -129,9 +129,90 @@ def _render_html(kind, target, data):
     return _shell(title, sub, builder(data))
 
 
-async def build(kind: str, target: str, rng: str = "week") -> dict:
-    """Gather data → HTML → PDF bytes (base64). Best-effort upload to storage."""
+# ---- neutral document model (shared by docx / pptx) ----
+def _doc_model(kind, target, data):
+    title = {"campaign": "تقرير حملة منظّمة", "executive": "التقرير التنفيذي للرصد",
+             "government": f"ملف استخباراتي — {target}"}.get(kind, f"الملف الشامل — {target}")
+    sub = f"النطاق الزمني: {data.get('period', data.get('window', '—'))} · إصدار آلي"
+    s = data.get("sentiment", {})
+    kpis = [("إجمالي", data.get("total", data.get("scanned", data.get("total_posts", 0)))),
+            ("المؤشر الإعلامي", f"{data.get('media_index', '-')}/100"),
+            ("إيجابي", s.get("pos", 0)), ("سلبي", s.get("neg", 0))]
+    sections = []
+    if data.get("executive"):
+        sections.append(("التقييم التنفيذي", [data["executive"]]))
+    if data.get("explanation"):
+        sections.append(("التفسير", [data["explanation"]]))
+    narrs = data.get("content", {}).get("narratives") or data.get("narratives") or []
+    if narrs:
+        sections.append(("السرديات المهيمنة",
+                         [f"• {n.get('label')}: {n.get('description','')} ({n.get('share','')}%)" for n in narrs[:5]]))
+    if data.get("sub_scores"):
+        sections.append(("إشارات التنسيق",
+                         [f"• {k}: {v}" for k, v in data["sub_scores"].items()]))
+    return {"title": title, "subtitle": sub, "kpis": kpis, "sections": sections}
+
+
+def _build_docx(kind, target, data):
+    try:
+        from docx import Document
+        from docx.shared import Pt, RGBColor
+    except Exception:
+        return {"error": "docx_unavailable", "message": "python-docx runs on the worker."}
+    m = _doc_model(kind, target, data)
+    doc = Document()
+    h = doc.add_heading(m["title"], level=0)
+    doc.add_paragraph(m["subtitle"])
+    t = doc.add_table(rows=1, cols=len(m["kpis"]))
+    for i, (k, v) in enumerate(m["kpis"]):
+        c = t.rows[0].cells[i]
+        c.text = f"{v}\n{k}"
+    for heading, paras in m["sections"]:
+        doc.add_heading(heading, level=1)
+        for p in paras:
+            doc.add_paragraph(str(p))
+    doc.add_paragraph("تقرير آلي — المؤشرات احتمالية وتتطلّب مراجعة بشرية. وثيقة سرّية.")
+    import io
+    buf = io.BytesIO(); doc.save(buf)
+    return {"kind": kind, "target": target, "format": "docx", "bytes": buf.tell(),
+            "file_base64": base64.b64encode(buf.getvalue()).decode("ascii")}
+
+
+def _build_pptx(kind, target, data):
+    try:
+        from pptx import Presentation
+        from pptx.util import Inches, Pt
+    except Exception:
+        return {"error": "pptx_unavailable", "message": "python-pptx runs on the worker."}
+    m = _doc_model(kind, target, data)
+    prs = Presentation()
+    title_slide = prs.slides.add_slide(prs.slide_layouts[0])
+    title_slide.shapes.title.text = m["title"]
+    title_slide.placeholders[1].text = m["subtitle"]
+    kpi_slide = prs.slides.add_slide(prs.slide_layouts[1])
+    kpi_slide.shapes.title.text = "المؤشرات الرئيسية"
+    body = kpi_slide.placeholders[1].text_frame
+    body.text = " | ".join(f"{k}: {v}" for k, v in m["kpis"])
+    for heading, paras in m["sections"]:
+        sl = prs.slides.add_slide(prs.slide_layouts[1])
+        sl.shapes.title.text = heading
+        tf = sl.placeholders[1].text_frame
+        tf.text = str(paras[0]) if paras else ""
+        for p in paras[1:]:
+            tf.add_paragraph().text = str(p)
+    import io
+    buf = io.BytesIO(); prs.save(buf)
+    return {"kind": kind, "target": target, "format": "pptx", "bytes": buf.tell(),
+            "file_base64": base64.b64encode(buf.getvalue()).decode("ascii")}
+
+
+async def build(kind: str, target: str, rng: str = "week", fmt: str = "pdf") -> dict:
+    """Gather data → render report in `fmt` (pdf | docx | pptx). Returns base64."""
     data = await _gather(kind, target, rng)
+    if fmt == "docx":
+        return _build_docx(kind, target, data)
+    if fmt == "pptx":
+        return _build_pptx(kind, target, data)
     doc = _render_html(kind, target, data)
     try:
         from playwright.async_api import async_playwright
@@ -145,5 +226,5 @@ async def build(kind: str, target: str, rng: str = "week") -> dict:
         await page.set_content(doc, wait_until="networkidle")
         pdf = await page.pdf(format="A4", print_background=True)
         await browser.close()
-    return {"kind": kind, "target": target, "bytes": len(pdf),
+    return {"kind": kind, "target": target, "format": "pdf", "bytes": len(pdf),
             "pdf_base64": base64.b64encode(pdf).decode("ascii")}
