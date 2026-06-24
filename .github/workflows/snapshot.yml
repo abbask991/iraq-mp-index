@@ -1,0 +1,18 @@
+name: Monitoring snapshots + alerts
+
+# Every 6 hours: snapshot each monitor's metrics and raise spike alerts.
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger snapshot run
+        run: |
+          code=$(curl -s -o /tmp/out.json -w "%{http_code}" -m 280 -X POST \
+            "https://rasd-api.onrender.com/monitor/cron/snapshot?secret=${{ secrets.RASD_CRON_SECRET }}&limit=20")
+          echo "HTTP $code"; cat /tmp/out.json; echo
+          [ "$code" = "200" ] || exit 1

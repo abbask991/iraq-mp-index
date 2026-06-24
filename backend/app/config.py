@@ -16,3 +16,8 @@ CORS_ORIGINS = [o.strip() for o in os.getenv(
 
 CLASSIFY_MODEL = os.getenv("CLASSIFY_MODEL", "claude-haiku-4-5-20251001")
 SUMMARY_MODEL = os.getenv("SUMMARY_MODEL", "claude-haiku-4-5-20251001")
+
+# continuous monitoring (snapshots + alerts)
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+CRON_SECRET = os.getenv("CRON_SECRET", "")

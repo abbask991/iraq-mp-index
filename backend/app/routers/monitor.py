@@ -5,7 +5,8 @@ from pydantic import BaseModel
 
 import asyncio
 
-from app.services import ai, bigdata, cache, campaign, network, news, sources_extra, sov, trends, x
+from app.config import CRON_SECRET
+from app.services import ai, bigdata, cache, campaign, db, network, news, sources_extra, sov, trends, x
 
 NEWS_TTL = 300   # seconds — repeated identical queries return instantly
 X_TTL = 180
@@ -171,6 +172,59 @@ DISCOVER_SEED = (
     'OR السوداني OR "مجلس النواب" OR "الاطار التنسيقي" OR الحشد OR الكهرباء OR الرواتب '
     'OR الموازنة OR "الحكومة العراقية" OR العراقي) lang:ar'
 )
+
+
+@router.post("/cron/snapshot")
+async def cron_snapshot(secret: str = "", limit: int = 12):
+    """Scheduled: snapshot each monitor's metrics + raise spike alerts. Protected
+    by CRON_SECRET. Called by the GitHub Actions cron."""
+    if not CRON_SECRET or secret != CRON_SECRET:
+        return {"error": "unauthorized"}
+    if not db.enabled():
+        return {"error": "db_not_configured"}
+
+    monitors = await db.get_monitors(limit)
+    processed, alerts_made = 0, 0
+    for m in monitors:
+        kws = m.get("keywords") or []
+        if not kws:
+            continue
+        nr, xr = await asyncio.gather(
+            monitor_news(KeywordReq(keywords=kws, range="day")),
+            monitor_x(KeywordReq(keywords=kws, range="day")),
+        )
+        hits = (nr.get("hits") or []) + (xr.get("hits") or [])
+        total = len(hits)
+        if total == 0:
+            continue
+        pos = sum(1 for h in hits if h.get("sentiment") == "إيجابي")
+        neg = sum(1 for h in hits if h.get("sentiment") == "سلبي")
+        neu = total - pos - neg
+        neg_ratio = round(neg / total, 3)
+        media_index = round(50 + 50 * (pos - neg) / total)
+        prev = await db.last_snapshot(m["id"])
+
+        await db.insert_snapshot({
+            "monitor_id": m["id"], "owner": m.get("owner"), "mentions": total,
+            "pos": pos, "neg": neg, "neu": neu, "media_index": media_index, "neg_ratio": neg_ratio,
+        })
+        processed += 1
+
+        # spike alerts vs previous snapshot
+        new_alerts = []
+        if prev:
+            if neg_ratio - float(prev.get("neg_ratio") or 0) >= 0.2 and neg >= 5:
+                new_alerts.append(("نبرة سلبية", "high", f"ارتفاع حاد بالنبرة السلبية لـ«{m['name']}» ({int(neg_ratio*100)}%)."))
+            if prev.get("mentions", 0) >= 3 and total >= max(10, prev["mentions"] * 2):
+                new_alerts.append(("حجم", "medium", f"قفزة بحجم الذِكر لـ«{m['name']}» ({prev['mentions']}→{total})."))
+        if neg_ratio >= 0.6 and neg >= 8 and not (prev and float(prev.get("neg_ratio") or 0) >= 0.6):
+            new_alerts.append(("سمعة", "high", f"نبرة سلبية غالبة حول «{m['name']}» ({int(neg_ratio*100)}%) — يُنصح بالمراجعة."))
+        for typ, sev, msg in new_alerts:
+            await db.insert_alert({"monitor_id": m["id"], "owner": m.get("owner"),
+                                   "type": typ, "severity": sev, "message": msg})
+            alerts_made += 1
+
+    return {"processed": processed, "alerts": alerts_made, "monitors": len(monitors)}
 
 
 @router.post("/overview")
