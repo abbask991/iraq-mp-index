@@ -14,8 +14,10 @@ CORS_ORIGINS = [o.strip() for o in os.getenv(
     "http://localhost:3000,https://rasd-monitor.vercel.app",
 ).split(",") if o.strip()]
 
+# Haiku for high-volume classification (cheap/fast); Sonnet for the high-value
+# interpretive outputs (executive summaries + analyst briefs).
 CLASSIFY_MODEL = os.getenv("CLASSIFY_MODEL", "claude-haiku-4-5-20251001")
-SUMMARY_MODEL = os.getenv("SUMMARY_MODEL", "claude-haiku-4-5-20251001")
+SUMMARY_MODEL = os.getenv("SUMMARY_MODEL", "claude-sonnet-4-6")
 
 # continuous monitoring (snapshots + alerts)
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
