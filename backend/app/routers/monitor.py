@@ -117,6 +117,75 @@ async def monitor_summarize(req: SummaryReq):
     return {"summary": await ai.summarize(req.name, req.stats, req.samples)}
 
 
+@router.post("/content")
+async def monitor_content(req: KeywordReq):
+    """Professional media content analysis: narratives, framing, tone, key
+    messages, source bias, key terms, themes + editorial brief."""
+    if not req.keywords:
+        return {"total": 0}
+    import re as _re
+    from collections import Counter as _C
+
+    kw = req.keywords[0]
+    rng = req.range or "week"
+    key = f"content:{rng}:" + kw
+    cached = cache.get(key, 300)
+    if cached is not None:
+        return cached
+
+    nr, xr = await asyncio.gather(
+        monitor_news(KeywordReq(keywords=req.keywords, range=rng)),
+        monitor_x(KeywordReq(keywords=req.keywords, range=rng)),
+    )
+    hits = [{**h, "platform": "news"} for h in (nr.get("hits") or [])] + \
+           [{**h, "platform": "x"} for h in (xr.get("hits") or [])]
+    total = len(hits)
+    if total == 0:
+        return {"total": 0, "message": "لا محتوى كافٍ لهذا الموضوع."}
+
+    pos = sum(1 for h in hits if h.get("sentiment") == "إيجابي")
+    neg = sum(1 for h in hits if h.get("sentiment") == "سلبي")
+    neu = total - pos - neg
+    media_index = round(50 + 50 * (pos - neg) / total)
+
+    # source bias: per-source sentiment lean
+    by_src: dict = {}
+    for h in hits:
+        s = h.get("source") or "—"
+        d = by_src.setdefault(s, {"source": s, "pos": 0, "neg": 0, "neu": 0, "total": 0})
+        d[{"إيجابي": "pos", "سلبي": "neg"}.get(h.get("sentiment"), "neu")] += 1
+        d["total"] += 1
+    sources = sorted(by_src.values(), key=lambda d: -d["total"])[:10]
+    for d in sources:
+        d["lean"] = round((d["pos"] - d["neg"]) / d["total"] * 100)
+
+    # themes (issue types) + key terms
+    themes = [{"label": trends.NARRATIVE_MAP.get(t, t), "count": c}
+              for t, c in _C(h.get("type") for h in hits if h.get("type") and h["type"] != "عام").most_common(6)]
+    words = _C()
+    for h in hits:
+        for w in _re.findall(r"[؀-ۿ]{4,}", h.get("title", "")):
+            if w not in trends.AR_STOP and w not in kw:
+                words[w] += 1
+    key_terms = [{"term": w, "count": c} for w, c in words.most_common(20) if c >= 2]
+
+    samples = [{"title": h["title"], "sentiment": h.get("sentiment"), "source": h.get("source")} for h in hits[:50]]
+    ai_res = await ai.content_analysis(kw, samples)
+
+    result = {
+        "keyword": kw, "total": total, "news": len(nr.get("hits") or []), "x": len(xr.get("hits") or []),
+        "sentiment": {"pos": pos, "neg": neg, "neu": neu}, "media_index": media_index,
+        "sources": sources, "themes": themes, "key_terms": key_terms,
+        "narratives": ai_res.get("narratives", []), "frames": ai_res.get("frames", []),
+        "tone": ai_res.get("tone", {}), "key_messages": ai_res.get("key_messages", []),
+        "brief": ai_res.get("brief", ""),
+        "top_items": [{"title": h["title"], "source": h.get("source"), "sentiment": h.get("sentiment"),
+                       "link": h.get("link"), "platform": h.get("platform")} for h in hits[:12]],
+    }
+    cache.put(key, result)
+    return result
+
+
 @router.post("/index")
 async def monitor_index(req: KeywordReq):
     """Composite media-performance index (0-100) for a target, from monitoring

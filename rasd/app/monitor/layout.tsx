@@ -19,7 +19,7 @@ const SECTORS: { ar: string; en: string; items: Item[] }[] = [
   {
     ar: "القطاع الثاني · التحليل والبحوث", en: "Sector 2 · Analysis & Research",
     items: [
-      { icon: "", ar: "تحليل المحتوى", en: "Content Analysis", href: "/monitor" },
+      { icon: "", ar: "تحليل المحتوى", en: "Content Analysis", href: "/monitor/content" },
       { icon: "", ar: "حصة الصوت (SOV)", en: "Share of Voice", href: "/monitor/sov" },
       { icon: "", ar: "الدراسات والبحوث", en: "Studies & Research" },
       { icon: "", ar: "استطلاعات الرأي", en: "Opinion Polls" },

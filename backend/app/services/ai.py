@@ -58,6 +58,39 @@ async def classify_all(titles: list[str]) -> list[dict]:
     return out
 
 
+async def content_analysis(title: str, samples: list[dict]) -> dict:
+    """Professional media content analysis (narratives, framing, tone, key
+    messages, editorial brief) via Sonnet. Returns structured JSON."""
+    empty = {"narratives": [], "tone": {}, "key_messages": [], "frames": [], "brief": ""}
+    if not ANTHROPIC_API_KEY or not samples:
+        return empty
+    listed = "\n".join(f"{i + 1}. [{s.get('sentiment', '?')}/{s.get('source', '')}] {s.get('title', '')}"
+                       for i, s in enumerate(samples[:50]))
+    prompt = (
+        f"أنت محلّل محتوى إعلامي محترف في مركز رصد. حلّل التغطية الإعلامية لـ«{title}» بناءً على العناوين التالية. "
+        "أعد JSON فقط بهذا الشكل (بالعربية):\n"
+        '{"narratives":[{"label":"اسم السردية","description":"وصف موجز","share":نسبة 0-100,"sentiment":"إيجابي|سلبي|محايد"}],'
+        '"frames":[{"label":"كيف يُؤطَّر الموضوع","description":"..."}],'
+        '"tone":{"label":"النبرة العامة","description":"..."},'
+        '"key_messages":["الرسالة/الادعاء الرئيسي 1","..."],'
+        '"brief":"تحليل تحريري احترافي 4-6 جمل"}\n\n'
+        "narratives = السرديات/القصص المهيمنة (3-5). frames = الأُطر الإعلامية (كيف يُقدَّم الموضوع). "
+        "tone = توصيف النبرة (رصينة/تحريضية/عاطفية/اتهامية...). key_messages = أبرز الرسائل أو الادعاءات المتكررة. "
+        "brief = موجز تحريري يربط الصورة العامة. استخدم لغة تحليلية احترافية.\n\n"
+        f"العناوين:\n{listed}"
+    )
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(_API, headers=_HEADERS(), json={
+                "model": SUMMARY_MODEL, "max_tokens": 1500,
+                "messages": [{"role": "user", "content": prompt}],
+            }, timeout=50)
+            txt = r.json()["content"][0]["text"]
+            return json.loads(txt[txt.find("{"):txt.rfind("}") + 1])
+    except Exception:
+        return empty
+
+
 async def analyst_brief(title: str, facts: str) -> str:
     """Intelligence-style interpretation of computed big-data metrics."""
     if not ANTHROPIC_API_KEY:
