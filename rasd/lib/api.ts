@@ -5,7 +5,7 @@
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") || "";
 
-type Kind = "news" | "x" | "x-replies" | "summarize" | "youtube" | "risk" | "network" | "index" | "trends" | "discover" | "campaign" | "campaign-scan" | "new-accounts" | "sov" | "overview" | "bigdata" | "content" | "dossier";
+type Kind = "news" | "x" | "x-replies" | "summarize" | "youtube" | "risk" | "network" | "index" | "trends" | "discover" | "campaign" | "campaign-scan" | "new-accounts" | "sov" | "overview" | "bigdata" | "content" | "dossier" | "ingest";
 
 // FastAPI path  vs  Next.js fallback path
 const MAP: Record<Kind, { fast: string; next: string }> = {
@@ -27,9 +27,29 @@ const MAP: Record<Kind, { fast: string; next: string }> = {
   overview:    { fast: "/monitor/overview",   next: "/monitor/overview" },
   content:     { fast: "/monitor/content",    next: "/monitor/content" },
   dossier:     { fast: "/monitor/dossier",    next: "/monitor/dossier" },
+  ingest:      { fast: "/monitor/ingest",     next: "/monitor/ingest" },
   // YouTube is not on the FastAPI backend yet → always use the Next route
   youtube:     { fast: "",                    next: "/api/youtube-fetch" },
 };
+
+// ---- Intelligence API (FastAPI only, /api/intelligence/*) ----
+function intelUrl(path: string): string {
+  return (BASE || "") + "/api/intelligence" + path;
+}
+
+export async function intelGet(path: string): Promise<any> {
+  const res = await fetch(intelUrl(path));
+  return res.json();
+}
+
+export async function intelPost(path: string, body: unknown): Promise<any> {
+  const res = await fetch(intelUrl(path), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
 
 export function apiUrl(kind: Kind): string {
   const m = MAP[kind];

@@ -38,6 +38,12 @@ const SECTORS: { ar: string; en: string; items: Item[] }[] = [
       { icon: "", ar: "الإنذار المبكر", en: "Early Warning", href: "/monitor/alerts" },
     ],
   },
+  {
+    ar: "القطاع الرابع · الاستخبارات السياسية", en: "Sector 4 · Political Intelligence",
+    items: [
+      { icon: "", ar: "التوأم الرقمي", en: "Digital Twin", href: "/monitor/intelligence" },
+    ],
+  },
 ];
 
 const T = {
