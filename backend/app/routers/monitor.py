@@ -117,6 +117,103 @@ async def monitor_summarize(req: SummaryReq):
     return {"summary": await ai.summarize(req.name, req.stats, req.samples)}
 
 
+@router.post("/dossier")
+async def monitor_dossier(req: KeywordReq):
+    """Comprehensive intelligence dossier — aggregates every section for one
+    entity from a single fetch."""
+    if not req.keywords:
+        return {"total": 0}
+    import re as _re
+    from collections import Counter as _C
+    from datetime import datetime, timezone
+
+    name = req.keywords[0]
+    rng = req.range or "week"
+    key = f"dossier:{rng}:" + name
+    cached = cache.get(key, 300)
+    if cached is not None:
+        return cached
+
+    tw, news_res = await asyncio.gather(
+        x.fetch_trend(name, want=150, range=rng),
+        monitor_news(KeywordReq(keywords=[name], range=rng)),
+    )
+    tweets = [] if "error" in tw else tw["tweets"]
+    users = {} if "error" in tw else tw["users"]
+    cls = await ai.classify_all([t["text"] for t in tweets])
+    for t, c in zip(tweets, cls):
+        t["sentiment"], t["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
+    news_hits = news_res.get("hits") or []
+
+    all_hits = ([{**h, "platform": "x"} for h in
+                 ({"title": t["text"], "source": "@" + (users.get(t["author_id"], {}).get("username") or "x"),
+                   "sentiment": t["sentiment"], "type": t["type"], "engagement": t.get("engagement", 0),
+                   "link": ""} for t in tweets)] +
+                [{**h, "platform": "news"} for h in news_hits])
+    total = len(all_hits)
+    if total == 0:
+        return {"total": 0, "message": "لا محتوى كافٍ عن هذه الشخصية."}
+
+    pos = sum(1 for h in all_hits if h.get("sentiment") == "إيجابي")
+    neg = sum(1 for h in all_hits if h.get("sentiment") == "سلبي")
+    neu = total - pos - neg
+    media_index = round(50 + 50 * (pos - neg) / total)
+
+    by_src: dict = {}
+    for h in all_hits:
+        s = h.get("source") or "—"
+        d = by_src.setdefault(s, {"source": s, "pos": 0, "neg": 0, "neu": 0, "total": 0})
+        d[{"إيجابي": "pos", "سلبي": "neg"}.get(h.get("sentiment"), "neu")] += 1
+        d["total"] += 1
+    sources = sorted(by_src.values(), key=lambda d: -d["total"])[:8]
+    for d in sources:
+        d["lean"] = round((d["pos"] - d["neg"]) / d["total"] * 100)
+    themes = [{"label": trends.NARRATIVE_MAP.get(t, t), "count": c}
+              for t, c in _C(h.get("type") for h in all_hits if h.get("type") and h["type"] != "عام").most_common(6)]
+    words = _C()
+    for h in all_hits:
+        for w in _re.findall(r"[؀-ۿ]{4,}", h.get("title", "")):
+            if w not in trends.AR_STOP and w not in name:
+                words[w] += 1
+    key_terms = [{"term": w, "count": c} for w, c in words.most_common(18) if c >= 2]
+
+    bd = bigdata.analyze(name, tweets, users) if len(tweets) >= 5 else {}
+    samples = [{"title": h["title"], "sentiment": h.get("sentiment"), "source": h.get("source")} for h in all_hits[:40]]
+    facts = (f"إجمالي {total} منشور ({len(news_hits)} خبر، {len(tweets)} تغريدة). "
+             f"المؤشر الإعلامي {media_index}/100 (إيجابي {pos}، سلبي {neg}، محايد {neu}). "
+             f"مؤشّر التلاعب {bd.get('manipulation_index', '—')}. "
+             f"أبرز القضايا: {'، '.join(t['label'] for t in themes[:4])}.")
+    content, conclusion = await asyncio.gather(
+        ai.content_analysis(name, samples),
+        ai.dossier_conclusion(name, facts),
+    )
+
+    spread = bd.get("network") and trends.spread_analysis(
+        tweets, users, [trends._hours_ago(t["created_at"], datetime.now(timezone.utc)) for t in tweets]) or {}
+
+    result = {
+        "entity": name, "period": rng, "total": total, "news": len(news_hits), "x": len(tweets),
+        "sentiment": {"pos": pos, "neg": neg, "neu": neu}, "media_index": media_index,
+        "executive": conclusion,
+        "content": content,
+        "sources": sources, "themes": themes, "key_terms": key_terms,
+        "bigdata": {"manipulation_index": bd.get("manipulation_index"), "level": bd.get("level"),
+                    "drivers": bd.get("drivers"), "automation": len(bd.get("automation_suspects", [])),
+                    "waves": len(bd.get("coordination_waves", [])),
+                    "related_hashtags": bd.get("related_hashtags", [])[:6],
+                    "network_accounts": len(bd.get("network", {}).get("nodes", [])),
+                    "network_edges": len(bd.get("network", {}).get("edges", []))},
+        "spread": {"first_poster": spread.get("first_poster"), "first_influential": spread.get("first_influential"),
+                   "amplifiers": spread.get("amplifiers", [])[:6]},
+        "top_items": [{"title": h["title"], "source": h.get("source"), "sentiment": h.get("sentiment"),
+                       "platform": h.get("platform"), "link": h.get("link")}
+                      for h in sorted(all_hits, key=lambda h: h.get("engagement", 0), reverse=True)[:10]],
+    }
+    if conclusion or content.get("brief"):
+        cache.put(key, result)
+    return result
+
+
 @router.post("/content")
 async def monitor_content(req: KeywordReq):
     """Professional media content analysis: narratives, framing, tone, key

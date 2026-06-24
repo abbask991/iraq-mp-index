@@ -131,6 +131,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <Link href="/monitor/overview" className={path === "/monitor/overview" ? "active" : ""}>
           {lang === "ar" ? "لوحة القيادة" : "Command Center"}
  </Link>
+ <Link href="/monitor/dossier" className={path === "/monitor/dossier" ? "active" : ""}>
+          {lang === "ar" ? "التقرير الشامل" : "Full Dossier"}
+ </Link>
         {SECTORS.map((sec) => {
           const live = sec.items.filter((it) => it.href);
           if (!live.length) return null;

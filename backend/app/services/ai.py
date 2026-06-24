@@ -91,6 +91,28 @@ async def content_analysis(title: str, samples: list[dict]) -> dict:
         return empty
 
 
+async def dossier_conclusion(name: str, facts: str) -> str:
+    """Executive intelligence assessment + recommendations for a full dossier."""
+    if not ANTHROPIC_API_KEY:
+        return ""
+    prompt = (
+        f"أنت رئيس قسم تحليل في مركز رصد وتحليل إعلامي. اكتب «التقييم التنفيذي» لتقرير استخباراتي شامل عن «{name}» "
+        "بناءً على المعطيات الآلية أدناه. اكتب 6-9 جُمل احترافية تغطّي: الصورة الإعلامية العامة، أبرز المخاطر، "
+        "وأي فرص، ثم اختم بـ«توصيات» عملية (2-3 توصيات) في سطر منفصل يبدأ بكلمة «التوصيات:». "
+        "استخدم لغة تحليلية رصينة احتمالية، وأشر إلى أن التقرير آلي ويحتاج مراجعة بشرية.\n\n"
+        f"المعطيات:\n{facts}"
+    )
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(_API, headers=_HEADERS(), json={
+                "model": SUMMARY_MODEL, "max_tokens": 900,
+                "messages": [{"role": "user", "content": prompt}],
+            }, timeout=60)
+            return r.json()["content"][0]["text"].strip()
+    except Exception:
+        return ""
+
+
 async def analyst_brief(title: str, facts: str) -> str:
     """Intelligence-style interpretation of computed big-data metrics."""
     if not ANTHROPIC_API_KEY:
