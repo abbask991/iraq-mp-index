@@ -65,7 +65,7 @@ async def content_analysis(title: str, samples: list[dict]) -> dict:
     if not ANTHROPIC_API_KEY or not samples:
         return empty
     listed = "\n".join(f"{i + 1}. [{s.get('sentiment', '?')}/{s.get('source', '')}] {s.get('title', '')}"
-                       for i, s in enumerate(samples[:50]))
+                       for i, s in enumerate(samples[:40]))
     prompt = (
         f"أنت محلّل محتوى إعلامي محترف في مركز رصد. حلّل التغطية الإعلامية لـ«{title}» بناءً على العناوين التالية. "
         "أعد JSON فقط بهذا الشكل (بالعربية):\n"
@@ -84,7 +84,7 @@ async def content_analysis(title: str, samples: list[dict]) -> dict:
             r = await client.post(_API, headers=_HEADERS(), json={
                 "model": SUMMARY_MODEL, "max_tokens": 1500,
                 "messages": [{"role": "user", "content": prompt}],
-            }, timeout=50)
+            }, timeout=90)
             txt = r.json()["content"][0]["text"]
             return json.loads(txt[txt.find("{"):txt.rfind("}") + 1])
     except Exception:

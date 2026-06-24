@@ -182,7 +182,8 @@ async def monitor_content(req: KeywordReq):
         "top_items": [{"title": h["title"], "source": h.get("source"), "sentiment": h.get("sentiment"),
                        "link": h.get("link"), "platform": h.get("platform")} for h in hits[:12]],
     }
-    cache.put(key, result)
+    if ai_res.get("brief") or ai_res.get("narratives"):  # don't cache a failed AI pass
+        cache.put(key, result)
     return result
 
 
