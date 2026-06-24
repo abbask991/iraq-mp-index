@@ -146,9 +146,25 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
 
       {snaps.length >= 2 && (() => {
         const maxM = Math.max(1, ...snaps.map((s) => s.mentions));
+        // linear-regression forecast of next-period mentions + media index direction
+        const n = snaps.length, xs = snaps.map((_, i) => i);
+        const my = snaps.reduce((a, s) => a + s.mentions, 0) / n;
+        const mxv = (n - 1) / 2;
+        const denom = xs.reduce((a, x) => a + (x - mxv) ** 2, 0) || 1;
+        const slope = snaps.reduce((a, s, i) => a + (i - mxv) * (s.mentions - my), 0) / denom;
+        const projected = Math.max(0, Math.round(my + slope * (n - mxv)));
+        const idxSlope = (snaps[n - 1].media_index - snaps[0].media_index);
+        const dir = slope > Math.max(1, my * 0.1) ? { t: "صاعد", c: "#f59e0b" } : slope < -Math.max(1, my * 0.1) ? { t: "هابط", c: "#22c55e" } : { t: "مستقر", c: "#8a97ad" };
         return (
           <div className="cbox" style={{ marginTop: 16 }}>
             <h4>السجل التاريخي ({snaps.length} لقطة) — الحجم + المؤشّر الإعلامي</h4>
+            {n >= 3 && (
+              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 10, padding: "8px 10px", background: "var(--hover)", borderRadius: 10 }}>
+                <div style={{ fontSize: 13 }}>التنبؤ: اتجاه الحجم <b style={{ color: dir.c }}>{dir.t}</b></div>
+                <div style={{ fontSize: 13 }} className="muted">الحجم المتوقّع التالي: <b style={{ color: "var(--text)" }}>~{projected}</b></div>
+                <div style={{ fontSize: 13 }} className="muted">اتجاه النبرة: <b style={{ color: idxSlope > 3 ? "#22c55e" : idxSlope < -3 ? "#f43f5e" : "var(--text)" }}>{idxSlope > 3 ? "تتحسّن" : idxSlope < -3 ? "تسوء" : "ثابتة"}</b></div>
+              </div>
+            )}
             <div className="trend" style={{ height: 110 }}>
               {snaps.map((s, i) => {
                 const idxC = s.media_index >= 60 ? C.pos : s.media_index <= 40 ? C.neg : "#f59e0b";

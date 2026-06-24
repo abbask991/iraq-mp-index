@@ -39,3 +39,14 @@ async def insert_snapshot(row: dict):
 async def insert_alert(row: dict):
     async with httpx.AsyncClient() as c:
         await c.post(f"{SUPABASE_URL}/rest/v1/alerts", headers=_h(), json=row, timeout=15)
+
+
+async def get_subscription(owner):
+    """Notification prefs (email + telegram) for the monitor owner."""
+    if not owner:
+        return None
+    async with httpx.AsyncClient() as c:
+        r = await c.get(f"{SUPABASE_URL}/rest/v1/notify_prefs?user_id=eq.{owner}&select=email,notify_email,telegram_chat_id",
+                        headers=_h(), timeout=15)
+        d = r.json() if r.status_code == 200 else []
+        return d[0] if d else None

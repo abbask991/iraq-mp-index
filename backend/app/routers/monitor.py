@@ -6,7 +6,7 @@ from pydantic import BaseModel
 import asyncio
 
 from app.config import CRON_SECRET
-from app.services import ai, bigdata, cache, campaign, db, network, news, sources_extra, sov, trends, x
+from app.services import ai, bigdata, cache, campaign, db, network, news, notify, sources_extra, sov, trends, x
 
 NEWS_TTL = 300   # seconds — repeated identical queries return instantly
 X_TTL = 180
@@ -219,10 +219,13 @@ async def cron_snapshot(secret: str = "", limit: int = 12):
                 new_alerts.append(("حجم", "medium", f"قفزة بحجم الذِكر لـ«{m['name']}» ({prev['mentions']}→{total})."))
         if neg_ratio >= 0.6 and neg >= 8 and not (prev and float(prev.get("neg_ratio") or 0) >= 0.6):
             new_alerts.append(("سمعة", "high", f"نبرة سلبية غالبة حول «{m['name']}» ({int(neg_ratio*100)}%) — يُنصح بالمراجعة."))
+        sub = await db.get_subscription(m.get("owner")) if new_alerts else None
         for typ, sev, msg in new_alerts:
             await db.insert_alert({"monitor_id": m["id"], "owner": m.get("owner"),
                                    "type": typ, "severity": sev, "message": msg})
             alerts_made += 1
+            if sub:
+                await notify.deliver_alert(sub, msg, sev)
 
     return {"processed": processed, "alerts": alerts_made, "monitors": len(monitors)}
 
