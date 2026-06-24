@@ -37,7 +37,8 @@ async def send_telegram(chat_id: str, text: str) -> bool:
 async def deliver_alert(sub: dict, message: str, severity: str):
     """sub = subscription row (email, notify_email, telegram_chat_id)."""
     sent = []
-    sev = {"high": "🔴", "medium": "🟠", "low": "🟢"}.get(severity, "🔔")
+    sev = {"red": "🔴", "orange": "🟠", "yellow": "🟡", "watch": "🔵", "info": "⚪",
+           "high": "🔴", "medium": "🟠", "low": "🟢"}.get(severity, "🔔")
     if sub.get("notify_email", True) and sub.get("email"):
         html = (f"<div style='font-family:sans-serif;direction:rtl'>"
                 f"<h3>{sev} تنبيه — مركز الرصد</h3><p style='font-size:15px'>{message}</p>"

@@ -23,3 +23,11 @@ SUMMARY_MODEL = os.getenv("SUMMARY_MODEL", "claude-sonnet-4-6")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 CRON_SECRET = os.getenv("CRON_SECRET", "")
+
+# Optional Redis (Upstash / Render Redis). Everything degrades to an in-process
+# fallback when unset — Redis only adds cross-process sharing, rate limiting,
+# dedup and the job queue. Never required for the app to run.
+REDIS_URL = os.getenv("REDIS_URL", "")
+
+# Prompt version — bump to invalidate every cached AI result at once.
+PROMPT_VERSION = os.getenv("PROMPT_VERSION", "v1")

@@ -1,0 +1,4 @@
+# Worker-only deps (kept out of the web image to keep it light).
+# The worker renders PDFs, so it needs Playwright + chromium.
+-r requirements.txt
+playwright==1.49.0

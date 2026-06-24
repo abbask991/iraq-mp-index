@@ -6,7 +6,10 @@ from pydantic import BaseModel
 import asyncio
 
 from app.config import CRON_SECRET
-from app.services import ai, bigdata, cache, campaign, db, network, news, notify, sources_extra, sov, trends, x
+from app.services import (
+    ai, alerts, bigdata, cache, campaign, db, network, news, notify,
+    sources_extra, sov, trends, x,
+)
 
 # Freshness windows. With stale-while-revalidate the user never WAITS this long
 # — once a key is warm they always get an instant answer and the refresh happens
@@ -433,8 +436,9 @@ async def cron_snapshot(secret: str = "", limit: int = 12):
             await db.insert_alert({"monitor_id": m["id"], "owner": m.get("owner"),
                                    "type": typ, "severity": sev, "message": msg})
             alerts_made += 1
-            if sub:
-                await notify.deliver_alert(sub, msg, sev)
+            # policy layer: dedup + cooldown + escalation + history (delivers if not suppressed)
+            await alerts.raise_alert(sub, owner=m.get("owner"), monitor_id=m["id"],
+                                     atype=typ, severity=sev, message=msg)
 
     return {"processed": processed, "alerts": alerts_made, "monitors": len(monitors)}
 

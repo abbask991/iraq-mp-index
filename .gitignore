@@ -10,3 +10,7 @@ mpii_template.xlsx
 *-MPII.html
 .pytest_cache/
 .DS_Store
+
+backend/.venv/
+backend/.pytest_cache/
+__pycache__/

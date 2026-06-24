@@ -8,6 +8,7 @@ import json
 import httpx
 
 from app.config import ANTHROPIC_API_KEY, CLASSIFY_MODEL, SUMMARY_MODEL
+from app.services import ai_cache
 
 _NEUTRAL = {"sentiment": "محايد", "type": "عام"}
 _API = "https://api.anthropic.com/v1/messages"
@@ -78,6 +79,9 @@ async def content_analysis(title: str, samples: list[dict]) -> dict:
         "كن دقيقاً ومختصراً (الأوصاف جملة واحدة).\n\n"
         f"العناوين:\n{listed}"
     )
+    cached = await ai_cache.get(CLASSIFY_MODEL, prompt)
+    if cached is not None:
+        return cached
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(_API, headers=_HEADERS(), json={
@@ -85,7 +89,9 @@ async def content_analysis(title: str, samples: list[dict]) -> dict:
                 "messages": [{"role": "user", "content": prompt}],
             }, timeout=60)
             txt = r.json()["content"][0]["text"]
-            return json.loads(txt[txt.find("{"):txt.rfind("}") + 1])
+            out = json.loads(txt[txt.find("{"):txt.rfind("}") + 1])
+            await ai_cache.put(CLASSIFY_MODEL, prompt, out)
+            return out
     except Exception:
         return empty
 
@@ -98,16 +104,21 @@ async def dossier_conclusion(name: str, facts: str) -> str:
         f"أنت رئيس قسم تحليل في مركز رصد وتحليل إعلامي. اكتب «التقييم التنفيذي» لتقرير استخباراتي شامل عن «{name}» "
         "بناءً على المعطيات الآلية أدناه. اكتب 6-9 جُمل احترافية تغطّي: الصورة الإعلامية العامة، أبرز المخاطر، "
         "وأي فرص، ثم اختم بـ«توصيات» عملية (2-3 توصيات) في سطر منفصل يبدأ بكلمة «التوصيات:». "
-        "استخدم لغة تحليلية رصينة احتمالية، وأشر إلى أن التقرير آلي ويحتاج مراجعة بشرية.\n\n"
+        "استخدم لغة تحليلية رصينة احتمالية, وأشر إلى أن التقرير آلي ويحتاج مراجعة بشرية.\n\n"
         f"المعطيات:\n{facts}"
     )
+    cached = await ai_cache.get(SUMMARY_MODEL, prompt)
+    if cached is not None:
+        return cached
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(_API, headers=_HEADERS(), json={
                 "model": SUMMARY_MODEL, "max_tokens": 900,
                 "messages": [{"role": "user", "content": prompt}],
             }, timeout=60)
-            return r.json()["content"][0]["text"].strip()
+            out = r.json()["content"][0]["text"].strip()
+            await ai_cache.put(SUMMARY_MODEL, prompt, out)
+            return out
     except Exception:
         return ""
 
@@ -123,13 +134,18 @@ async def analyst_brief(title: str, facts: str) -> str:
         "استخدم لغة احتمالية (\"يُحتمل\"، \"مؤشرات\") لا قطعية، واختم بأن التحليل يحتاج مراجعة بشرية.\n\n"
         f"المعطيات: {facts}\n\nاكتب نصاً متّصلاً احترافياً بدون عناوين أو نقاط."
     )
+    cached = await ai_cache.get(SUMMARY_MODEL, prompt)
+    if cached is not None:
+        return cached
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(_API, headers=_HEADERS(), json={
                 "model": SUMMARY_MODEL, "max_tokens": 700,
                 "messages": [{"role": "user", "content": prompt}],
             }, timeout=40)
-            return r.json()["content"][0]["text"].strip()
+            out = r.json()["content"][0]["text"].strip()
+            await ai_cache.put(SUMMARY_MODEL, prompt, out)
+            return out
     except Exception:
         return ""
 
@@ -150,12 +166,17 @@ async def summarize(name: str, stats: dict, samples: list[dict]) -> str:
         "غطِّ: النبرة العامة، أبرز المواضيع المتكررة، أبرز نقطة إيجابية وسلبية، وجملة ختامية تقييمية. "
         "نصاً متّصلاً احترافياً بدون عناوين أو نقاط، ابدأ مباشرة بالمحتوى."
     )
+    cached = await ai_cache.get(SUMMARY_MODEL, prompt)
+    if cached is not None:
+        return cached
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(_API, headers=_HEADERS(), json={
                 "model": SUMMARY_MODEL, "max_tokens": 700,
                 "messages": [{"role": "user", "content": prompt}],
             }, timeout=40)
-            return r.json()["content"][0]["text"].strip()
+            out = r.json()["content"][0]["text"].strip()
+            await ai_cache.put(SUMMARY_MODEL, prompt, out)
+            return out
     except Exception:
         return ""

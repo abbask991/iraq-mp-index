@@ -1,12 +1,17 @@
-# Render Blueprint — مركز الرصد FastAPI backend.
-# In Render: New + → Blueprint → connect this repo → it reads this file.
-# Then set the two secret env vars (ANTHROPIC_API_KEY, X_BEARER_TOKEN) in the dashboard.
+# Render Blueprint — مركز الرصد.
+# New + → Blueprint → connect this repo. Set secrets in the dashboard:
+#   ANTHROPIC_API_KEY, X_BEARER_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_KEY,
+#   CRON_SECRET, RESEND_API_KEY, TELEGRAM_BOT_TOKEN, REDIS_URL.
+#
+# REDIS_URL is optional: with it you get the shared cache + job queue + the
+# worker below; without it the API still runs (in-process fallback, no worker).
 services:
+  # ---- Web API ----
   - type: web
     name: rasd-api
     runtime: python
     rootDir: backend
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
@@ -15,7 +20,52 @@ services:
         value: "3.12.4"
       - key: CORS_ORIGINS
         value: "https://rasd-monitor.vercel.app,http://localhost:3000"
+      - key: PROMPT_VERSION
+        value: "v1"
       - key: ANTHROPIC_API_KEY
-        sync: false   # set in dashboard (secret)
+        sync: false
       - key: X_BEARER_TOKEN
-        sync: false   # set in dashboard (secret)
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: REDIS_URL
+        sync: false   # optional — enables shared cache + queue
+
+  # ---- Background worker (RQ): heavy jobs + PDF reports ----
+  # Only useful when REDIS_URL is set. Installs Playwright + chromium for PDFs.
+  - type: worker
+    name: rasd-worker
+    runtime: python
+    rootDir: backend
+    plan: starter
+    buildCommand: pip install -r requirements-worker.txt && python -m playwright install --with-deps chromium
+    startCommand: python worker.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+      - key: PROMPT_VERSION
+        value: "v1"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: X_BEARER_TOKEN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: REDIS_URL
+        sync: false

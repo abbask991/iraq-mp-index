@@ -50,3 +50,48 @@ async def get_subscription(owner):
                         headers=_h(), timeout=15)
         d = r.json() if r.status_code == 200 else []
         return d[0] if d else None
+
+
+# ---- generic PostgREST helpers (used by the intelligence layer) ----
+async def select(table: str, query: str = "select=*", timeout: int = 15):
+    """GET /rest/v1/<table>?<query>. Returns a list (empty on any failure)."""
+    if not enabled():
+        return []
+    async with httpx.AsyncClient() as c:
+        r = await c.get(f"{SUPABASE_URL}/rest/v1/{table}?{query}", headers=_h(), timeout=timeout)
+        return r.json() if r.status_code == 200 else []
+
+
+async def insert(table: str, row, *, upsert: bool = False, on_conflict: str | None = None,
+                 returning: bool = False, timeout: int = 15):
+    """POST a row (or list of rows). `upsert=True` + `on_conflict` merges."""
+    if not enabled():
+        return None
+    h = dict(_h())
+    prefer = []
+    if upsert:
+        prefer.append("resolution=merge-duplicates")
+    prefer.append("return=representation" if returning else "return=minimal")
+    h["Prefer"] = ",".join(prefer)
+    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    if upsert and on_conflict:
+        url += f"?on_conflict={on_conflict}"
+    async with httpx.AsyncClient() as c:
+        r = await c.post(url, headers=h, json=row, timeout=timeout)
+        if returning and r.status_code in (200, 201):
+            d = r.json()
+            return d[0] if isinstance(d, list) and d else d
+        return r.status_code in (200, 201, 204)
+
+
+async def update(table: str, match: str, patch: dict, timeout: int = 15):
+    """PATCH /rest/v1/<table>?<match> with `patch`."""
+    if not enabled():
+        return False
+    async with httpx.AsyncClient() as c:
+        r = await c.patch(f"{SUPABASE_URL}/rest/v1/{table}?{match}", headers=_h(), json=patch, timeout=timeout)
+        return r.status_code in (200, 204)
+
+
+async def insert_job_run(row: dict):
+    await insert("job_runs", row, upsert=True, on_conflict="id")
