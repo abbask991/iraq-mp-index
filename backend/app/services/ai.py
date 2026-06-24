@@ -65,26 +65,25 @@ async def content_analysis(title: str, samples: list[dict]) -> dict:
     if not ANTHROPIC_API_KEY or not samples:
         return empty
     listed = "\n".join(f"{i + 1}. [{s.get('sentiment', '?')}/{s.get('source', '')}] {s.get('title', '')}"
-                       for i, s in enumerate(samples[:40]))
+                       for i, s in enumerate(samples[:30]))
     prompt = (
         f"أنت محلّل محتوى إعلامي محترف في مركز رصد. حلّل التغطية الإعلامية لـ«{title}» بناءً على العناوين التالية. "
-        "أعد JSON فقط بهذا الشكل (بالعربية):\n"
-        '{"narratives":[{"label":"اسم السردية","description":"وصف موجز","share":نسبة 0-100,"sentiment":"إيجابي|سلبي|محايد"}],'
-        '"frames":[{"label":"كيف يُؤطَّر الموضوع","description":"..."}],'
-        '"tone":{"label":"النبرة العامة","description":"..."},'
-        '"key_messages":["الرسالة/الادعاء الرئيسي 1","..."],'
-        '"brief":"تحليل تحريري احترافي 4-6 جمل"}\n\n'
-        "narratives = السرديات/القصص المهيمنة (3-5). frames = الأُطر الإعلامية (كيف يُقدَّم الموضوع). "
-        "tone = توصيف النبرة (رصينة/تحريضية/عاطفية/اتهامية...). key_messages = أبرز الرسائل أو الادعاءات المتكررة. "
-        "brief = موجز تحريري يربط الصورة العامة. استخدم لغة تحليلية احترافية.\n\n"
+        "أعد JSON فقط بهذا الشكل (بالعربية، واجعل الأوصاف موجزة — جملة واحدة لكل وصف):\n"
+        '{"narratives":[{"label":"اسم السردية","description":"جملة واحدة","share":نسبة 0-100,"sentiment":"إيجابي|سلبي|محايد"}],'
+        '"frames":[{"label":"الإطار","description":"جملة"}],'
+        '"tone":{"label":"النبرة","description":"جملة"},'
+        '"key_messages":["رسالة موجزة","..."],'
+        '"brief":"موجز تحريري 3-4 جمل"}\n\n'
+        "narratives = 3 إلى 4 سرديات مهيمنة. frames = 2 إلى 3 أُطر. key_messages = 3 إلى 5 رسائل. "
+        "كن دقيقاً ومختصراً (الأوصاف جملة واحدة).\n\n"
         f"العناوين:\n{listed}"
     )
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(_API, headers=_HEADERS(), json={
-                "model": SUMMARY_MODEL, "max_tokens": 4000,
+                "model": CLASSIFY_MODEL, "max_tokens": 2000,
                 "messages": [{"role": "user", "content": prompt}],
-            }, timeout=90)
+            }, timeout=60)
             txt = r.json()["content"][0]["text"]
             return json.loads(txt[txt.find("{"):txt.rfind("}") + 1])
     except Exception:
