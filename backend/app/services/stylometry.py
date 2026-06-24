@@ -53,6 +53,8 @@ def _cosine(a: dict, b: dict):
     dot = sum(a.get(k, 0) * b.get(k, 0) for k in keys)
     na = math.sqrt(sum(v * v for v in a.values()))
     nb = math.sqrt(sum(v * v for v in b.values()))
+    if na == 0 and nb == 0:       # both vectors all-zero → identical in this dimension
+        return 1.0
     return dot / (na * nb) if na and nb else 0.0
 
 
