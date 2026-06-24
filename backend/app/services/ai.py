@@ -82,7 +82,7 @@ async def content_analysis(title: str, samples: list[dict]) -> dict:
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(_API, headers=_HEADERS(), json={
-                "model": SUMMARY_MODEL, "max_tokens": 1500,
+                "model": SUMMARY_MODEL, "max_tokens": 4000,
                 "messages": [{"role": "user", "content": prompt}],
             }, timeout=90)
             txt = r.json()["content"][0]["text"]
