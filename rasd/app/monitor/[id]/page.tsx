@@ -62,6 +62,7 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
   const switchTo = (plat: "news" | "x" | "youtube") => { setPlatform(plat); if (mon) show(mon, plat, range); };
   const switchRange = (rng: "day" | "week" | "month" | "year") => { setRange(rng); if (mon) show(mon, platform, rng); };
 
+  const [snaps, setSnaps] = useState<any[]>([]);
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("monitors").select("*").eq("id", params.id).maybeSingle();
@@ -70,6 +71,9 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
         cacheRef.current = data.cache && typeof data.cache === "object" ? data.cache : {};
         show(data, "news", "week");
       } else setLoading(false);
+      supabase.from("snapshots").select("taken_at,mentions,media_index,neg_ratio")
+        .eq("monitor_id", params.id).order("taken_at", { ascending: true }).limit(60)
+        .then(({ data: s }) => setSnaps(s || []));
     })();
   }, [params.id, show]);
 
@@ -139,6 +143,27 @@ export default function MonitorDash({ params }: { params: { id: string } }) {
  <b>𝕏 ملاحظة:</b> <span className="muted">{notice}</span>
  </div>
       )}
+
+      {snaps.length >= 2 && (() => {
+        const maxM = Math.max(1, ...snaps.map((s) => s.mentions));
+        return (
+          <div className="cbox" style={{ marginTop: 16 }}>
+            <h4>السجل التاريخي ({snaps.length} لقطة) — الحجم + المؤشّر الإعلامي</h4>
+            <div className="trend" style={{ height: 110 }}>
+              {snaps.map((s, i) => {
+                const idxC = s.media_index >= 60 ? C.pos : s.media_index <= 40 ? C.neg : "#f59e0b";
+                return (
+                  <div className="col" key={i} title={`${(s.taken_at || "").slice(5, 16).replace("T", " ")} · ${s.mentions} ذِكر · مؤشّر ${s.media_index}`}>
+                    <i style={{ height: `${(s.mentions / maxM) * 100}%`, background: idxC }} />
+                    <span>{(s.taken_at || "").slice(5, 10)}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>ارتفاع العمود = حجم الذِكر · لونه = المؤشّر الإعلامي (أخضر إيجابي · أحمر سلبي). يُحدّث تلقائياً كل ٦ ساعات.</div>
+          </div>
+        );
+      })()}
 
       {loading ? <div className="spinner" /> : (
  <>
