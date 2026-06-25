@@ -62,15 +62,20 @@ def detect_campaign(keyword, rng="week"):
 
 def generate_report(kind, target, rng="week", fmt="pdf", job_id=None):
     """Render a server-side report (pdf|docx|pptx) and return its bytes ref."""
-    from app.services import reports
+    from app.services import db, reports
 
     async def _go():
-        if job_id:
-            await _record(job_id, "running", kind=kind, target=target, format=fmt)
         out = await reports.build(kind, target, rng, fmt)
-        if job_id:
-            await _record(job_id, "done", kind=kind, target=target,
-                          format=fmt, bytes=out.get("bytes"))
+        try:                       # record to job_runs → powers "Recent Reports"
+            from rq import get_current_job
+            rid = (get_current_job().id if get_current_job() else None) or job_id or ("rep-" + str(int(time.time())))
+            if db.enabled():
+                await db.insert("job_runs", {
+                    "id": rid, "status": "done", "kind": kind, "target": target,
+                    "ts": int(time.time()), "meta": {"format": fmt, "bytes": out.get("bytes")},
+                }, upsert=True, on_conflict="id")
+        except Exception:
+            pass
         return out
 
     return _run(_go())

@@ -153,6 +153,18 @@ async def system_status():
     }
 
 
+@router.get("/reports-recent")
+async def reports_recent(limit: int = 8):
+    """Recently generated reports (for the Command Center 'Recent Reports' panel)."""
+    if not db.enabled():
+        return {"reports": []}
+    rows = await db.select(
+        "job_runs",
+        "select=kind,target,meta,created_at&kind=in.(profile,campaign,executive,government)"
+        f"&order=created_at.desc&limit={limit}")
+    return {"reports": rows}
+
+
 # REAL long-range windows from our OWN archive (mentions table grows daily via
 # the cron) — unlike live X which is capped at the last 7 days.
 ARCHIVE_DAYS = {"day": 1, "week": 7, "month": 30, "year": 365}
@@ -632,12 +644,28 @@ async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
         issues = [{"label": trends.NARRATIVE_MAP.get(t, t), "count": c}
                   for t, c in _C(t.get("type") for t in tweets if t.get("type") and t["type"] != "عام").most_common(6)]
 
+        # most active / influential accounts today
+        agg: dict = {}
+        for t in tweets:
+            a = t["author_id"]
+            x_ = agg.setdefault(a, {"posts": 0, "eng": 0})
+            x_["posts"] += 1
+            x_["eng"] += int(t.get("engagement") or 0)
+        infl = []
+        for aid, u in users.items():
+            a = agg.get(aid, {"posts": 0, "eng": 0})
+            infl.append({"username": u.get("username"), "name": u.get("name"),
+                         "influence": trends.influence_score(u), "posts": a["posts"], "engagement": a["eng"],
+                         "followers": u.get("public_metrics", {}).get("followers_count", 0)})
+        infl.sort(key=lambda x_: -(x_["influence"] * 40 + x_["engagement"] + x_["posts"] * 5))
+        top_influencers = infl[:8]
+
         return {
             "scanned": len(tweets), "accounts": len(users), "window": rng,
             "sentiment": {"pos": pos, "neg": neg, "neu": neu},
             "media_index": round(50 + (50 * (pos - neg) / len(tweets))) if tweets else 50,
             "trending": disc["hashtags"][:8], "keywords": disc["keywords"][:8],
-            "campaigns": campaigns[:5],
+            "campaigns": campaigns[:5], "top_influencers": top_influencers,
             "new_accounts": {"new_today": newacc["bands"][0]["count"] if newacc["bands"] else 0,
                              "new_total": newacc["new_accounts"],
                              "clusters": newacc["creation_clusters"][:3]},

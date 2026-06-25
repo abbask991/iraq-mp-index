@@ -29,6 +29,7 @@ export default function Overview() {
   const [dg, setDg] = useState<any>(null);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [status, setStatus] = useState<any>(null);
+  const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<Range>("day");
   const [at, setAt] = useState("");
@@ -44,7 +45,8 @@ export default function Overview() {
   useEffect(() => {
     intelGet("/digest").then(setDg).catch(() => {});
     apiGet("/monitor/status").then(setStatus).catch(() => {});
-    supabase.from("alerts").select("type,severity,message,created_at").order("created_at", { ascending: false }).limit(8)
+    apiGet("/monitor/reports-recent").then((r) => setReports(r?.reports || [])).catch(() => {});
+    supabase.from("alerts").select("type,severity,message,created_at").order("created_at", { ascending: false }).limit(10)
       .then(({ data }) => setAlerts(data || []));
   }, []);
 
@@ -199,6 +201,51 @@ export default function Overview() {
               ))}
             </div>
           </div>
+
+          {/* top influencers | intelligence timeline */}
+          <div className="cc-grid">
+            <div className="cbox">
+              <h4>👥 أبرز المؤثرين اليوم</h4>
+              {(d.top_influencers || []).length === 0 && <span className="muted">—</span>}
+              {(d.top_influencers || []).map((m: any, i: number) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderTop: i ? "1px solid var(--line)" : 0, fontSize: 13 }}>
+                  <a href={`https://x.com/${m.username}`} target="_blank" rel="noopener" style={{ color: "var(--text)" }}>
+                    @{m.username} <span className="muted" style={{ fontSize: 11 }}>· تأثير {m.influence}/10</span></a>
+                  <span className="muted" style={{ fontSize: 11 }}>{m.posts} منشور · {Number(m.followers).toLocaleString()} متابع</span>
+                </div>
+              ))}
+            </div>
+            <div className="cbox">
+              <h4>⏳ الخط الزمني الاستخباراتي</h4>
+              {alerts.length === 0 && <span className="muted">لا أحداث مسجّلة اليوم بعد.</span>}
+              <div style={{ paddingInlineStart: 14 }}>
+                {alerts.slice(0, 8).map((a, i) => {
+                  const sv = SEV[a.severity] || SEV.info;
+                  return (
+                    <div key={i} style={{ position: "relative", padding: "0 0 14px 0" }}>
+                      <span style={{ position: "absolute", insetInlineStart: -14, top: 4, width: 9, height: 9, borderRadius: "50%", background: sv.c, boxShadow: `0 0 6px ${sv.c}` }} />
+                      {i < Math.min(alerts.length, 8) - 1 && <span style={{ position: "absolute", insetInlineStart: -10, top: 12, bottom: -2, width: 1, background: "var(--line)" }} />}
+                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{new Date(a.created_at).toLocaleTimeString("ar-IQ", { hour: "2-digit", minute: "2-digit" })}</div>
+                      <div style={{ fontSize: 13 }}>{a.message}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* recent reports */}
+          {reports.length > 0 && (
+            <div className="cbox" style={{ marginBottom: 16 }}>
+              <h4>📄 آخر التقارير المُولّدة</h4>
+              {reports.map((r: any, i: number) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: i ? "1px solid var(--line)" : 0, fontSize: 13 }}>
+                  <span>{({ profile: "ملف شامل", campaign: "تقرير حملة", executive: "تنفيذي", government: "حكومي" } as any)[r.kind] || r.kind} — {r.target || "—"}</span>
+                  <span className="muted" style={{ fontSize: 11 }}>{(r.meta?.format || "").toUpperCase()} · {new Date(r.created_at).toLocaleString("ar-IQ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* geo heatmap */}
           {d.geo?.located > 0 && (
