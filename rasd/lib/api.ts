@@ -71,3 +71,13 @@ export async function apiGet(path: string): Promise<any> {
   const res = await fetch((BASE || "") + path);
   return res.json();
 }
+
+// Generic JSON request to any absolute backend path (settings, etc.).
+export async function apiSend(path: string, method: "POST" | "PUT" | "DELETE", body?: unknown): Promise<any> {
+  const res = await fetch((BASE || "") + path, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  return res.json();
+}
