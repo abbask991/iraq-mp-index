@@ -264,7 +264,11 @@ function UsersPanel() {
 const SVC_AR: Record<string, string> = { backend: "الخادم الخلفي", database: "قاعدة البيانات", redis: "Redis (التخزين)", queue: "طابور المهام", ai_provider: "مزوّد الذكاء", x_api: "X API", telegram: "Telegram", rss: "RSS" };
 function HealthPanel() {
   const [h, setH] = useState<any>(null);
-  useEffect(() => { apiGet("/api/settings/health").then(setH).catch(() => {}); }, []);
+  const [col, setCol] = useState<any>(null);
+  useEffect(() => {
+    apiGet("/api/settings/health").then(setH).catch(() => {});
+    apiGet("/api/settings/collector?limit=20").then(setCol).catch(() => {});
+  }, []);
   if (!h) return <p className="muted" style={{ marginTop: 14 }}>جارٍ فحص النظام…</p>;
   return (
     <div style={{ marginTop: 14 }}>
@@ -284,6 +288,24 @@ function HealthPanel() {
         <Metric l="نداءات ذكاء اليوم" v={h.metrics?.ai_calls_today ?? "—"} />
       </div>
       <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>بعض المقاييس التفصيلية (الكلفة، استهلاك التخزين) تُضاف مع تفعيل عدّادات الاستخدام.</p>
+
+      <h4 style={{ marginTop: 16 }}>محرّك الجمع الذكي (AICE)</h4>
+      {!col && <p className="muted" style={{ fontSize: 12 }}>جارٍ التحميل…</p>}
+      {col && (col.totals?.runs ? (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 10 }}>
+            <Metric l="دورات الجمع" v={col.totals.runs} />
+            <Metric l="منشورات مجموعة" v={Number(col.totals.fetched).toLocaleString()} />
+            <Metric l="نداءات ذكاء موفّرة" v={Number(col.totals.ai_calls_saved).toLocaleString()} />
+            <Metric l="مكرّرات مُزالة" v={Number(col.totals.duplicates).toLocaleString()} />
+          </div>
+          <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>
+            التجميع-قبل-الذكاء وفّر {col.totals.fetched ? Math.round((col.totals.ai_calls_saved / col.totals.fetched) * 100) : 0}% من نداءات Claude في آخر {col.totals.runs} دورة.
+          </p>
+        </>
+      ) : (
+        <p className="muted" style={{ fontSize: 12 }}>لا سجلّات جمع بعد — ستظهر بعد تشغيل migration 008 وأول دورة جمع.</p>
+      ))}
     </div>
   );
 }

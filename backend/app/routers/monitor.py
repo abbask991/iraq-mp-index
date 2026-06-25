@@ -609,11 +609,15 @@ async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
     key = f"overview:{rng}:{cov}"
 
     async def _build():
+        import time as _time
+        from app.services.collection import runlog, smart_classify
+        _t0 = _time.time()
         tw = await x.fetch_trend(DISCOVER_SEED, want=cov, range=rng)
         if "error" in tw:
             return {"error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
         tweets, users = tw["tweets"], tw["users"]
-        cls = await ai.classify_all([t["text"] for t in tweets])
+        cls, _stats = await smart_classify.classify_posts(tweets)   # AICE: cluster-before-AI
+        await runlog.record("cron_overview", {**_stats, "inserted": len(tweets)}, started=_t0)
         sentiments = [c.get("sentiment", "محايد") for c in cls]
         for t, c in zip(tweets, cls):
             t["sentiment"], t["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
