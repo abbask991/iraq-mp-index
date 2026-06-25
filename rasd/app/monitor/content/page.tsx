@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiPost } from "@/lib/api";
 import { getTargets, primaryKeyword } from "@/lib/targets";
 import RangeSelect, { Range } from "@/components/RangeSelect";
+import { SkelCards } from "@/components/Skeleton";
 
 const C = { neg: "#f43f5e", neu: "#8a97ad", pos: "#22c55e" };
 const sColor = (s: string) => (s === "سلبي" ? C.neg : s === "إيجابي" ? C.pos : C.neu);
@@ -56,7 +57,7 @@ export default function Content() {
         </div>
       </div>
 
-      {loading && <div className="spinner" />}
+      {loading && <SkelCards count={4} />}
 
       {d && !loading && (!d.total ? <p className="muted">{d.message || "لا محتوى كافٍ."}</p> : (
         <>

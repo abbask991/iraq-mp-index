@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { apiPost } from "@/lib/api";
 import { getTargets, primaryKeyword, Target } from "@/lib/targets";
 import RangeSelect, { Range } from "@/components/RangeSelect";
+import AreaChart from "@/components/AreaChart";
+import { SkelCards } from "@/components/Skeleton";
 
 const C = { pos: "#22c55e", neu: "#8a97ad", neg: "#f43f5e" };
 
@@ -82,7 +84,7 @@ export default function Archive() {
         </div>
       </div>
 
-      {loading && <div className="spinner" />}
+      {loading && <SkelCards count={4} />}
 
       {d && !loading && (
         <>
@@ -104,7 +106,9 @@ export default function Archive() {
               <span><span style={{ color: C.neu }}>■</span> محايد {s.neu}</span>
               <span><span style={{ color: C.neg }}>■</span> سلبي {s.neg}</span>
             </div>
-            <Timeline rows={d.timeline || []} />
+            {(d.timeline || []).length > 1
+              ? <AreaChart data={(d.timeline || []).map((r: any) => ({ label: r.day, sub: r.day, value: r.count }))} />
+              : <Timeline rows={d.timeline || []} />}
           </div>
 
           {d.days_covered < d.window_days && (

@@ -90,6 +90,12 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
     })();
   }, []);
 
+  const [clock, setClock] = useState("");
+  useEffect(() => {
+    const f = () => setClock(new Date().toLocaleTimeString("ar-IQ", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }));
+    f(); const id = setInterval(f, 1000); return () => clearInterval(id);
+  }, []);
+
   const t = (s: { ar: string; en: string }) => tr(s, lang);
   const toggleTheme = () => { const n: Theme = theme === "dark" ? "light" : "dark"; setTheme(n); setThemeState(n); };
   const Controls = (
@@ -130,8 +136,30 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
   const dl = daysLeft(sub);
   const soon = SECTORS.flatMap((s) => s.items.filter((it) => !it.href));
+  const topItems = [
+    { href: "/monitor/overview", ar: "لوحة القيادة", en: "Command Center" },
+    { href: "/monitor/dossier", ar: "التقرير الشامل", en: "Full Dossier" },
+    { href: "/monitor/settings", ar: "الإعدادات", en: "Settings" },
+    ...SECTORS.flatMap((s) => s.items),
+  ];
+  const cur = topItems.find((it) => it.href === path);
+  const sectionTitle = cur ? t(cur as { ar: string; en: string }) : (lang === "ar" ? "مركز العمليات" : "Operations");
 
   return (
+ <>
+ <div className="console-bar">
+ <div className="cb-left">
+ <span className="cb-logo" />
+ <span className="cb-brand">مركز الرصد</span>
+ <span className="cb-chev">›</span>
+ <span className="cb-section">{sectionTitle}</span>
+ </div>
+ <div className="cb-right">
+ <span className="cb-clock"><span className="cb-dot" />{clock}</span>
+ <button className="cb-btn" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>{lang === "ar" ? "EN" : "ع"}</button>
+ <button className="cb-btn" onClick={toggleTheme}>{theme === "dark" ? "☀" : "☾"}</button>
+ </div>
+ </div>
  <div className="admin-shell">
  <aside className="admin-side">
         {LangBtn}
@@ -185,5 +213,6 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         {children}
  </div>
  </div>
+ </>
   );
 }

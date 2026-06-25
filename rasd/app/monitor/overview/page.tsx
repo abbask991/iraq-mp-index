@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { apiPost } from "@/lib/api";
 import RangeSelect, { Range } from "@/components/RangeSelect";
+import { SkelCards } from "@/components/Skeleton";
 import Gauge from "@/components/Gauge";
 
 const C = { neg: "#f43f5e", neu: "#8a97ad", pos: "#22c55e" };
@@ -59,7 +60,7 @@ export default function Overview() {
  </div>
  </div>
 
-      {loading && !d && <div className="spinner" />}
+      {loading && !d && <SkelCards count={4} />}
 
       {d && (d.error ? <p className="muted">{d.message}</p> : (
  <>

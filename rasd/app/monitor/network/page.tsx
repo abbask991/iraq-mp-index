@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { apiPost } from "@/lib/api";
 import { getTargets, primaryKeyword } from "@/lib/targets";
 import RangeSelect, { Range } from "@/components/RangeSelect";
+import { SkelCards } from "@/components/Skeleton";
 import Gauge from "@/components/Gauge";
 
 const COMM = ["#2563eb", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4", "#ec4899", "#84cc16", "#fb923c"];
@@ -60,7 +61,7 @@ export default function BigData() {
         </div>
       </div>
 
-      {loading && <div className="spinner" />}
+      {loading && <SkelCards count={4} />}
 
       {d && !loading && (d.sparse ? <p className="muted">{d.message || "بيانات غير كافية لهذا الموضوع."}</p> : (
         <>
