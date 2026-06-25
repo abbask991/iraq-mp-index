@@ -70,6 +70,7 @@ SCHEMA = [
         _f("cluster_target_percent", "نسبة التجميع المستهدفة (%)", "number", 12),
         _f("ai_representative_cap", "سقف العيّنات المُرسلة للذكاء", "number", 800),
         _f("discovery_reserve_percent", "حصّة الاستكشاف المحجوزة (%)", "number", 10),
+        _f("monthly_tweet_cap", "السقف الشهري للتغريدات (حماية الرصيد · 0=بلا حد)", "number", 600000),
     ]},
     {"category": "x_api", "label": "إعدادات X API", "icon": "", "service": "x", "fields": [
         _f("enabled", "تفعيل جمع X", "toggle", True),

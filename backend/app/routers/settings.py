@@ -43,15 +43,16 @@ async def audit(limit: int = 100):
 
 @router.get("/collector")
 async def collector(limit: int = 30):
-    """AICE Collection Center — recent collector runs + aggregate AI savings."""
-    from app.services.collection import runlog
+    """AICE Collection Center — recent collector runs + aggregate AI savings +
+    monthly spend-cap status."""
+    from app.services.collection import budget, runlog
     runs = await runlog.recent(limit)
     agg = {"runs": len(runs),
            "fetched": sum(r.get("fetched_count", 0) for r in runs),
            "ai_calls_saved": sum(r.get("ai_calls_saved", 0) for r in runs),
            "duplicates": sum(r.get("duplicate_count", 0) for r in runs),
            "clusters": sum(r.get("cluster_count", 0) for r in runs)}
-    return {"runs": runs, "totals": agg}
+    return {"runs": runs, "totals": agg, "budget": await budget.status()}
 
 
 @router.get("/health")

@@ -139,8 +139,13 @@ async def fetch_trend(keyword: str, want: int = 150, range: str = "week"):
     either way, so the rest of the pipeline is provider-agnostic."""
     from app.services.providers import twitterapi_io
     if twitterapi_io.enabled():
+        from app.services.collection import budget
+        if not await budget.allowed():
+            # monthly spend cap reached → stop spending; SWR keeps serving cache
+            return {"error": "BUDGET_CAP_REACHED", "tweets": [], "users": {}}
         res = await twitterapi_io.fetch_trend(keyword, want=want, range=range)
         if "error" not in res and res.get("tweets"):
+            await budget.add(len(res["tweets"]))
             return res
         # provider failed → fall through to official if available
         if not X_BEARER_TOKEN:

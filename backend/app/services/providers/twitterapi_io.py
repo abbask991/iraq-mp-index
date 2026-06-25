@@ -18,6 +18,7 @@ import httpx
 
 _BASE = "https://api.twitterapi.io/twitter/tweet/advanced_search"
 _RANGE_SECONDS = {"day": 86400, "week": 7 * 86400, "month": 30 * 86400}
+_TIME_BUDGET = 150  # max seconds spent paginating one fetch (20/page is sequential)
 
 
 def enabled() -> bool:
@@ -77,8 +78,14 @@ async def fetch_trend(keyword: str, want: int = 150, range: str = "week") -> dic
     tweets, users = [], {}
     cursor = ""
     headers = {"X-API-Key": key}
+    # advanced_search returns ~20/page via sequential cursor, so high coverage is
+    # paginated. Bound it by a wall-clock budget so a huge `want` can't hang.
+    deadline = time.time() + _TIME_BUDGET
+    max_pages = min(1200, want // 20 + 3)
+    pages = 0
     async with httpx.AsyncClient() as client:
-        for _ in range_loops(want):
+        while len(tweets) < want and pages < max_pages and time.time() < deadline:
+            pages += 1
             url = f"{_BASE}?query={quote(query)}&queryType=Latest"
             if cursor:
                 url += f"&cursor={quote(cursor)}"
@@ -111,8 +118,3 @@ async def fetch_trend(keyword: str, want: int = 150, range: str = "week") -> dic
             if not cursor:
                 break
     return {"tweets": tweets[:want], "users": users}
-
-
-def range_loops(want: int):
-    """Cap pagination loops (~20 tweets/page) generously."""
-    return range(min(60, max(1, want // 20 + 2)))

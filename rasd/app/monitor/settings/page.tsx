@@ -298,6 +298,23 @@ function HealthPanel() {
       <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>بعض المقاييس التفصيلية (الكلفة، استهلاك التخزين) تُضاف مع تفعيل عدّادات الاستخدام.</p>
 
       <h4 style={{ marginTop: 16 }}>محرّك الجمع الذكي (AICE)</h4>
+      {col?.budget && (
+        <div className="card" style={{ marginBottom: 10, borderInlineStart: `4px solid ${col.budget.capped ? "#f43f5e" : (col.budget.pct ?? 0) > 80 ? "#fb923c" : "#22c55e"}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+            <b>سقف الإنفاق الشهري ({col.budget.month})</b>
+            <span className="chip" style={{ color: col.budget.capped ? "#f43f5e" : "#22c55e" }}>
+              {col.budget.capped ? "بلغ السقف — توقّف الجمع" : col.budget.cap > 0 ? `${col.budget.pct}% مُستهلك` : "بلا حد"}
+            </span>
+          </div>
+          <div style={{ height: 8, background: "var(--line)", borderRadius: 4, overflow: "hidden", margin: "8px 0" }}>
+            <div style={{ width: `${Math.min(100, col.budget.pct || 0)}%`, height: "100%", background: col.budget.capped ? "#f43f5e" : (col.budget.pct ?? 0) > 80 ? "#fb923c" : "#22c55e" }} />
+          </div>
+          <div className="muted" style={{ fontSize: 12 }}>
+            {Number(col.budget.used).toLocaleString()} / {col.budget.cap > 0 ? Number(col.budget.cap).toLocaleString() : "∞"} تغريدة ·
+            ≈ ${col.budget.est_cost_usd}{col.budget.cap_cost_usd ? ` من $${col.budget.cap_cost_usd}` : ""} هذا الشهر
+          </div>
+        </div>
+      )}
       {!col && <p className="muted" style={{ fontSize: 12 }}>جارٍ التحميل…</p>}
       {col && (col.totals?.runs ? (
         <>

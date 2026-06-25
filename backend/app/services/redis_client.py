@@ -98,6 +98,25 @@ async def setnx(key: str, val: str, ex: int) -> bool:
         return True
 
 
+async def incrby(key: str, n: int, ex: int | None = None) -> int:
+    """Atomic increment by n; sets TTL on first write. Returns the new total.
+    Falls back to a best-effort local counter when Redis is down."""
+    c = client()
+    if c is None:
+        cur = int(_local_get(key) or 0) + n
+        _local_set(key, str(cur), ex)
+        return cur
+    try:
+        total = await c.incrby(key, n)
+        if ex and total == n:
+            await c.expire(key, ex)
+        return int(total)
+    except Exception:
+        cur = int(_local_get(key) or 0) + n
+        _local_set(key, str(cur), ex)
+        return cur
+
+
 async def delete(key: str):
     c = client()
     if c is None:
