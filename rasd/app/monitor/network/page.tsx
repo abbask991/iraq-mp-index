@@ -4,6 +4,7 @@ import { apiPost } from "@/lib/api";
 import { getTargets, primaryKeyword } from "@/lib/targets";
 import RangeSelect, { Range } from "@/components/RangeSelect";
 import { SkelCards } from "@/components/Skeleton";
+import EmptyState from "@/components/EmptyState";
 import Gauge from "@/components/Gauge";
 
 const COMM = ["#2563eb", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4", "#ec4899", "#84cc16", "#fb923c"];
@@ -63,7 +64,7 @@ export default function BigData() {
 
       {loading && <SkelCards count={4} />}
 
-      {d && !loading && (d.sparse ? <p className="muted">{d.message || "بيانات غير كافية لهذا الموضوع."}</p> : (
+      {d && !loading && (d.sparse ? <EmptyState title="بيانات غير كافية للتحليل المتقدّم" subtitle={d.message || "نشاط X لهذا الموضوع قليل حالياً — جرّب هدفاً أنشط أو نطاقاً أوسع."} /> : (
         <>
           {/* manipulation index hero */}
           <div className="bd-hero">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { apiPost } from "@/lib/api";
 import RangeSelect, { Range } from "@/components/RangeSelect";
 import { SkelCards } from "@/components/Skeleton";
+import EmptyState from "@/components/EmptyState";
 import Gauge from "@/components/Gauge";
 
 const C = { neg: "#f43f5e", neu: "#8a97ad", pos: "#22c55e" };
@@ -62,7 +63,7 @@ export default function Overview() {
 
       {loading && !d && <SkelCards count={4} />}
 
-      {d && (d.error ? <p className="muted">{d.message}</p> : (
+      {d && (d.error ? <EmptyState tone="error" title="تعذّر تحميل لوحة القيادة" subtitle={d.message} action={{ label: "إعادة المحاولة", onClick: () => load(range) }} /> : (
  <>
           {/* KPI row */}
  <div className="cc-kpis">

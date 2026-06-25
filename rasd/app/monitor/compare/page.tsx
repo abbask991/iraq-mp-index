@@ -4,6 +4,7 @@ import { apiPost, intelGet } from "@/lib/api";
 import { getTargets, Target } from "@/lib/targets";
 import Gauge from "@/components/Gauge";
 import { SkelCards } from "@/components/Skeleton";
+import EmptyState from "@/components/EmptyState";
 
 const SCORES: { key: string; ar: string; invert?: boolean }[] = [
   { key: "reputation", ar: "السمعة" },
@@ -27,7 +28,7 @@ export default function Compare() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [a, setA] = useState(""); const [b, setB] = useState("");
   const [twA, setTwA] = useState<any>(null); const [twB, setTwB] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false); const [ran, setRan] = useState(false);
 
   useEffect(() => {
     getTargets().then((ts) => {
@@ -39,7 +40,7 @@ export default function Compare() {
 
   const run = async () => {
     if (!a.trim() || !b.trim()) return;
-    setBusy(true); setTwA(null); setTwB(null);
+    setBusy(true); setRan(true); setTwA(null); setTwB(null);
     const [ra, rb] = await Promise.all([buildTwin(a), buildTwin(b)]);
     setTwA(ra); setTwB(rb); setBusy(false);
   };
@@ -75,6 +76,12 @@ export default function Compare() {
       </div>
 
       {busy && <SkelCards count={3} />}
+
+      {ran && !busy && (!twA || !twB) && (
+        <EmptyState tone="error" title="تعذّر بناء أحد الملفين"
+          subtitle="تأكد من الاسمين وحاول مجدداً — قد يكون أحد الكيانين قليل النشاط حالياً."
+          action={{ label: "إعادة المحاولة", onClick: run }} />
+      )}
 
       {twA && twB && !busy && (
         <>
