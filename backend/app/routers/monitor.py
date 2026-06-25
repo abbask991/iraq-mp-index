@@ -133,6 +133,51 @@ async def monitor_summarize(req: SummaryReq):
     return {"summary": await ai.summarize(req.name, req.stats, req.samples)}
 
 
+# REAL long-range windows from our OWN archive (mentions table grows daily via
+# the cron) — unlike live X which is capped at the last 7 days.
+ARCHIVE_DAYS = {"day": 1, "week": 7, "month": 30, "year": 365}
+
+
+@router.post("/archive")
+async def monitor_archive(req: KeywordReq):
+    """Volume + sentiment timeline for an entity over ANY range, read from the
+    stored `mentions` archive. month/year are REAL here (they grow every day as
+    the cron keeps storing) — no X 7-day cap."""
+    if not req.keywords or not db.enabled():
+        return {"total": 0, "archive": True}
+    from collections import defaultdict
+    from datetime import datetime, timezone, timedelta
+
+    eid = store.resolve_entity_id(req.keywords[0])
+    days = ARCHIVE_DAYS.get(req.range or "month", 30)
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+    rows = await db.select(
+        "mentions",
+        f"select=created_at,sentiment,platform&entity_id=eq.{eid}"
+        f"&created_at=gte.{cutoff}&order=created_at.desc&limit=20000")
+    by_day = defaultdict(lambda: {"count": 0, "pos": 0, "neg": 0, "neu": 0})
+    platforms = defaultdict(int)
+    for r in rows:
+        day = (r.get("created_at") or "")[:10]
+        if not day:
+            continue
+        b = by_day[day]
+        b["count"] += 1
+        b[{"إيجابي": "pos", "سلبي": "neg"}.get(r.get("sentiment"), "neu")] += 1
+        platforms[r.get("platform") or "x"] += 1
+    timeline = [{"day": d, **by_day[d]} for d in sorted(by_day)]
+    total = len(rows)
+    pos = sum(d["pos"] for d in by_day.values())
+    neg = sum(d["neg"] for d in by_day.values())
+    return {
+        "entity_id": eid, "archive": True, "range": req.range, "window_days": days,
+        "total": total, "days_covered": len(timeline),
+        "first_seen": timeline[0]["day"] if timeline else None,
+        "sentiment": {"pos": pos, "neg": neg, "neu": total - pos - neg},
+        "platforms": dict(platforms), "timeline": timeline,
+    }
+
+
 @router.post("/ingest")
 async def monitor_ingest(req: KeywordReq):
     """Fetch + persist mentions for a keyword (deterministic backfill). Powers the
