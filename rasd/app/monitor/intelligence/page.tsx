@@ -44,8 +44,10 @@ export default function Intelligence() {
   const [q, setQ] = useState("");
   const [ans, setAns] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [digest, setDigest] = useState<any>(null);
 
   useEffect(() => { supabase.from("monitors").select("name,keywords").then(({ data }) => setMonitors(data || [])); }, []);
+  useEffect(() => { intelGet("/digest").then(setDigest).catch(() => {}); }, []);
 
   const run = async (name: string) => {
     if (!name.trim()) return;
@@ -96,6 +98,59 @@ export default function Intelligence() {
           ))}
         </div>
       </div>
+
+      {!twin && !busy && digest?.entities?.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div className="muted" style={{ marginBottom: 8, fontSize: 12 }}>
+            نظرة استخباراتية جاهزة · {digest.count} كيان · آخر تحديث منذ {Math.round((digest.age_seconds || 0) / 60)} دقيقة
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="card">
+              <b>الأعلى خطراً الآن</b>
+              {(digest.top_risk || []).map((e: any) => (
+                <div key={e.id} onClick={() => run(e.name)} style={{ cursor: "pointer", margin: "7px 0" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <span>{e.name} <span className="muted">{e.crisis_stage || ""}</span></span>
+                    <b style={{ color: scoreColor(e.risk, true) }}>{e.risk}</b>
+                  </div>
+                  <Bar value={e.risk} color={scoreColor(e.risk, true)} />
+                </div>
+              ))}
+            </div>
+            <div className="card">
+              <b>أكبر التحرّكات</b>
+              {(digest.movers || []).map((e: any) => (
+                <div key={e.id} onClick={() => run(e.name)}
+                  style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", fontSize: 13, margin: "7px 0" }}>
+                  <span>{e.name}</span>
+                  <span className="muted">الخطر <b style={{ color: (e.risk_delta || 0) <= 0 ? C.pos : C.neg }}>
+                    {e.risk_delta > 0 ? "+" : ""}{e.risk_delta}</b> · السمعة <b style={{ color: (e.rep_delta || 0) >= 0 ? C.pos : C.neg }}>
+                    {e.rep_delta > 0 ? "+" : ""}{e.rep_delta}</b></span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
+            <div className="card"><b>الترندات الآن</b>
+              <div style={{ marginTop: 6 }}>
+                {(digest.trending || []).map((t: any, i: number) => (
+                  <span key={i} className="btn ghost" style={{ padding: "3px 8px", fontSize: 12, margin: 2, display: "inline-block" }}>{t.hashtag || t}</span>
+                ))}
+                {!digest.trending?.length && <span className="muted">—</span>}
+              </div>
+            </div>
+            <div className="card"><b>حملات مشتبهة نشطة</b>
+              <div style={{ marginTop: 6 }}>
+                {(digest.active_campaigns || []).map((c: any, i: number) => (
+                  <div key={i} style={{ fontSize: 13, margin: "4px 0" }}>{c.hashtag} <b style={{ color: C.warn }}>{c.coordination_score}</b></div>
+                ))}
+                {!digest.active_campaigns?.length && <span className="muted">—</span>}
+              </div>
+            </div>
+          </div>
+          <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>تُحدّث تلقائياً كل ٣ ساعات · اضغط أي كيان لفتح ملفه الكامل</p>
+        </div>
+      )}
 
       {busy && <p className="muted">{stage} <span className="spinner" /></p>}
 

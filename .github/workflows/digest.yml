@@ -1,0 +1,20 @@
+name: Intelligence digest (every 3h)
+
+# Every 3 hours: refresh monitored entities' stored data and rebuild the
+# ready-made intelligence digest, so the dashboard opens with insights instantly
+# (served from cache — no live fetch / no AI at page-load time).
+on:
+  schedule:
+    - cron: "0 */3 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rebuild intelligence digest
+        run: |
+          code=$(curl -s -o /tmp/out.json -w "%{http_code}" -m 590 -X POST \
+            "https://rasd-api.onrender.com/monitor/cron/digest?secret=${{ secrets.RASD_CRON_SECRET }}")
+          echo "HTTP $code"; cat /tmp/out.json; echo
+          [ "$code" = "200" ] || exit 1

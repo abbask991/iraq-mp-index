@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from app.config import ANTHROPIC_API_KEY, SUMMARY_MODEL
 from app.services import (
-    db, digital_twin, entity_resolver, knowledge_graph, narrative_engine,
+    db, digital_twin, entity_resolver, intel_digest, knowledge_graph, narrative_engine,
     redis_client, scenario_simulator, stylometry, timeline,
 )
 
@@ -148,6 +148,18 @@ async def ask(req: AskReq):
         answer = "تعذّر توليد الإجابة حالياً."
     return {"answer": answer, "grounded": True, "entity_id": entity_id,
             "evidence_count": len(evidence["mentions"]) + len(evidence["metrics"])}
+
+
+@router.get("/digest")
+async def digest():
+    """Ready-made intelligence digest — served INSTANTLY from cache (no live fetch,
+    no AI). Refreshed every ~3h by the cron. Builds once from stored data if cold."""
+    import time
+    d = await intel_digest.get_digest()
+    if d is None:
+        d = await intel_digest.build_digest(time.time())   # cheap: stored data only
+    age = int(time.time() - d.get("generated_at", 0))
+    return {**d, "age_seconds": age, "stale": age > 4 * 3600}
 
 
 @router.get("/twin/{entity_id}")

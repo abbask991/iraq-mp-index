@@ -7,7 +7,7 @@ import asyncio
 
 from app.config import CRON_SECRET
 from app.services import (
-    ai, alerts, bigdata, cache, campaign, db, network, news, notify,
+    ai, alerts, bigdata, cache, campaign, db, intel_digest, network, news, notify,
     sources_extra, sources_social, store, sov, trends, x,
 )
 
@@ -468,6 +468,36 @@ async def cron_snapshot(secret: str = "", limit: int = 12):
                                      atype=typ, severity=sev, message=msg)
 
     return {"processed": processed, "alerts": alerts_made, "monitors": len(monitors)}
+
+
+@router.post("/cron/digest")
+async def cron_digest(secret: str = "", ingest: int = 1):
+    """Scheduled (~every 3h): refresh each monitor's stored data, then rebuild the
+    ready-made intelligence digest so the landing page serves it instantly."""
+    import time as _t
+    if not CRON_SECRET or secret != CRON_SECRET:
+        return {"error": "unauthorized"}
+    if not db.enabled():
+        return {"error": "db_not_configured"}
+    refreshed = 0
+    if ingest:
+        for m in await db.get_monitors(30):
+            kws = m.get("keywords") or ([m["name"]] if m.get("name") else [])
+            if not kws:
+                continue
+            try:
+                await monitor_ingest(KeywordReq(keywords=kws, range="week"))
+                refreshed += 1
+            except Exception:
+                pass
+    # also keep the global overview warm so the digest can show trends/campaigns
+    try:
+        await monitor_overview(KeywordReq(range="day"))
+    except Exception:
+        pass
+    digest = await intel_digest.build_digest(_t.time())
+    return {"refreshed": refreshed, "entities": digest.get("count", 0),
+            "generated_at": digest.get("generated_at")}
 
 
 @router.post("/overview")
