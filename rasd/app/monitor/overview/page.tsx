@@ -5,6 +5,7 @@ import { apiPost } from "@/lib/api";
 import RangeSelect, { Range } from "@/components/RangeSelect";
 import { getCoverage } from "@/lib/targets";
 import { SkelCards } from "@/components/Skeleton";
+import IraqMap from "@/components/IraqMap";
 import EmptyState from "@/components/EmptyState";
 import Gauge from "@/components/Gauge";
 
@@ -145,6 +146,14 @@ export default function Overview() {
  </Link>
                 ))}
  </div>
+ </div>
+          )}
+
+          {/* geographic distribution */}
+          {d.geo?.located > 0 && (
+ <div className="cbox" style={{ marginTop: 4 }}>
+ <h4>التوزيع الجغرافي عبر المحافظات</h4>
+ <IraqMap geo={d.geo} />
  </div>
           )}
 

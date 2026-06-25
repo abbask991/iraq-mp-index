@@ -78,6 +78,32 @@ export default function Content() {
             <div className="stat"><div className="v" style={{ color: C.neg }}>{s.neg}</div><div className="l">سلبي</div></div>
           </div>
 
+          {/* stance / position analysis */}
+          {d.stance && (
+            <div className="cbox" style={{ marginBottom: 14 }}>
+              <h4>تحليل المواقف (مؤيد / معارض / ساخر)</h4>
+              <div style={{ display: "flex", height: 18, borderRadius: 6, overflow: "hidden", margin: "8px 0" }}>
+                <div style={{ width: `${d.stance.pct.support}%`, background: "#22c55e" }} title={`مؤيد ${d.stance.pct.support}%`} />
+                <div style={{ width: `${d.stance.pct.neutral}%`, background: "#8a97ad" }} title={`محايد ${d.stance.pct.neutral}%`} />
+                <div style={{ width: `${d.stance.pct.sarcastic}%`, background: "#a855f7" }} title={`ساخر ${d.stance.pct.sarcastic}%`} />
+                <div style={{ width: `${d.stance.pct.oppose}%`, background: "#f43f5e" }} title={`معارض ${d.stance.pct.oppose}%`} />
+              </div>
+              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12 }}>
+                <span><span style={{ color: "#22c55e" }}>■</span> مؤيد {d.stance.pct.support}%</span>
+                <span><span style={{ color: "#f43f5e" }}>■</span> معارض {d.stance.pct.oppose}%</span>
+                <span><span style={{ color: "#a855f7" }}>■</span> ساخر {d.stance.pct.sarcastic}%</span>
+                <span><span style={{ color: "#8a97ad" }}>■</span> محايد {d.stance.pct.neutral}%</span>
+              </div>
+              <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+                صافي الموقف:{" "}
+                <b style={{ color: d.stance.net >= 0 ? "#22c55e" : "#f43f5e" }}>{d.stance.net > 0 ? "+" : ""}{d.stance.net}</b>
+                {" — "}الغالب:{" "}
+                <b>{({ support: "مؤيد", oppose: "معارض", sarcastic: "ساخر", neutral: "محايد" } as any)[d.stance.dominant]}</b>.
+                {" "}{d.stance.explain}
+              </div>
+            </div>
+          )}
+
           {/* narratives — the core content analysis */}
           {(d.narratives || []).length > 0 && (
             <div className="cbox" style={{ marginBottom: 14 }}>

@@ -7,8 +7,8 @@ import asyncio
 
 from app.config import CRON_SECRET
 from app.services import (
-    ai, alerts, bigdata, cache, campaign, db, intel_digest, network, news, notify,
-    sources_extra, sources_social, store, sov, trends, x,
+    ai, alerts, bigdata, cache, campaign, db, geo, intel_digest, network, news, notify,
+    sources_extra, sources_social, stance, store, sov, trends, x,
 )
 
 # Freshness windows. With stale-while-revalidate the user never WAITS this long
@@ -389,6 +389,7 @@ async def monitor_content(req: KeywordReq):
         return {
             "keyword": kw, "total": total, "news": len(nr.get("hits") or []), "x": len(xr.get("hits") or []),
             "sentiment": {"pos": pos, "neg": neg, "neu": neu}, "media_index": media_index,
+            "stance": stance.aggregate([h["title"] for h in hits]),
             "sources": sources, "themes": themes, "key_terms": key_terms,
             "narratives": ai_res.get("narratives", []), "frames": ai_res.get("frames", []),
             "tone": ai_res.get("tone", {}), "key_messages": ai_res.get("key_messages", []),
@@ -621,6 +622,7 @@ async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
                              "new_total": newacc["new_accounts"],
                              "clusters": newacc["creation_clusters"][:3]},
             "issues": issues,
+            "geo": geo.aggregate(users),
         }
 
     return await cache.swr(key, HEAVY_TTL, _build)
