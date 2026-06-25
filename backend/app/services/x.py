@@ -103,7 +103,7 @@ async def fetch_network(keyword: str, want: int = 100, range: str = ""):
         return {"error": "X_TOKEN_MISSING"}
     start_time = _start_time(range)
     fields = ("tweet.fields=created_at&expansions=author_id"
-              "&user.fields=created_at,public_metrics,description,verified,profile_image_url")
+              "&user.fields=created_at,public_metrics,description,verified,profile_image_url,location")
     tweets, users, next_token, loops = [], {}, None, 0
     async with httpx.AsyncClient() as client:
         while len(tweets) < want and loops < 8:
@@ -137,7 +137,7 @@ async def fetch_trend(keyword: str, want: int = 150, range: str = "week"):
         return {"error": "X_TOKEN_MISSING"}
     start_time = _start_time(range or "week")
     fields = ("tweet.fields=created_at,public_metrics,entities&expansions=author_id"
-              "&user.fields=created_at,public_metrics,verified,description,profile_image_url")
+              "&user.fields=created_at,public_metrics,verified,description,profile_image_url,location")
     tweets, users, next_token, loops = [], {}, None, 0
     async with httpx.AsyncClient() as client:
         while len(tweets) < want and loops < 10:
