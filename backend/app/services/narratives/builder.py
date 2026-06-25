@@ -17,6 +17,43 @@ from app.services.narratives import (
 _HASH = re.compile(r"#[\w؀-ۿ_]+")
 
 
+def _fallback_summary(lead, dom, thr, sentiment, bf, fcast, n_posts, n_news):
+    """Rule-based narrative summary when the AI call is unavailable/empty — so
+    Section 8 is never blank. Probabilistic language only; no hard attributions."""
+    name = lead.get("narrative", "السردية")
+    neg = sentiment.get("negative", 0)
+    sup = bf["counts"]["supporters"]
+    opp = bf["counts"]["opponents"]
+    top_amp = "، ".join("@" + (a.get("username") or "") for a in bf["influencers"][:3]) or "حسابات متعدّدة"
+    media = "، ".join(m["source"] for m in bf["media"][:2]) or "تغطية محدودة"
+    status = ("مهيمنة" if dom >= 50 else "نامية" if fcast.get("growth_probability", 0) >= 40
+              else "ناشئة" if dom >= 15 else "منحسرة")
+    leaning = "سلبية الطابع" if neg >= 55 else "إيجابية الطابع" if neg <= 30 else "متباينة"
+    benefits = "أطراف معارِضة للجهة المستهدفة" if neg >= 55 else "الجهة محور السردية"
+    harmed = "الجهة محور السردية" if neg >= 55 else "أطراف منافسة"
+    return {
+        "executive": (
+            f"سردية «{name}» {status} و{leaning}، بهيمنة {dom}/100 ومستوى تهديد {thr['label']} ({thr['score']}/100). "
+            f"رصدنا {n_posts} منشوراً و{n_news} خبراً، بنسبة سلبية {neg}%. "
+            f"يضخّمها نحو {opp + sup} حساباً (أبرزهم {top_amp})، واحتمال نموّها {fcast.get('growth_probability', 0)}% "
+            f"مع احتمال تصعيد سياسي {fcast.get('political_escalation_probability', 0)}%. (ملخّص قاعدي آلي — يتطلّب مراجعة بشرية.)"
+        ),
+        "main_idea": f"إطار «{name}» يتكرّر عبر المنشورات بصيغ مختلفة لدفع الفكرة ذاتها.",
+        "status": status,
+        "who_created": "مؤشر غير حاسم — يتطلّب تتبّع المنشأ ومراجعة بشرية قبل أي إسناد.",
+        "who_amplifies": f"{top_amp} · إعلام: {media}",
+        "who_benefits": benefits,
+        "who_harmed": harmed,
+        "risk": f"تهديد {thr['label']} — مدفوع بـ {'الطابع السلبي والتنسيق المحتمل' if neg >= 55 else 'حجم التداول'}.",
+        "recommendation": ("الردّ السريع بسردية مضادّة موثّقة ورصد التصعيد"
+                           if thr["score"] >= 55 else "المتابعة والرصد دون تدخّل عاجل"),
+        "confidence": min(70, 40 + (n_posts // 20)),
+        "evidence": [f"{n_posts} منشور / {n_news} خبر", f"سلبية {neg}% · هيمنة {dom}/100",
+                     f"داعمون {sup} مقابل معارضين {opp}"],
+        "fallback": True,
+    }
+
+
 async def build_dashboard(rng="day", limit=600):
     """Section 1 source — today's active narratives, scored + ranked."""
     res = await discovery.discover_national(rng=rng, limit=limit)
@@ -134,6 +171,8 @@ async def build_detail(term, rng="week", limit=300):
         f"احتمال النمو {fcast['growth_probability']}%، تصعيد سياسي {fcast['political_escalation_probability']}%."
     )
     ai_summary = await nsum.summarize(facts)
+    if not (ai_summary or {}).get("executive"):
+        ai_summary = _fallback_summary(lead, dom, thr, sentiment, bf, fcast, len(tweets), len(news_hits))
 
     return {
         "narrative": {"id": re.sub(r"\s+", "-", term)[:40], "name": lead["narrative"], "query": term,
