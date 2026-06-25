@@ -140,6 +140,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <Link href="/monitor/dossier" className={path === "/monitor/dossier" ? "active" : ""}>
           {lang === "ar" ? "التقرير الشامل" : "Full Dossier"}
  </Link>
+ <Link href="/monitor/settings" className={path === "/monitor/settings" ? "active" : ""}>
+          {lang === "ar" ? "الإعدادات · قائمة المتابعة" : "Settings · Watchlist"}
+ </Link>
         {SECTORS.map((sec) => {
           const live = sec.items.filter((it) => it.href);
           if (!live.length) return null;

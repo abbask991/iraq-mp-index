@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { apiPost } from "@/lib/api";
+import { getTargets, primaryKeyword } from "@/lib/targets";
 import RangeSelect, { Range } from "@/components/RangeSelect";
 
 const COMM = ["#2563eb", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4", "#ec4899", "#84cc16", "#fb923c"];
@@ -16,9 +17,9 @@ export default function BigData() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.from("monitors").select("name,keywords").then(({ data }) => {
-      const ms = data || []; setMonitors(ms);
-      run(ms[0]?.keywords?.[0] || ms[0]?.name || "محمد شياع السوداني");   // ready insight on open
+    getTargets().then((ts) => {
+      setMonitors(ts.map((t) => ({ name: t.name, keywords: t.keywords })));
+      run(primaryKeyword(ts));   // open on the pinned primary target
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
