@@ -44,6 +44,7 @@ const SECTORS: { ar: string; en: string; items: Item[] }[] = [
       { icon: "", ar: "ضابط الاستخبارات", en: "Chief Intelligence", href: "/monitor/chief" },
       { icon: "", ar: "ساحة المعركة الإعلامية", en: "Media Battlefield", href: "/monitor/battlefield" },
       { icon: "", ar: "غرفة حرب السرديات", en: "Narrative War Room", href: "/monitor/narratives" },
+      { icon: "", ar: "رادار المؤثّرين", en: "Influencer Radar", href: "/monitor/influencers" },
       { icon: "", ar: "التوأم الرقمي", en: "Digital Twin", href: "/monitor/intelligence" },
       { icon: "", ar: "المقارنة (كيان مقابل كيان)", en: "Compare Entities", href: "/monitor/compare" },
       { icon: "", ar: "أرشيف X (يكبر يومياً)", en: "X Archive (grows daily)", href: "/monitor/archive" },

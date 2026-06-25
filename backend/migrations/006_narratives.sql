@@ -51,7 +51,7 @@ create table if not exists narrative_campaigns (
 create table if not exists narrative_history (
   id           bigint generated always as identity primary key,
   narrative_id text,
-  window       text,
+  "window"     text,
   dominant     text,
   share        int,
   event        text,                          -- birth | growth | split | merge | decline | death
