@@ -31,3 +31,8 @@ REDIS_URL = os.getenv("REDIS_URL", "")
 
 # Prompt version — bump to invalidate every cached AI result at once.
 PROMPT_VERSION = os.getenv("PROMPT_VERSION", "v1")
+
+# Archive X author profiles (followers/age/bot) into mentions for long-range
+# bot/influence analysis. Turn ON ("1") only AFTER running migration 003 (adds
+# the author_* columns) — otherwise inserts would fail on the missing columns.
+ARCHIVE_AUTHORS = os.getenv("ARCHIVE_AUTHORS", "") == "1"

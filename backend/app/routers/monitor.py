@@ -830,6 +830,8 @@ async def monitor_bigdata(req: KeywordReq):
         result = bigdata.analyze(kw, tweets, users)
         if not result.get("sparse"):
             result["analyst_brief"] = await ai.analyst_brief(kw, bigdata.brief_facts(result))
+        if db.enabled():        # archive tweets WITH author profiles for long-range analysis
+            asyncio.create_task(store.store_archive(tweets, users, keyword=kw))
         return result
 
     return await cache.swr(key, OVERVIEW_TTL, _build)

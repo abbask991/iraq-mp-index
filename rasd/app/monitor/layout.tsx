@@ -42,6 +42,7 @@ const SECTORS: { ar: string; en: string; items: Item[] }[] = [
     ar: "القطاع الرابع · الاستخبارات السياسية", en: "Sector 4 · Political Intelligence",
     items: [
       { icon: "", ar: "التوأم الرقمي", en: "Digital Twin", href: "/monitor/intelligence" },
+      { icon: "", ar: "أرشيف X (يكبر يومياً)", en: "X Archive (grows daily)", href: "/monitor/archive" },
     ],
   },
 ];

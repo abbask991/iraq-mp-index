@@ -10,7 +10,8 @@ the same window is safe.
 """
 import hashlib
 
-from app.services import db, emotions, entity_resolver, knowledge_graph
+from app.config import ARCHIVE_AUTHORS
+from app.services import db, emotions, entity_resolver, knowledge_graph, network
 
 
 def _platform(p):
@@ -82,3 +83,45 @@ async def store_mentions(posts, keyword=None, entity_id=None, owner=None):
             except Exception:
                 pass
     return len(deduped)
+
+
+async def store_archive(tweets, users, keyword=None, entity_id=None, owner=None):
+    """Archive X tweets WITH author profiles (followers / account-age / bot score)
+    so long-range bot-detection + influence can run from our own data later.
+    Author columns are only written when ARCHIVE_AUTHORS is on (after migration
+    003), so this stays safe if the columns don't exist yet."""
+    if not db.enabled() or not tweets:
+        return 0
+    eid = entity_id or (resolve_entity_id(keyword) if keyword else None)
+    rows, seen = [], set()
+    for t in tweets:
+        text = (t.get("text") or "")[:2000]
+        if not text:
+            continue
+        ext = (t.get("id") or hashlib.sha1((text + (t.get("author_id") or "")).encode("utf-8")).hexdigest()[:24])
+        if ("x", ext) in seen:
+            continue
+        seen.add(("x", ext))
+        u = (users or {}).get(t.get("author_id"), {})
+        emo = emotions._top(emotions._rule_scores(text))
+        row = {
+            "external_id": ext, "platform": "x",
+            "source": "@" + (u.get("username") or "x"), "entity_id": eid,
+            "author": u.get("username"), "text": text, "sentiment": t.get("sentiment"),
+            "emotion": emo[0] if emo[1] > 0 else None,
+            "hashtags": t.get("hashtags") or [], "links": t.get("links") or [],
+            "engagement": int(t.get("engagement") or 0), "owner": owner,
+            "created_at": t.get("created_at"),
+        }
+        if ARCHIVE_AUTHORS:
+            row["author_followers"] = u.get("public_metrics", {}).get("followers_count", 0)
+            row["author_created"] = u.get("created_at")
+            row["author_bot"] = network.bot_score(u)[0] if u else None
+        rows.append(row)
+    if not rows:
+        return 0
+    try:
+        await db.insert("mentions", rows, upsert=True, on_conflict="platform,external_id")
+    except Exception:
+        return 0
+    return len(rows)
