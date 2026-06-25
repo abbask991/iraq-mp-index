@@ -54,11 +54,11 @@ export default function ChiefAI() {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2 style={{ margin: 0 }}>🎖️ ضابط الاستخبارات الذكي</h2>
+          <h2 style={{ margin: 0 }}>ضابط الاستخبارات الذكي</h2>
           <p className="muted" style={{ marginTop: 4 }}>مستشارك الاستخباراتي — ماذا حدث، لماذا يهم، ما المتوقّع، وما الذي يجب فعله. الآن.</p>
         </div>
         <button className="btn" onClick={downloadBook} disabled={bookBusy}>
-          {bookBusy ? "جارٍ التوليد…" : "📕 الكتاب اليومي (Word)"}</button>
+          {bookBusy ? "جارٍ التوليد…" : "تنزيل الكتاب اليومي (Word)"}</button>
       </div>
 
       {loading && <SkelCards count={4} />}
@@ -68,7 +68,7 @@ export default function ChiefAI() {
           {/* 1. Executive brief */}
           <div className="cbox" style={{ marginBottom: 14, borderInlineStart: `4px solid ${riskColor(d.risk_level)}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-              <h4 style={{ margin: 0 }}>🧠 الموجز التنفيذي</h4>
+              <h4 style={{ margin: 0 }}>الموجز التنفيذي</h4>
               <span className="chip" style={{ color: riskColor(d.risk_level) }}>مستوى الخطر: {d.risk_level}</span>
             </div>
             <p style={{ fontSize: 14.5, lineHeight: 2, marginTop: 8 }}>{d.executive_brief || "—"}</p>
@@ -92,7 +92,7 @@ export default function ChiefAI() {
 
           {/* 8. Strategic forecast — multi-horizon */}
           <div className="cbox" style={{ margin: "14px 0" }}>
-            <h4>🔮 التوقّع الاستراتيجي عبر المدى</h4>
+            <h4>التوقّع الاستراتيجي عبر المدى</h4>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 6 }}>
               {(fc.horizons || []).map((h: any) => (
                 <div className="card" key={h.horizon} style={{ textAlign: "center", paddingTop: 14 }}>
@@ -109,7 +109,7 @@ export default function ChiefAI() {
 
           {/* 5. Recommended actions */}
           <div className="cbox" style={{ marginBottom: 14 }}>
-            <h4>🎯 التوصيات (مرتّبة بالأولوية)</h4>
+            <h4>التوصيات (مرتّبة بالأولوية)</h4>
             {(d.recommendations || []).length === 0 && <span className="muted">لا توصيات حرجة حالياً.</span>}
             {(d.recommendations || []).map((r: any, i: number) => {
               const p = PRI[r.priority] || PRI.medium;
@@ -135,7 +135,7 @@ export default function ChiefAI() {
           {/* 3+4. threats | opportunities */}
           <div className="cc-grid">
             <div className="cbox">
-              <h4>⚠️ أبرز التهديدات</h4>
+              <h4>أبرز التهديدات</h4>
               {(d.threats || []).map((t: any, i: number) => {
                 const sv = PRI[t.severity] || PRI.medium;
                 return (
@@ -150,7 +150,7 @@ export default function ChiefAI() {
               })}
             </div>
             <div className="cbox">
-              <h4>✅ الفرص</h4>
+              <h4>الفرص</h4>
               {(d.opportunities || []).length === 0 && <span className="muted">—</span>}
               {(d.opportunities || []).map((o: any, i: number) => (
                 <div key={i} style={{ padding: "8px 0", borderTop: i ? "1px solid var(--line)" : 0, fontSize: 13 }}>
@@ -164,7 +164,7 @@ export default function ChiefAI() {
 
           {/* 2. Most important events */}
           <div className="cbox" style={{ marginTop: 14 }}>
-            <h4>📌 أهم أحداث اليوم</h4>
+            <h4>أهم أحداث اليوم</h4>
             {(d.events || []).map((e: any, i: number) => (
               <div key={i} style={{ display: "flex", gap: 10, padding: "8px 0", borderTop: i ? "1px solid var(--line)" : 0, fontSize: 13 }}>
                 <span style={{ fontWeight: 800, color: riskColor(e.risk >= 70 ? "حرج" : e.risk >= 50 ? "مرتفع" : "متوسط"), minWidth: 28 }}>{e.importance}</span>
@@ -175,7 +175,7 @@ export default function ChiefAI() {
 
           {/* 6+7. AI questions + chat */}
           <div className="cbox" style={{ marginTop: 14 }}>
-            <h4>🤖 اسأل ضابط الاستخبارات</h4>
+            <h4>اسأل ضابط الاستخبارات</h4>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
               {(d.questions || []).map((qq: string, i: number) => (
                 <button key={i} className="btn ghost" style={{ padding: "3px 10px", fontSize: 12 }} onClick={() => ask(qq)}>{qq}</button>

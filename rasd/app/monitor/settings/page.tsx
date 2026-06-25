@@ -40,11 +40,11 @@ export default function Settings() {
     const r = await apiSend("/api/settings", "PUT", { category: active, changes }).catch(() => null);
     setSaving(false);
     if (r && r.persisted) {
-      setSavedMsg(`✅ حُفظ ${r.saved} إعداد`);
+      setSavedMsg(`حُفظ ${r.saved} إعداد`);
       setEdits((e) => { const n = { ...e }; for (const k of Object.keys(changes)) delete n[`${active}.${k}`]; return n; });
       await load();
     } else if (r && (r.reason === "table_missing" || r.reason === "db_disabled")) {
-      setSavedMsg("⚠️ لم يُحفظ — جدول الإعدادات غير مُهيّأ بعد (شغّل migration 007). التغييرات تبقى محليّاً فقط.");
+      setSavedMsg("لم يُحفظ — جدول الإعدادات غير مُهيّأ بعد (شغّل migration 007). التغييرات تبقى محليّاً فقط.");
     } else setSavedMsg("تعذّر الحفظ");
     setTimeout(() => setSavedMsg(""), 5000);
   };
@@ -54,12 +54,12 @@ export default function Settings() {
     setSaving(true);
     await apiSend("/api/settings/reset", "POST", { category: active }).catch(() => null);
     setEdits((e) => { const n = { ...e }; Object.keys(n).forEach((k) => k.startsWith(active + ".") && delete n[k]); return n; });
-    await load(); setSaving(false); setSavedMsg("↩️ أُعيد الضبط"); setTimeout(() => setSavedMsg(""), 2000);
+    await load(); setSaving(false); setSavedMsg("أُعيد الضبط"); setTimeout(() => setSavedMsg(""), 2000);
   };
 
   return (
     <div>
-      <h2 style={{ margin: 0 }}>⚙️ مركز إعدادات النظام</h2>
+      <h2 style={{ margin: 0 }}>مركز إعدادات النظام</h2>
       <p className="muted" style={{ marginTop: 4 }}>تحكّم كامل بالجمع، الذكاء، الإنذارات، المصادر، الباقة، والأداء — دون لمس الكود.</p>
 
       {loading && <p className="muted">جارٍ التحميل…</p>}
@@ -76,7 +76,7 @@ export default function Settings() {
                   background: active === c.category ? "var(--accent)" : "transparent",
                   color: active === c.category ? "#fff" : "var(--text)",
                 }}>
-                <span>{c.icon}</span><span>{c.label}</span>
+                <span>{c.label}</span>
               </button>
             ))}
           </div>
@@ -86,7 +86,7 @@ export default function Settings() {
             {cat && (
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                  <h3 style={{ margin: 0 }}>{cat.icon} {cat.label}</h3>
+                  <h3 style={{ margin: 0 }}>{cat.label}</h3>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     {savedMsg && <span className="muted" style={{ fontSize: 12 }}>{savedMsg}</span>}
                     {cat.service && <TestBtn service={cat.service} />}
@@ -107,8 +107,8 @@ export default function Settings() {
                       ))}
                     </div>
                     <div style={{ display: "flex", gap: 8, marginTop: 18, borderTop: "1px solid var(--line)", paddingTop: 14 }}>
-                      <button className="btn" onClick={save} disabled={saving}>{saving ? "جارٍ…" : "💾 حفظ القسم"}</button>
-                      <button className="btn ghost" onClick={reset} disabled={saving}>↩️ إعادة الافتراضي</button>
+                      <button className="btn" onClick={save} disabled={saving}>{saving ? "جارٍ…" : "حفظ القسم"}</button>
+                      <button className="btn ghost" onClick={reset} disabled={saving}>إعادة الافتراضي</button>
                     </div>
                   </>
                 )}
@@ -171,7 +171,7 @@ function TestBtn({ service }: { service: string }) {
   const run = async () => { setBusy(true); setR(await apiSend(`/api/settings/test/${service}`, "POST").catch(() => ({ ok: false, detail: "خطأ", latency_ms: 0 }))); setBusy(false); };
   return (
     <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-      <button className="btn ghost" style={{ fontSize: 12, padding: "4px 10px" }} onClick={run} disabled={busy}>{busy ? "…" : "🔌 اختبار الاتصال"}</button>
+      <button className="btn ghost" style={{ fontSize: 12, padding: "4px 10px" }} onClick={run} disabled={busy}>{busy ? "…" : "اختبار الاتصال"}</button>
       {r && <span className="chip" style={{ color: r.ok ? "#22c55e" : "#f43f5e" }}>{r.ok ? "✓" : "✗"} {r.detail} · {r.latency_ms}ms</span>}
     </span>
   );
@@ -203,7 +203,7 @@ function EntitiesPanel() {
       </div>
       {targets.map((t) => (
         <div key={t.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: "1px solid var(--line)", fontSize: 13 }}>
-          <span>{t.pinned ? "📌 " : ""}{t.name} <span className="muted">· {t.keywords?.length || 0} كلمة</span></span>
+          <span>{t.name}{t.pinned ? " · أساسي" : ""} <span className="muted">· {t.keywords?.length || 0} كلمة</span></span>
           <span style={{ display: "flex", gap: 8 }}>
             {!t.pinned && <a style={{ cursor: "pointer" }} onClick={async () => { await setPrimary(t.id, targets); refresh(); }}>تثبيت</a>}
             <a style={{ cursor: "pointer", color: "#f43f5e" }} onClick={async () => { await removeTarget(t.id); refresh(); }}>حذف</a>

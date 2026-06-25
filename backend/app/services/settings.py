@@ -27,7 +27,7 @@ SOURCES = ["X", "Telegram", "RSS", "Google News", "GDELT", "YouTube", "TikTok", 
 
 # ── the registry ────────────────────────────────────────────────────────────
 SCHEMA = [
-    {"category": "general", "label": "الإعدادات العامة", "icon": "⚙️", "fields": [
+    {"category": "general", "label": "الإعدادات العامة", "icon": "", "fields": [
         _f("platform_name", "اسم المنصّة", "text", "مركز الرصد"),
         _f("org_name", "اسم المؤسسة", "text", ""),
         _f("default_language", "اللغة الافتراضية", "select", "ar", options=LANGS),
@@ -40,7 +40,7 @@ SCHEMA = [
         _f("date_format", "صيغة التاريخ", "select", "YYYY-MM-DD", options=[{"v": "YYYY-MM-DD", "l": "2026-06-25"}, {"v": "DD/MM/YYYY", "l": "25/06/2026"}]),
         _f("currency", "صيغة العملة", "select", "IQD", options=[{"v": "IQD", "l": "دينار عراقي"}, {"v": "USD", "l": "دولار"}]),
     ]},
-    {"category": "data_collection", "label": "جمع البيانات", "icon": "📡", "fields": [
+    {"category": "data_collection", "label": "جمع البيانات", "icon": "", "fields": [
         _f("frequency_minutes", "تكرار الجمع", "select", 180, options=[{"v": x["v"], "l": x["l"]} for x in FREQ]),
         _f("source_X", "تفعيل X", "toggle", True),
         _f("source_Telegram", "تفعيل Telegram", "toggle", True),
@@ -61,7 +61,7 @@ SCHEMA = [
         _f("keep_raw_days", "حفظ البيانات الخام (أيام)", "number", 30),
         _f("keep_clean_days", "حفظ البيانات النظيفة (أيام)", "number", 365),
     ]},
-    {"category": "x_api", "label": "إعدادات X API", "icon": "𝕏", "service": "x", "fields": [
+    {"category": "x_api", "label": "إعدادات X API", "icon": "", "service": "x", "fields": [
         _f("enabled", "تفعيل جمع X", "toggle", True),
         _f("api_key", "مفتاح X API", "password", "", env="X_BEARER_TOKEN"),
         _f("monthly_quota", "الحد الشهري للحصّة", "number", 10000),
@@ -77,7 +77,7 @@ SCHEMA = [
         _f("engagement_metrics", "مقاييس التفاعل", "toggle", True),
         _f("quota_alert_thresholds", "تنبيه عند بلوغ الحصّة (%)", "tags", ["70", "90", "100"]),
     ]},
-    {"category": "telegram", "label": "إعدادات Telegram", "icon": "✈️", "service": "telegram", "fields": [
+    {"category": "telegram", "label": "إعدادات Telegram", "icon": "", "service": "telegram", "fields": [
         _f("enabled", "تفعيل جمع Telegram", "toggle", True),
         _f("channels", "القنوات المرصودة", "tags", []),
         _f("max_messages_per_channel", "أقصى رسائل لكل قناة", "number", 200),
@@ -87,13 +87,13 @@ SCHEMA = [
         _f("channel_influence", "درجة تأثير القناة", "toggle", True),
         _f("detect_duplicates", "كشف الرسائل المكرّرة", "toggle", True),
     ]},
-    {"category": "rss", "label": "إعدادات RSS / الأخبار", "icon": "📰", "fields": [
+    {"category": "rss", "label": "إعدادات RSS / الأخبار", "icon": "", "fields": [
         _f("enabled", "تفعيل RSS", "toggle", True),
         _f("full_text", "استخراج النص الكامل للمقال", "toggle", False),
         _f("credibility_score", "درجة مصداقية المصدر", "toggle", True),
         _f("frequency_minutes", "تكرار الجمع", "select", 180, options=[{"v": x["v"], "l": x["l"]} for x in FREQ]),
     ], "custom": "rss_sources"},
-    {"category": "ai", "label": "إعدادات الذكاء الاصطناعي", "icon": "🧠", "service": "ai", "fields": [
+    {"category": "ai", "label": "إعدادات الذكاء الاصطناعي", "icon": "", "service": "ai", "fields": [
         _f("enabled", "تفعيل التحليل بالذكاء الاصطناعي", "toggle", True),
         _f("api_key", "مفتاح Anthropic", "password", "", env="ANTHROPIC_API_KEY"),
         _f("model_cheap", "نموذج المهام الخفيفة", "text", "claude-haiku-4-5-20251001"),
@@ -115,7 +115,7 @@ SCHEMA = [
         _f("enable_weekly", "موجز أسبوعي", "toggle", True),
         _f("enable_monthly", "تقرير شهري", "toggle", True),
     ]},
-    {"category": "alerts", "label": "إعدادات الإنذار", "icon": "🚨", "fields": [
+    {"category": "alerts", "label": "إعدادات الإنذار", "icon": "", "fields": [
         _f("enabled", "تفعيل الإنذارات", "toggle", True),
         _f("channel_dashboard", "قناة: لوحة التحكم", "toggle", True),
         _f("channel_email", "قناة: البريد", "toggle", False),
@@ -132,7 +132,7 @@ SCHEMA = [
         _f("alert_ai_fail", "تنبيه عند فشل الذكاء", "toggle", True),
         _f("alert_db_errors", "تنبيه عند تزايد أخطاء القاعدة", "toggle", True),
     ]},
-    {"category": "trends", "label": "كشف الترندات", "icon": "📈", "fields": [
+    {"category": "trends", "label": "كشف الترندات", "icon": "", "fields": [
         _f("enabled", "تفعيل كشف الترندات", "toggle", True),
         _f("min_mentions", "أدنى إشارات لاعتبارها ترند", "number", 20),
         _f("min_velocity", "أدنى درجة سرعة", "number", 5),
@@ -143,7 +143,7 @@ SCHEMA = [
         _f("origin_tracking", "تتبّع المنشأ", "toggle", True),
         _f("cross_platform", "كشف عبر المنصّات", "toggle", True),
     ]},
-    {"category": "campaigns", "label": "كشف الحملات", "icon": "📊", "fields": [
+    {"category": "campaigns", "label": "كشف الحملات", "icon": "", "fields": [
         _f("enabled", "تفعيل كشف الحملات", "toggle", True),
         _f("min_posts", "أدنى منشورات مطلوبة", "number", 15),
         _f("min_accounts", "أدنى حسابات فريدة", "number", 8),
@@ -159,9 +159,9 @@ SCHEMA = [
         _f("repeated_hashtags", "كشف الهاشتاغات المتكرّرة", "toggle", True),
         _f("require_human_review", "مراجعة بشرية للادعاءات الحرجة", "toggle", True),
     ]},
-    {"category": "entities", "label": "الكيانات والأسماء البديلة", "icon": "🏛️", "custom": "entities", "fields": []},
-    {"category": "source_weights", "label": "أوزان المصادر", "icon": "⚖️", "custom": "source_weights", "fields": []},
-    {"category": "dashboard", "label": "إعدادات لوحة القيادة", "icon": "🗂️", "fields": [
+    {"category": "entities", "label": "الكيانات والأسماء البديلة", "icon": "", "custom": "entities", "fields": []},
+    {"category": "source_weights", "label": "أوزان المصادر", "icon": "", "custom": "source_weights", "fields": []},
+    {"category": "dashboard", "label": "إعدادات لوحة القيادة", "icon": "", "fields": [
         _f("default_range", "النطاق الزمني الافتراضي", "select", "day", options=[{"v": "day", "l": "يوم"}, {"v": "week", "l": "أسبوع"}, {"v": "month", "l": "شهر"}]),
         _f("default_entity", "الكيان الافتراضي", "text", ""),
         _f("refresh_interval_sec", "فترة التحديث (ثوانٍ)", "number", 180),
@@ -170,7 +170,7 @@ SCHEMA = [
         _f("command_center_default", "لوحة القيادة كصفحة افتراضية", "toggle", False),
         _f("chief_ai_page", "تفعيل صفحة ضابط الاستخبارات", "toggle", True),
     ]},
-    {"category": "reports", "label": "إعدادات التقارير", "icon": "📄", "fields": [
+    {"category": "reports", "label": "إعدادات التقارير", "icon": "", "fields": [
         _f("enable_pdf", "تقارير PDF", "toggle", True),
         _f("enable_word", "تقارير Word", "toggle", True),
         _f("enable_pptx", "تقارير PowerPoint", "toggle", True),
@@ -184,8 +184,8 @@ SCHEMA = [
         _f("recipients", "مستلمو التقارير", "tags", []),
         _f("generation_time", "وقت التوليد", "text", "07:00"),
     ]},
-    {"category": "users", "label": "المستخدمون والأدوار", "icon": "👥", "custom": "users", "fields": []},
-    {"category": "subscription", "label": "الاشتراك والباقة", "icon": "💳", "fields": [
+    {"category": "users", "label": "المستخدمون والأدوار", "icon": "", "custom": "users", "fields": []},
+    {"category": "subscription", "label": "الاشتراك والباقة", "icon": "", "fields": [
         _f("package", "الباقة الحالية", "select", "enterprise",
            options=[{"v": "basic", "l": "أساسية"}, {"v": "professional", "l": "احترافية"}, {"v": "enterprise", "l": "مؤسسية"}, {"v": "government", "l": "حكومية"}]),
         _f("max_entities", "أقصى كيانات مرصودة", "number", 100),
@@ -200,8 +200,8 @@ SCHEMA = [
         _f("chief_ai", "ضابط الاستخبارات", "toggle", True),
         _f("government_features", "ميزات حكومية", "toggle", True),
     ]},
-    {"category": "system_health", "label": "صحّة النظام", "icon": "🩺", "custom": "system_health", "fields": []},
-    {"category": "performance", "label": "إعدادات الأداء", "icon": "⚡", "fields": [
+    {"category": "system_health", "label": "صحّة النظام", "icon": "", "custom": "system_health", "fields": []},
+    {"category": "performance", "label": "إعدادات الأداء", "icon": "", "fields": [
         _f("redis_cache", "تفعيل تخزين Redis", "toggle", True),
         _f("cache_seconds", "مدة التخزين (ثوانٍ)", "number", 1800),
         _f("snapshot_cache_seconds", "مدة تخزين لقطة اللوحة", "number", 3600),
@@ -213,7 +213,7 @@ SCHEMA = [
         _f("lazy_loading", "تحميل كسول", "toggle", True),
         _f("compressed_responses", "ضغط الاستجابات", "toggle", True),
     ]},
-    {"category": "security", "label": "إعدادات الأمان", "icon": "🔒", "fields": [
+    {"category": "security", "label": "إعدادات الأمان", "icon": "", "fields": [
         _f("require_2fa", "إلزام التحقّق الثنائي", "toggle", False),
         _f("session_timeout_min", "مهلة الجلسة (دقائق)", "number", 480),
         _f("allowed_domains", "النطاقات المسموحة", "tags", []),
@@ -223,8 +223,8 @@ SCHEMA = [
         _f("rls_status", "حالة RLS (للعرض)", "info", "مُفعّل"),
         _f("admin_lock", "قفل الإعدادات للمدير فقط", "toggle", True),
     ]},
-    {"category": "audit", "label": "سجلّات التدقيق", "icon": "📜", "custom": "audit", "fields": []},
-    {"category": "backup", "label": "النسخ والاحتفاظ بالبيانات", "icon": "💾", "fields": [
+    {"category": "audit", "label": "سجلّات التدقيق", "icon": "", "custom": "audit", "fields": []},
+    {"category": "backup", "label": "النسخ والاحتفاظ بالبيانات", "icon": "", "fields": [
         _f("daily_backup", "نسخ احتياطي يومي", "toggle", True),
         _f("backup_frequency", "تكرار النسخ", "select", "daily", options=[{"v": "daily", "l": "يومي"}, {"v": "weekly", "l": "أسبوعي"}]),
         _f("retention_days", "مدة الاحتفاظ (أيام)", "number", 90),
