@@ -36,6 +36,11 @@ export default function IndexReport() {
     setScanning(false);
   }, [range]);
 
+  useEffect(() => {
+    if (monitors.length && !scanning && Object.keys(scores).length === 0) scan(monitors);   // ready insight on open
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monitors.length]);
+
   const ranked = [...monitors].sort((a, b) => {
     const ca = scores[a.id]?.composite ?? -1, cb = scores[b.id]?.composite ?? -1;
     return cb - ca;

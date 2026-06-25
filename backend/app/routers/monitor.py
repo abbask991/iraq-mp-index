@@ -490,11 +490,30 @@ async def cron_digest(secret: str = "", ingest: int = 1):
                 refreshed += 1
             except Exception:
                 pass
-    # also keep the global overview warm so the digest can show trends/campaigns
+    # pre-warm the most-opened sections so every page shows insights INSTANTLY
+    # on open (cache stays warm; pages auto-load from it). Bounded to globals +
+    # the first monitor to keep X-API usage in check.
     try:
-        await monitor_overview(KeywordReq(range="day"))
+        await asyncio.gather(
+            monitor_overview(KeywordReq(range="day")),
+            monitor_discover(KeywordReq(range="day")),
+            monitor_new_accounts(KeywordReq(range="day")),
+            monitor_campaign_scan(KeywordReq(range="day")),
+            return_exceptions=True,
+        )
     except Exception:
         pass
+    mons = await db.get_monitors(5)
+    if mons:
+        kw = (mons[0].get("keywords") or ([mons[0]["name"]] if mons[0].get("name") else [""]))[0]
+        if kw:
+            rq = KeywordReq(keywords=[kw], range="week")
+            try:
+                await asyncio.gather(monitor_content(rq), monitor_bigdata(rq),
+                                     monitor_trends(rq), monitor_campaign(rq),
+                                     return_exceptions=True)
+            except Exception:
+                pass
     digest = await intel_digest.build_digest(_t.time())
     return {"refreshed": refreshed, "entities": digest.get("count", 0),
             "generated_at": digest.get("generated_at")}

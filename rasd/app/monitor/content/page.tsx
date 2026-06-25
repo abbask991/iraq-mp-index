@@ -15,7 +15,13 @@ export default function Content() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { supabase.from("monitors").select("name,keywords").then(({ data }) => setMonitors(data || [])); }, []);
+  useEffect(() => {
+    supabase.from("monitors").select("name,keywords").then(({ data }) => {
+      const ms = data || []; setMonitors(ms);
+      run(ms[0]?.keywords?.[0] || ms[0]?.name || "محمد شياع السوداني");   // ready insight on open
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const run = async (q: string) => {
     if (!q.trim()) return;

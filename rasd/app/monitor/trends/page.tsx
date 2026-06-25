@@ -29,10 +29,12 @@ export default function Trends() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.from("monitors").select("name,keywords").then(({ data }) => setMonitors(data || []));
-    // auto-run when arriving from "ترندات الآن" with ?q=
     const q = new URLSearchParams(window.location.search).get("q");
-    if (q) run(q);
+    supabase.from("monitors").select("name,keywords").then(({ data }) => {
+      const ms = data || []; setMonitors(ms);
+      // arriving from "ترندات الآن" with ?q= → that; else ready insight for the first target
+      run(q || ms[0]?.keywords?.[0] || ms[0]?.name || "محمد شياع السوداني");
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

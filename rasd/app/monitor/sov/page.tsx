@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { apiPost } from "@/lib/api";
 import RangeSelect, { Range } from "@/components/RangeSelect";
 
@@ -43,6 +43,10 @@ export default function SOV() {
     const names = custom.split(/[,،\n]/).map((s) => s.trim()).filter(Boolean);
     run(names.map((n) => ({ name: n, aliases: [n] })), "مخصّص");
   };
+  useEffect(() => {
+    if (PRESETS[0]) run(PRESETS[0].entities, PRESETS[0].category);   // ready insight on open
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
  <div>
