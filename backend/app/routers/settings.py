@@ -69,6 +69,7 @@ async def health():
         except Exception:
             redis_ok = False
 
+    from app.services.providers import twitterapi_io
     services = {
         "backend": True,
         "database": db.enabled(),
@@ -79,6 +80,7 @@ async def health():
         "telegram": bool(notify.TELEGRAM_BOT_TOKEN),
         "rss": True,
     }
+    data_provider = "twitterapi_io" if twitterapi_io.enabled() else "official_x"
 
     metrics = {"last_collection": None, "failed_jobs": 0, "posts_today": None,
                "posts_month": None, "ai_calls_today": None, "x_quota_usage": None,
@@ -92,7 +94,8 @@ async def health():
         except Exception:
             pass
 
-    return {"services": services, "metrics": metrics, "checked_at": int(time.time())}
+    return {"services": services, "data_provider": data_provider,
+            "metrics": metrics, "checked_at": int(time.time())}
 
 
 @router.post("/test/{service}")

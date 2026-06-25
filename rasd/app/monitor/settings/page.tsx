@@ -272,6 +272,14 @@ function HealthPanel() {
   if (!h) return <p className="muted" style={{ marginTop: 14 }}>جارٍ فحص النظام…</p>;
   return (
     <div style={{ marginTop: 14 }}>
+      {h.data_provider && (
+        <div className="card" style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>مزوّد بيانات X</span>
+          <span className="chip" style={{ color: h.data_provider === "twitterapi_io" ? "#22c55e" : "#fb923c" }}>
+            {h.data_provider === "twitterapi_io" ? "TwitterAPI.io (أرشيف كامل)" : "X الرسمي"}
+          </span>
+        </div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 10 }}>
         {Object.entries(h.services || {}).map(([k, v]: any) => (
           <div className="card" key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

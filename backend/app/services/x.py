@@ -132,7 +132,19 @@ async def fetch_network(keyword: str, want: int = 100, range: str = ""):
 
 async def fetch_trend(keyword: str, want: int = 150, range: str = "week"):
     """Fetch recent tweets WITH timestamps + per-tweet engagement + author
-    profiles — everything the trend engine needs from one paginated call."""
+    profiles — everything the trend engine needs from one paginated call.
+
+    Dispatches to TwitterAPI.io when its key is configured (full archive, cheaper,
+    richer metrics); falls back to the official X API otherwise. Same return shape
+    either way, so the rest of the pipeline is provider-agnostic."""
+    from app.services.providers import twitterapi_io
+    if twitterapi_io.enabled():
+        res = await twitterapi_io.fetch_trend(keyword, want=want, range=range)
+        if "error" not in res and res.get("tweets"):
+            return res
+        # provider failed → fall through to official if available
+        if not X_BEARER_TOKEN:
+            return res
     if not X_BEARER_TOKEN:
         return {"error": "X_TOKEN_MISSING"}
     start_time = _start_time(range or "week")
