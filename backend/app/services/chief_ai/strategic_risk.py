@@ -18,6 +18,31 @@ def fallback_threats(dg: dict) -> list:
     return out
 
 
+def fallback_recommendations(dg: dict) -> list:
+    out = []
+    rs = dg.get("risk_summary", {})
+    camps = dg.get("active_campaigns", [])
+    movers = [m for m in dg.get("movers", []) if m.get("rep_delta", 0) < 0]
+    if camps:
+        cs = camps[0].get("coordination_score", 0)
+        out.append({"recommendation": f"جهّز رداً واقعياً على حملة #{camps[0].get('hashtag')} خلال ساعات",
+                    "priority": "critical" if cs >= 70 else "high", "confidence": min(90, 50 + cs // 2),
+                    "reason": "إشارات تنسيق مرتفعة قد تتحوّل إلى ترند", "evidence": f"{camps[0].get('total_posts', 0)} منشور · تنسيق {cs}/100",
+                    "expected_outcome": "كبح زخم الحملة وتأخير انتقالها للإعلام التقليدي"})
+    if movers:
+        out.append({"recommendation": f"عالج تراجع سمعة {movers[0]['name']} بمحتوى توضيحي",
+                    "priority": "high", "confidence": 70, "reason": "هبوط ملحوظ بمؤشر السمعة",
+                    "evidence": f"تغيّر {movers[0]['rep_delta']}", "expected_outcome": "وقف الانزلاق وتحسين النبرة العامة"})
+    if rs.get("crisis", 0) >= 50:
+        out.append({"recommendation": "فعّل بروتوكول إدارة الأزمة بمتابعة كل ساعة",
+                    "priority": "high", "confidence": 65, "reason": "مؤشر تصعيد أزمة مرتفع",
+                    "evidence": f"أزمة {rs.get('crisis', 0)}/100", "expected_outcome": "استجابة أسرع قبل التصعيد"})
+    out.append({"recommendation": "راقب تيليغرام و X للساعات الـ6 القادمة قبل أي رد علني",
+                "priority": "medium", "confidence": 60, "reason": "رصد مبكر لأي تحوّل بالخطاب",
+                "evidence": "نشاط متعدّد المنصّات", "expected_outcome": "كشف التحوّلات مبكراً وتجنّب ردود متسرّعة"})
+    return out[:5]
+
+
 def fallback_opportunities(dg: dict) -> list:
     out = []
     for e in sorted(dg.get("entities", []), key=lambda x: -x.get("reputation", 0))[:1]:

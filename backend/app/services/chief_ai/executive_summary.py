@@ -64,7 +64,7 @@ async def build_dashboard() -> dict:
         "events": events,
         "threats": advisor.get("threats") or strategic_risk.fallback_threats(dg),
         "opportunities": advisor.get("opportunities") or strategic_risk.fallback_opportunities(dg),
-        "recommendations": advisor.get("recommendations", []),
+        "recommendations": advisor.get("recommendations") or strategic_risk.fallback_recommendations(dg),
         "questions": questions,
         "forecast": forecast,
         "kpis": _kpis(dg),
