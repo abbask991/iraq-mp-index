@@ -23,12 +23,11 @@ def tier(followers: int) -> dict:
 
 
 async def scan(rng="day", limit=600, min_followers=5000):
-    tw = await x.fetch_trend(NATIONAL_SEED, want=limit, range=rng)
-    if "error" in tw:
-        return {"error": tw["error"], "influencers": []}
+    from app.services.collection import multi_fetch
+    tw = await multi_fetch.national(cov=limit, range=rng)   # AICE Phase 5: parallel queries
     tweets, users = tw["tweets"], tw["users"]
     if not tweets:
-        return {"influencers": [], "scanned": 0}
+        return {"influencers": [], "scanned": 0, "error": tw.get("budget_capped") and "BUDGET_CAP_REACHED" or None}
     cls, _ = await smart_classify.classify_posts(tweets)
     for t, c in zip(tweets, cls):
         t["sentiment"] = c.get("sentiment", "محايد")

@@ -611,12 +611,13 @@ async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
 
     async def _build():
         import time as _time
-        from app.services.collection import runlog, smart_classify
+        from app.services.collection import multi_fetch, runlog, smart_classify
         _t0 = _time.time()
-        tw = await x.fetch_trend(DISCOVER_SEED, want=cov, range=rng)
-        if "error" in tw:
-            return {"error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
+        tw = await multi_fetch.national(cov=cov, range=rng)   # AICE Phase 5: parallel queries
         tweets, users = tw["tweets"], tw["users"]
+        if not tweets:
+            return {"error": tw.get("budget_capped") and "BUDGET_CAP_REACHED" or "NO_DATA",
+                    "message": "تعذّر الجمع — تحقّق من المزوّد/الرصيد"}
         cls, _stats = await smart_classify.classify_posts(tweets)   # AICE: cluster-before-AI
         await runlog.record("cron_overview", {**_stats, "inserted": len(tweets)}, started=_t0)
         sentiments = [c.get("sentiment", "محايد") for c in cls]

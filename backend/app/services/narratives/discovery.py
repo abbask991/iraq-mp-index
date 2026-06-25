@@ -41,12 +41,11 @@ def _series(posts):
 
 
 async def discover_national(rng="day", limit=600):
-    tw = await x.fetch_trend(NATIONAL_SEED, want=limit, range=rng)
-    if "error" in tw:
-        return {"error": tw["error"], "narratives": [], "scanned": 0}
+    from app.services.collection import multi_fetch
+    tw = await multi_fetch.national(cov=limit, range=rng)   # AICE Phase 5: parallel queries
     tweets, users = tw["tweets"], tw["users"]
     if not tweets:
-        return {"narratives": [], "scanned": 0}
+        return {"narratives": [], "scanned": 0, "error": tw.get("budget_capped") and "BUDGET_CAP_REACHED" or None}
 
     cls = await ai.classify_all([t["text"] for t in tweets])
     for t, c in zip(tweets, cls):
