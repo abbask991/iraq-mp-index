@@ -24,6 +24,15 @@ const EMOJIS: Record<string, string> = {
   anger: "الغضب", fear: "الخوف", trust: "الثقة", joy: "الفرح",
   sadness: "الحزن", frustration: "الإحباط", disgust: "الاشمئزاز", sarcasm: "السخرية",
 };
+const EMO_ORDER = ["anger", "fear", "sadness", "frustration", "disgust", "sarcasm", "trust", "joy"];
+const EMO_SHORT: Record<string, string> = {
+  anger: "غضب", fear: "خوف", sadness: "حزن", frustration: "إحباط",
+  disgust: "اشمئزاز", sarcasm: "سخرية", trust: "ثقة", joy: "فرح",
+};
+const EMO_NEG = new Set(["anger", "fear", "sadness", "frustration", "disgust", "sarcasm"]);
+const heatBg = (k: string, v: number) =>
+  v <= 0 ? "transparent" : EMO_NEG.has(k)
+    ? `rgba(244,63,94,${0.12 + v / 130})` : `rgba(34,197,94,${0.12 + v / 130})`;
 
 function Bar({ value, color }: { value: number; color: string }) {
   return (
@@ -148,6 +157,45 @@ export default function Intelligence() {
               </div>
             </div>
           </div>
+          {digest.rising_narratives?.length > 0 && (
+            <div className="card" style={{ marginTop: 12 }}>
+              <b>السرديات الصاعدة وطنياً</b>
+              {(digest.rising_narratives || []).map((n: any, i: number) => (
+                <div key={i} style={{ margin: "7px 0" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <span>{n.narrative} <span className="muted">({(n.entities || []).join("، ")})</span></span>
+                    <b style={{ color: n.national_trend_probability >= 0.5 ? C.warn : C.neu }}>
+                      {Math.round((n.national_trend_probability || 0) * 100)}% وطني</b>
+                  </div>
+                  <Bar value={Math.min(100, n.posts)} color={n.neg_ratio > 0.5 ? C.neg : "#4f9dff"} />
+                </div>
+              ))}
+            </div>
+          )}
+          {digest.emotion_heatmap?.length > 0 && (
+            <div className="card" style={{ marginTop: 12, overflowX: "auto" }}>
+              <b>خريطة المشاعر الحرارية</b>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, marginTop: 8 }}>
+                <thead><tr>
+                  <th style={{ textAlign: "start" }}></th>
+                  {EMO_ORDER.map((k) => <th key={k} style={{ padding: "2px 4px", fontWeight: 600 }}>{EMO_SHORT[k]}</th>)}
+                </tr></thead>
+                <tbody>
+                  {digest.emotion_heatmap.map((row: any, i: number) => (
+                    <tr key={i}>
+                      <td style={{ padding: "3px 6px", whiteSpace: "nowrap", cursor: "pointer" }} onClick={() => run(row.entity)}>{row.entity}</td>
+                      {EMO_ORDER.map((k) => {
+                        const v = row.emotions?.[k] || 0;
+                        return <td key={k} title={`${EMO_SHORT[k]}: ${v}%`}
+                          style={{ textAlign: "center", padding: "3px 0", background: heatBg(k, v), borderRadius: 4, color: v > 40 ? "#fff" : "var(--muted)" }}>{v || ""}</td>;
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>أحمر = مشاعر سلبية · أخضر = إيجابية · الرقم نسبة الحضور</p>
+            </div>
+          )}
           <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>تُحدّث تلقائياً كل ٣ ساعات · اضغط أي كيان لفتح ملفه الكامل</p>
         </div>
       )}
