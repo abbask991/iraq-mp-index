@@ -67,8 +67,9 @@ def generate_report(kind, target, rng="week", fmt="pdf", job_id=None):
     async def _go():
         out = await reports.build(kind, target, rng, fmt)
         try:                       # record to job_runs → powers "Recent Reports"
-            from rq import get_current_job
-            rid = (get_current_job().id if get_current_job() else None) or job_id or ("rep-" + str(int(time.time())))
+            import hashlib
+            rid = job_id or ("rep-" + hashlib.sha1(
+                f"{kind}{target}{fmt}{int(time.time())}".encode("utf-8")).hexdigest()[:16])
             if db.enabled():
                 await db.insert("job_runs", {
                     "id": rid, "status": "done", "kind": kind, "target": target,
