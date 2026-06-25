@@ -31,9 +31,37 @@ async def ask(req: AskReq):
     return await conversation_engine.answer(req.question, req.entity_id)
 
 
+@router.get("/recommendations")
+async def recommendations():
+    d = await cache.swr("chief:dashboard", 1800, lambda: chief_ai.build_dashboard())
+    return {"recommendations": d.get("recommendations", []), "generated_at": d.get("generated_at")}
+
+
+@router.get("/forecast")
+async def forecast():
+    d = await cache.swr("chief:dashboard", 1800, lambda: chief_ai.build_dashboard())
+    return d.get("forecast", {})
+
+
 @router.get("/daily-brief")
 async def daily():
     return await cache.swr("chief:daily", 3600, lambda: daily_brief.daily())
+
+
+@router.post("/generate-daily-book")
+async def generate_daily_book(fmt: str = "docx"):
+    """Generate the Daily Intelligence Book (Word by default — PDF needs the
+    chromium worker). Compiles the CIO dashboard into a document."""
+    from app import jobq
+    from app.services import redis_client
+    job = jobq.enqueue("app.tasks.generate_report", "daily_book", "الكتاب الاستخباراتي اليومي",
+                       "day", fmt, job_timeout=900)
+    if job is not None:
+        await redis_client.set_job(job.id, {"id": job.id, "status": "queued"})
+        return {"job_id": job.id, "status": "queued"}
+    from app.services import reports
+    out = await reports.build("daily_book", "الكتاب الاستخباراتي اليومي", "day", fmt)
+    return {"job_id": None, "status": "done", **out}
 
 
 @router.get("/weekly-brief")

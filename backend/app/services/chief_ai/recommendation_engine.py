@@ -24,7 +24,7 @@ async def generate(facts: str) -> dict:
         '"executive_brief":"5-8 جُمل: ماذا حدث، لماذا يهم، من المتورط، وما المتوقّع",\n'
         '"threats":[{"title":"...","severity":"critical|high|medium|low","probability":0-100,"impact":"...","response":"..."}],\n'
         '"opportunities":[{"title":"...","description":"...","action":"..."}],\n'
-        '"recommendations":[{"recommendation":"...","priority":"critical|high|medium|low","confidence":0-100,"reason":"...","evidence":"...","expected_outcome":"..."}],\n'
+        '"recommendations":[{"recommendation":"...","priority":"critical|high|medium|low","confidence":0-100,"reason":"...","evidence":"...","estimated_impact":"الأثر المتوقّع","deadline":"خلال X ساعة","owner":"الجهة المسؤولة (إعلام/قانوني/سياسي)","status":"مقترح"}],\n'
         '"questions":["سؤال مقترح 1","سؤال 2","سؤال 3"]\n'
         "}\n\n"
         "أعطِ 2-4 تهديدات، 1-3 فرص، 3-5 توصيات مرتّبة بالأولوية. كل توصية بدليل من المعطيات. "

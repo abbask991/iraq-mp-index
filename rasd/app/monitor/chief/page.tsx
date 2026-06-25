@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiGet, intelPost } from "@/lib/api";
+import { apiGet, intelGet, intelPost } from "@/lib/api";
 import Gauge from "@/components/Gauge";
 import { SkelCards } from "@/components/Skeleton";
 
@@ -14,8 +14,30 @@ export default function ChiefAI() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState(""); const [ans, setAns] = useState<any>(null);
+  const [bookBusy, setBookBusy] = useState(false);
 
   useEffect(() => { apiGet("/api/chief-ai/dashboard").then((r) => { setD(r); setLoading(false); }).catch(() => setLoading(false)); }, []);
+
+  const downloadBook = async () => {
+    setBookBusy(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_BASE || "";
+      let res: any = await fetch(`${base}/api/chief-ai/generate-daily-book?fmt=docx`, { method: "POST" }).then((r) => r.json());
+      if (res?.job_id) {
+        for (let i = 0; i < 50; i++) {
+          await new Promise((s) => setTimeout(s, 4000));
+          res = await intelGet(`/job/${res.job_id}`);
+          if (res?.status === "done" || res?.status === "failed") break;
+        }
+      }
+      const b64 = res?.file_base64 || res?.pdf_base64;
+      if (!b64) { alert("تعذّر توليد الكتاب حالياً."); return; }
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }));
+      const a = document.createElement("a"); a.href = url; a.download = "الكتاب-الاستخباراتي-اليومي.docx"; a.click();
+      URL.revokeObjectURL(url);
+    } finally { setBookBusy(false); }
+  };
 
   const ask = async (question?: string) => {
     const qq = (question ?? q).trim();
@@ -30,8 +52,14 @@ export default function ChiefAI() {
 
   return (
     <div>
-      <h2>🎖️ ضابط الاستخبارات الذكي</h2>
-      <p className="muted">مستشارك الاستخباراتي — ماذا حدث، لماذا يهم، ما المتوقّع، وما الذي يجب فعله. الآن.</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <h2 style={{ margin: 0 }}>🎖️ ضابط الاستخبارات الذكي</h2>
+          <p className="muted" style={{ marginTop: 4 }}>مستشارك الاستخباراتي — ماذا حدث، لماذا يهم، ما المتوقّع، وما الذي يجب فعله. الآن.</p>
+        </div>
+        <button className="btn" onClick={downloadBook} disabled={bookBusy}>
+          {bookBusy ? "جارٍ التوليد…" : "📕 الكتاب اليومي (Word)"}</button>
+      </div>
 
       {loading && <SkelCards count={4} />}
 
@@ -62,13 +90,18 @@ export default function ChiefAI() {
             ))}
           </div>
 
-          {/* 8. Strategic forecast */}
+          {/* 8. Strategic forecast — multi-horizon */}
           <div className="cbox" style={{ margin: "14px 0" }}>
-            <h4>🔮 التوقّع الاستراتيجي <span className="muted" style={{ fontSize: 11 }}>(ثقة {fc.confidence}%)</span></h4>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, textAlign: "center", marginTop: 6 }}>
-              {[["ترند وطني", fc.national_trend_probability], ["تغطية تلفزيونية", fc.tv_coverage_probability],
-                ["تصعيد سياسي", fc.escalation_probability], ["حملة منظّمة", fc.coordinated_campaign_probability]].map(([l, v]: any) => (
-                <div key={l}><Gauge value={v || 0} size={76} invert /><div style={{ fontSize: 12, marginTop: 2 }}>{l}</div></div>
+            <h4>🔮 التوقّع الاستراتيجي عبر المدى</h4>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 6 }}>
+              {(fc.horizons || []).map((h: any) => (
+                <div className="card" key={h.horizon} style={{ textAlign: "center", paddingTop: 14 }}>
+                  <div style={{ fontWeight: 800, marginBottom: 4 }}>{h.horizon}</div>
+                  <Gauge value={h.national_trend || 0} size={72} invert />
+                  <div style={{ fontSize: 11, marginTop: 2 }}>احتمال ترند وطني</div>
+                  <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>أزمة {h.media_crisis}% · حملة {h.coordinated_campaign}% · سردية {h.narrative_growth}%</div>
+                  <div className="muted" style={{ fontSize: 10, marginTop: 2 }}>الثقة {h.confidence}%</div>
+                </div>
               ))}
             </div>
             <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>ذروة متوقّعة خلال ~{fc.expected_peak_hours} ساعة · {fc.note}</div>
@@ -88,7 +121,12 @@ export default function ChiefAI() {
                   </div>
                   {r.reason && <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}><b>السبب:</b> {r.reason}</div>}
                   {r.evidence && <div className="muted" style={{ fontSize: 12 }}><b>الدليل:</b> {r.evidence}</div>}
-                  {r.expected_outcome && <div style={{ fontSize: 12, color: "var(--accent)" }}><b>النتيجة المتوقّعة:</b> {r.expected_outcome}</div>}
+                  {(r.expected_outcome || r.estimated_impact) && <div style={{ fontSize: 12, color: "var(--accent)" }}><b>الأثر المتوقّع:</b> {r.estimated_impact || r.expected_outcome}</div>}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+                    {r.deadline && <span className="chip" style={{ color: "#fb923c" }}>⏱ {r.deadline}</span>}
+                    {r.owner && <span className="chip">👤 {r.owner}</span>}
+                    {r.status && <span className="chip" style={{ color: "var(--accent)" }}>{r.status}</span>}
+                  </div>
                 </div>
               );
             })}

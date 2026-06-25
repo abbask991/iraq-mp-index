@@ -23,3 +23,26 @@ def strategic(dg: dict) -> dict:
         "confidence": confidence,
         "note": "تقديرات احتمالية من إشارات المنصّة — لا قطعية.",
     }
+
+
+def multi_horizon(dg: dict) -> dict:
+    """Forecast across three decision horizons — confidence decays with distance."""
+    base = strategic(dg)
+
+    def at(label, factor, conf_penalty):
+        return {
+            "horizon": label,
+            "national_trend": round(min(100, base["national_trend_probability"] * factor)),
+            "media_crisis": round(min(100, base["escalation_probability"] * factor)),
+            "narrative_growth": round(min(100, base["national_trend_probability"] * factor * 0.9)),
+            "coordinated_campaign": round(min(100, base["coordinated_campaign_probability"] * factor)),
+            "confidence": max(20, base["confidence"] - conf_penalty),
+        }
+    return {
+        **base,
+        "horizons": [
+            at("غداً", 1.0, 0),
+            at("خلال 72 ساعة", 0.85, 15),
+            at("الأسبوع القادم", 0.65, 30),
+        ],
+    }

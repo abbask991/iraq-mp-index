@@ -23,11 +23,11 @@ export default function Login() {
           await supabase.from("subscriptions").update({ company }).eq("user_id", data.user.id);
         }
         if (!data.session) { setMsg(" تم إنشاء الحساب. تحقّق من بريدك لتأكيد الحساب ثم سجّل الدخول."); return; }
-        router.push("/monitor");
+        router.push("/monitor/chief");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) { setErr(error.message); return; }
-        router.push("/monitor");
+        router.push("/monitor/chief");
       }
     } finally { setBusy(false); }
   }

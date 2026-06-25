@@ -113,6 +113,9 @@ def _executive_html(d):
 async def _gather(kind, target, rng):
     """Pull the data payload for a report kind from the existing endpoints."""
     from app.routers import monitor as m
+    if kind == "daily_book":
+        from app.services import chief_ai
+        return await chief_ai.build_dashboard()
     if kind == "campaign":
         return await m.monitor_campaign(m.KeywordReq(keywords=[target], range=rng))
     if kind == "executive":
@@ -131,6 +134,21 @@ def _render_html(kind, target, data):
 
 # ---- neutral document model (shared by docx / pptx) ----
 def _doc_model(kind, target, data):
+    if kind == "daily_book":
+        kpis = [(k.get("name"), k.get("current")) for k in data.get("kpis", [])[:4]]
+        sections = [("الموجز التنفيذي", [data.get("executive_brief", "—")])]
+        if data.get("recommendations"):
+            sections.append(("التوصيات", [f"• [{r.get('priority')}] {r.get('recommendation')} — {r.get('reason', '')}"
+                                          for r in data["recommendations"]]))
+        if data.get("threats"):
+            sections.append(("أبرز التهديدات", [f"• {t.get('title')} ({t.get('severity')} · {t.get('probability')}%)"
+                                                for t in data["threats"]]))
+        if data.get("opportunities"):
+            sections.append(("الفرص", [f"• {o.get('title')}: {o.get('description', '')}" for o in data["opportunities"]]))
+        if data.get("events"):
+            sections.append(("أهم الأحداث", [f"• ({e.get('importance')}) {e.get('title')}" for e in data["events"][:6]]))
+        return {"title": "الكتاب الاستخباراتي اليومي", "subtitle": f"مستوى الخطر: {data.get('risk_level', '—')} · إصدار آلي",
+                "kpis": kpis, "sections": sections}
     title = {"campaign": "تقرير حملة منظّمة", "executive": "التقرير التنفيذي للرصد",
              "government": f"ملف استخباراتي — {target}"}.get(kind, f"الملف الشامل — {target}")
     sub = f"النطاق الزمني: {data.get('period', data.get('window', '—'))} · إصدار آلي"

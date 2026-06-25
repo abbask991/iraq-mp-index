@@ -52,7 +52,7 @@ def _facts(dg: dict) -> str:
 async def build_dashboard() -> dict:
     dg = await intel_digest.get_digest() or {}
     events = priority_engine.rank_events(dg)
-    forecast = forecast_engine.strategic(dg)
+    forecast = forecast_engine.multi_horizon(dg)
     advisor = await recommendation_engine.generate(_facts(dg))
     questions = advisor.get("questions") or question_engine.suggest(dg)
     risk_lv = (dg.get("executive") or {}).get("risk_level", "—")

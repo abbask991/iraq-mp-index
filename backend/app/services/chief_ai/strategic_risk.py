@@ -28,18 +28,22 @@ def fallback_recommendations(dg: dict) -> list:
         out.append({"recommendation": f"جهّز رداً واقعياً على حملة #{camps[0].get('hashtag')} خلال ساعات",
                     "priority": "critical" if cs >= 70 else "high", "confidence": min(90, 50 + cs // 2),
                     "reason": "إشارات تنسيق مرتفعة قد تتحوّل إلى ترند", "evidence": f"{camps[0].get('total_posts', 0)} منشور · تنسيق {cs}/100",
-                    "expected_outcome": "كبح زخم الحملة وتأخير انتقالها للإعلام التقليدي"})
+                    "estimated_impact": "خفض زخم الحملة ~25%", "expected_outcome": "كبح زخم الحملة وتأخير انتقالها للإعلام التقليدي",
+                    "deadline": "خلال 4 ساعات", "owner": "الفريق الإعلامي", "status": "مقترح"})
     if movers:
         out.append({"recommendation": f"عالج تراجع سمعة {movers[0]['name']} بمحتوى توضيحي",
                     "priority": "high", "confidence": 70, "reason": "هبوط ملحوظ بمؤشر السمعة",
-                    "evidence": f"تغيّر {movers[0]['rep_delta']}", "expected_outcome": "وقف الانزلاق وتحسين النبرة العامة"})
+                    "evidence": f"تغيّر {movers[0]['rep_delta']}", "estimated_impact": "وقف الانزلاق وتحسين النبرة",
+                    "expected_outcome": "تعافٍ تدريجي للسمعة", "deadline": "خلال 12 ساعة", "owner": "العلاقات العامة", "status": "مقترح"})
     if rs.get("crisis", 0) >= 50:
         out.append({"recommendation": "فعّل بروتوكول إدارة الأزمة بمتابعة كل ساعة",
                     "priority": "high", "confidence": 65, "reason": "مؤشر تصعيد أزمة مرتفع",
-                    "evidence": f"أزمة {rs.get('crisis', 0)}/100", "expected_outcome": "استجابة أسرع قبل التصعيد"})
+                    "evidence": f"أزمة {rs.get('crisis', 0)}/100", "estimated_impact": "استجابة أسرع قبل التصعيد",
+                    "expected_outcome": "احتواء مبكر للأزمة", "deadline": "فوري", "owner": "خلية الأزمة", "status": "مقترح"})
     out.append({"recommendation": "راقب تيليغرام و X للساعات الـ6 القادمة قبل أي رد علني",
                 "priority": "medium", "confidence": 60, "reason": "رصد مبكر لأي تحوّل بالخطاب",
-                "evidence": "نشاط متعدّد المنصّات", "expected_outcome": "كشف التحوّلات مبكراً وتجنّب ردود متسرّعة"})
+                "evidence": "نشاط متعدّد المنصّات", "estimated_impact": "كشف التحوّلات مبكراً",
+                "expected_outcome": "تجنّب ردود متسرّعة", "deadline": "خلال 6 ساعات", "owner": "غرفة الرصد", "status": "مقترح"})
     return out[:5]
 
 

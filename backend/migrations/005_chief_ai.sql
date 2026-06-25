@@ -35,6 +35,27 @@ create table if not exists chief_ai_recommendations (
   created_at   timestamptz default now()
 );
 
+create table if not exists chief_ai_predictions (
+  id          bigint generated always as identity primary key,
+  generated_at timestamptz default now(),
+  horizon     text,                          -- tomorrow | 72h | week
+  metric      text,                          -- national_trend | media_crisis | ...
+  probability int,
+  confidence  int,
+  meta        jsonb default '{}'
+);
+
+create table if not exists chief_ai_daily_books (
+  id          bigint generated always as identity primary key,
+  generated_at timestamptz default now(),
+  summary     text,
+  body_json   jsonb default '{}',
+  file_ref    text,
+  created_by  uuid
+);
+
 alter table chief_ai_briefs enable row level security;
 alter table chief_ai_questions enable row level security;
 alter table chief_ai_recommendations enable row level security;
+alter table chief_ai_predictions enable row level security;
+alter table chief_ai_daily_books enable row level security;
