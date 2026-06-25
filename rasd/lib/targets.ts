@@ -74,17 +74,18 @@ export async function setPrimary(id: string, all: Target[]) {
 
 // ---- coverage (how many tweets the Command Center scans per refresh) ----
 export const COVERAGE_OPTIONS: { v: number; label: string; hint: string }[] = [
-  { v: 500, label: "٥٠٠", hint: "خفيف · أسرع · أقل استهلاكاً للحصة" },
-  { v: 1000, label: "١٬٠٠٠", hint: "متوازن (افتراضي)" },
-  { v: 3000, label: "٣٬٠٠٠", hint: "تغطية أوسع · حصة أكبر" },
-  { v: 5000, label: "٥٬٠٠٠", hint: "شامل · يستهلك حصة كبيرة · أبطأ" },
-  { v: 10000, label: "١٠٬٠٠٠", hint: "أقصى تغطية · مكلف جداً وبطيء" },
+  { v: 3000, label: "٣٬٠٠٠", hint: "اقتصادي · أرخص · أسرع" },
+  { v: 5000, label: "٥٬٠٠٠", hint: "متوسط" },
+  { v: 10000, label: "١٠٬٠٠٠", hint: "عميق" },
+  { v: 15000, label: "١٥٬٠٠٠", hint: "أقصى (افتراضي) · تغطية واسعة" },
+  { v: 25000, label: "٢٥٬٠٠٠", hint: "تصعيد · للأحداث المهمة" },
+  { v: 50000, label: "٥٠٬٠٠٠", hint: "وضع الأزمة/الانتخابات · مكلف — جهّز تعبئة" },
 ];
 
 export function getCoverage(): number {
-  if (typeof window === "undefined") return 1000;
-  const v = parseInt(localStorage.getItem("rasd_coverage") || "1000", 10);
-  return COVERAGE_OPTIONS.some((o) => o.v === v) ? v : 1000;
+  if (typeof window === "undefined") return 15000;
+  const v = parseInt(localStorage.getItem("rasd_coverage") || "15000", 10);
+  return COVERAGE_OPTIONS.some((o) => o.v === v) ? v : 15000;
 }
 export function setCoverage(v: number) {
   try { localStorage.setItem("rasd_coverage", String(v)); } catch { /* ignore */ }

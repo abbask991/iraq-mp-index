@@ -18,6 +18,7 @@ from app.services import (
 NEWS_TTL = 900   # 15 min
 X_TTL = 600      # 10 min
 HEAVY_TTL = 900  # content / dossier / bigdata
+OVERVIEW_TTL = 43200  # command-center national scan refreshes ~every 12h — cost control for high coverage (AICE max+crisis)
 OVERVIEW_TTL = 600
 
 router = APIRouter(prefix="/monitor", tags=["monitor"])
@@ -605,7 +606,7 @@ async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
     from collections import Counter as _C
 
     rng = req.range or "day"
-    cov = min(max(req.limit or 1000, 100), 10000)   # coverage = tweets scanned
+    cov = min(max(req.limit or 15000, 100), 50000)   # coverage = tweets scanned (AICE max+crisis: 15k default, surge to 50k)
     key = f"overview:{rng}:{cov}"
 
     async def _build():
@@ -677,7 +678,7 @@ async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
             "geo": geo.aggregate(users),
         }
 
-    return await cache.swr(key, HEAVY_TTL, _build)
+    return await cache.swr(key, OVERVIEW_TTL, _build)
 
 
 @router.post("/discover")

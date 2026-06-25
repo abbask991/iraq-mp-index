@@ -64,8 +64,8 @@ SCHEMA = [
     {"category": "aice", "label": "محرّك الجمع الذكي (AICE)", "icon": "", "fields": [
         _f("enabled", "تفعيل محرّك الجمع الذكي", "toggle", True),
         _f("enable_cluster_before_ai", "التجميع قبل الذكاء (تقليل كلفة Claude)", "toggle", True),
-        _f("cron_coverage_limit", "حد التغطية للجمع المجدول (آمن للحصّة)", "number", 1000),
-        _f("manual_refresh_limit", "حد التحديث اليدوي", "number", 3000),
+        _f("cron_coverage_limit", "حد التغطية للجمع المجدول (آمن للحصّة)", "number", 15000),
+        _f("manual_refresh_limit", "حد التحديث اليدوي", "number", 50000),
         _f("max_surge_multiplier", "أقصى مضاعِف تصعيد (مبدئياً 2)", "number", 2),
         _f("cluster_target_percent", "نسبة التجميع المستهدفة (%)", "number", 12),
         _f("ai_representative_cap", "سقف العيّنات المُرسلة للذكاء", "number", 800),
