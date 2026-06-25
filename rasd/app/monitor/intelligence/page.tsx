@@ -55,6 +55,7 @@ export default function Intelligence() {
   const [ans, setAns] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [digest, setDigest] = useState<any>(null);
+  const [reportBusy, setReportBusy] = useState("");
 
   useEffect(() => { supabase.from("monitors").select("name,keywords").then(({ data }) => setMonitors(data || [])); }, []);
   useEffect(() => { intelGet("/digest").then(setDigest).catch(() => {}); }, []);
@@ -84,6 +85,32 @@ export default function Intelligence() {
     setAns({ loading: true });
     const r = await intelPost("/ask", { question: q, entity_id: twin._eid }).catch(() => null);
     setAns(r);
+  };
+
+  const downloadReport = async (format: "docx" | "pptx" | "pdf") => {
+    const name = twin?.identity?.name;
+    if (!name) return;
+    setReportBusy(format);
+    try {
+      let res: any = await intelPost("/report", { kind: "profile", target: name, range: "week", format });
+      if (res?.job_id) {
+        for (let i = 0; i < 50; i++) {
+          await new Promise((s) => setTimeout(s, 4000));
+          res = await intelGet(`/job/${res.job_id}`);
+          if (res?.status === "done" || res?.status === "failed") break;
+        }
+      }
+      const b64 = res?.file_base64 || res?.pdf_base64;
+      if (!b64) { alert("تعذّر توليد التقرير حالياً."); return; }
+      const mime = format === "docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        : format === "pptx" ? "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+          : "application/pdf";
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+      const a = document.createElement("a");
+      a.href = url; a.download = `تقرير-${name}.${format}`; a.click();
+      URL.revokeObjectURL(url);
+    } finally { setReportBusy(""); }
   };
 
   const sc = twin?.scores || {};
@@ -230,6 +257,18 @@ export default function Intelligence() {
                   <Gauge value={sc.political_influence?.score ?? 0} label="النفوذ" size={92} />
                   <Gauge value={sc.political_risk?.score ?? 0} label="الخطر" size={92} invert />
                 </div>
+              </div>
+
+              {/* report download toolbar */}
+              <div className="card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                <b style={{ fontSize: 13 }}>تصدير تقرير احترافي:</b>
+                <button className="btn ghost" style={{ padding: "6px 12px", fontSize: 13 }}
+                  onClick={() => downloadReport("docx")} disabled={!!reportBusy}>
+                  {reportBusy === "docx" ? "جارٍ التوليد…" : "Word ⬇"}</button>
+                <button className="btn ghost" style={{ padding: "6px 12px", fontSize: 13 }}
+                  onClick={() => downloadReport("pptx")} disabled={!!reportBusy}>
+                  {reportBusy === "pptx" ? "جارٍ التوليد…" : "PowerPoint ⬇"}</button>
+                <span className="muted" style={{ fontSize: 11 }}>يُولّد على الخادم (~٣٠ ثانية) ويُنزّل تلقائياً.</span>
               </div>
 
               {/* 8 strategic scores — animated gauges */}
