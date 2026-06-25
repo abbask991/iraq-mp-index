@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
 import { apiPost } from "@/lib/api";
 import { getTargets, primaryKeyword } from "@/lib/targets";
 import RangeSelect, { Range } from "@/components/RangeSelect";
+import Gauge from "@/components/Gauge";
 
 const COMM = ["#2563eb", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4", "#ec4899", "#84cc16", "#fb923c"];
 const riskColor = (r: number) => (r >= 60 ? "#f43f5e" : r >= 35 ? "#f59e0b" : "#22c55e");
@@ -67,8 +67,8 @@ export default function BigData() {
           {/* manipulation index hero */}
           <div className="bd-hero">
             <div className="bd-gauge">
-              <div className="v" style={{ color: lvlColor(d.level) }}>{d.manipulation_index}</div>
-              <div className="l">مؤشّر التلاعب /100</div>
+              <Gauge value={d.manipulation_index} size={132} stroke={11} invert color={lvlColor(d.level)} />
+              <div className="l" style={{ marginTop: 6 }}>مؤشّر التلاعب /100</div>
               <span className="chip" style={{ color: lvlColor(d.level), marginTop: 6 }}>{d.level}</span>
             </div>
             <div style={{ flex: 1, minWidth: 220 }}>

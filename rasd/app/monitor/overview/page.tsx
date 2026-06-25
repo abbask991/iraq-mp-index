@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { apiPost } from "@/lib/api";
 import RangeSelect, { Range } from "@/components/RangeSelect";
+import Gauge from "@/components/Gauge";
 
 const C = { neg: "#f43f5e", neu: "#8a97ad", pos: "#22c55e" };
 const sColor = (s: string) => (s === "سلبي" ? C.neg : s === "إيجابي" ? C.pos : C.neu);
@@ -49,9 +50,12 @@ export default function Overview() {
  <h2 style={{ margin: "6px 0 2px" }}>لوحة القيادة</h2>
  <p className="muted" style={{ margin: 0 }}>نبض المحادثة العراقية لحظة بلحظة — ترندات، حملات، حسابات، ومزاج عام.</p>
  </div>
+ <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap" }}>
+          {d && !d.error && <Gauge value={d.media_index ?? 50} label="المؤشر الإعلامي" size={96} />}
  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
  <RangeSelect value={range} onChange={(v) => { setRange(v); load(v); }} disabled={loading} />
  <button className="btn" onClick={() => load(range)} disabled={loading}> تحديث</button>
+ </div>
  </div>
  </div>
 

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { apiPost, intelGet, intelPost } from "@/lib/api";
+import Gauge from "@/components/Gauge";
 
 const C = { neg: "#f43f5e", neu: "#8a97ad", pos: "#22c55e", warn: "#f59e0b" };
 const scoreColor = (s: number, invert = false) => {
@@ -213,22 +214,34 @@ export default function Intelligence() {
 
           {tab === "twin" && (
             <>
-              <div className="muted" style={{ marginBottom: 8 }}>
-                {twin.identity?.name} · {twin.data_points} نقطة بيانات · {twin.media_exposure?.sources} مصدر
+              {/* profile hero */}
+              <div className="mon-hero" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20 }}>
+                <div>
+                  <div className="cc-live"><span className="cc-dot" /> ملف استخباراتي حيّ</div>
+                  <h2 style={{ margin: "6px 0 4px", fontSize: 26 }}>{twin.identity?.name}</h2>
+                  <div className="muted" style={{ fontSize: 13 }}>
+                    {{ politician: "سياسي", party: "حزب", ministry: "وزارة", coalition: "تحالف",
+                       body: "جهة", institution: "مؤسسة" }[twin.identity?.type as string] || "كيان"}
+                    {" · "}{twin.data_points} نقطة بيانات · {twin.media_exposure?.sources} مصدر · المسار: {pred.trajectory || "—"}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 18 }}>
+                  <Gauge value={sc.reputation?.score ?? 0} label="السمعة" size={92} />
+                  <Gauge value={sc.political_influence?.score ?? 0} label="النفوذ" size={92} />
+                  <Gauge value={sc.political_risk?.score ?? 0} label="الخطر" size={92} invert />
+                </div>
               </div>
 
-              {/* 8 strategic scores */}
+              {/* 8 strategic scores — animated gauges */}
               <div className="grid" style={{ marginBottom: 14 }}>
                 {SCORES.map(({ key, ar, invert }) => {
                   const o = sc[key] || {}; const v = o.score ?? 0;
                   return (
-                    <div className="card" key={key}>
-                      <div className="muted" style={{ fontSize: 12 }}>{ar}</div>
-                      <div style={{ fontSize: 26, fontWeight: 800, color: scoreColor(v, invert) }}>{v}
-                        <span style={{ fontSize: 12, color: "var(--muted)" }}> /100</span></div>
-                      <div style={{ fontSize: 11, color: "var(--muted)", minHeight: 14 }}>
+                    <div className="card" key={key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, paddingTop: 18 }}>
+                      <Gauge value={v} size={92} invert={invert} />
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{ar}</div>
+                      <div className="muted" style={{ fontSize: 11, minHeight: 14, textAlign: "center" }}>
                         {o.grade || o.level || o.stage || o.leader || ""}</div>
-                      <Bar value={v} color={scoreColor(v, invert)} />
                     </div>
                   );
                 })}
