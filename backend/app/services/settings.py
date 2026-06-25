@@ -310,7 +310,7 @@ async def set_many(category: str, changes: dict, *, user=None, ip=None) -> dict:
     if not db.enabled():
         return {"saved": 0, "reason": "db_disabled"}
     cur = await _db_values()
-    saved = 0
+    saved, failed = 0, 0
     ts = int(time.time())
     for key, val in (changes or {}).items():
         fk = _full_key(category, key)
@@ -318,18 +318,24 @@ async def set_many(category: str, changes: dict, *, user=None, ip=None) -> dict:
         if old == val:
             continue
         try:
-            await db.insert("system_settings",
-                            {"key": fk, "value_json": {"v": val}, "category": category,
-                             "updated_by": str(user) if user else None},
-                            upsert=True, on_conflict="key")
-            await db.insert("system_audit_logs",
-                            {"user_id": str(user) if user else None, "action": "update",
-                             "category": category, "key": fk,
-                             "old_value": {"v": old}, "new_value": {"v": _audit_safe(category, key, val)}})
-            saved += 1
+            ok = await db.insert("system_settings",
+                                 {"key": fk, "value_json": {"v": val}, "category": category,
+                                  "updated_by": str(user) if user else None},
+                                 upsert=True, on_conflict="key")
+            if ok:
+                await db.insert("system_audit_logs",
+                                {"user_id": str(user) if user else None, "action": "update",
+                                 "category": category, "key": fk, "ip_address": ip,
+                                 "old_value": {"v": old}, "new_value": {"v": _audit_safe(category, key, val)}})
+                saved += 1
+            else:
+                failed += 1
         except Exception:
-            pass
-    return {"saved": saved, "ts": ts}
+            failed += 1
+    out = {"saved": saved, "failed": failed, "persisted": saved > 0 and failed == 0, "ts": ts}
+    if failed and not saved:
+        out["reason"] = "table_missing"   # system_settings not created — run migration 007
+    return out
 
 
 def _audit_safe(category, key, val):

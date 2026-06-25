@@ -39,12 +39,14 @@ export default function Settings() {
     setSaving(true);
     const r = await apiSend("/api/settings", "PUT", { category: active, changes }).catch(() => null);
     setSaving(false);
-    if (r && r.saved >= 0) {
-      setSavedMsg(r.reason === "db_disabled" ? "⚠️ القاعدة غير مفعّلة — لم يُحفظ" : `✅ حُفظ ${r.saved} إعداد`);
+    if (r && r.persisted) {
+      setSavedMsg(`✅ حُفظ ${r.saved} إعداد`);
       setEdits((e) => { const n = { ...e }; for (const k of Object.keys(changes)) delete n[`${active}.${k}`]; return n; });
       await load();
+    } else if (r && (r.reason === "table_missing" || r.reason === "db_disabled")) {
+      setSavedMsg("⚠️ لم يُحفظ — جدول الإعدادات غير مُهيّأ بعد (شغّل migration 007). التغييرات تبقى محليّاً فقط.");
     } else setSavedMsg("تعذّر الحفظ");
-    setTimeout(() => setSavedMsg(""), 2500);
+    setTimeout(() => setSavedMsg(""), 5000);
   };
 
   const reset = async () => {
