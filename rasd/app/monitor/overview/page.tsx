@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { apiPost } from "@/lib/api";
 import RangeSelect, { Range } from "@/components/RangeSelect";
+import { getCoverage } from "@/lib/targets";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import Gauge from "@/components/Gauge";
@@ -34,7 +35,7 @@ export default function Overview() {
 
   const load = useCallback(async (rng: Range) => {
     setLoading(true);
-    const r = await apiPost("overview", { range: rng }).catch(() => null);
+    const r = await apiPost("overview", { range: rng, limit: getCoverage() }).catch(() => null);
     setD(r); setAt(new Date().toLocaleTimeString("ar-IQ", { hour: "2-digit", minute: "2-digit" })); setLoading(false);
   }, []);
   useEffect(() => { load("day"); }, [load]);

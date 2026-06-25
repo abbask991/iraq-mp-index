@@ -71,3 +71,21 @@ export async function setPrimary(id: string, all: Target[]) {
   for (const t of all) p[t.id] = { ...p[t.id], pinned: t.id === id };
   writePrefs(p);
 }
+
+// ---- coverage (how many tweets the Command Center scans per refresh) ----
+export const COVERAGE_OPTIONS: { v: number; label: string; hint: string }[] = [
+  { v: 500, label: "٥٠٠", hint: "خفيف · أسرع · أقل استهلاكاً للحصة" },
+  { v: 1000, label: "١٬٠٠٠", hint: "متوازن (افتراضي)" },
+  { v: 3000, label: "٣٬٠٠٠", hint: "تغطية أوسع · حصة أكبر" },
+  { v: 5000, label: "٥٬٠٠٠", hint: "شامل · يستهلك حصة كبيرة · أبطأ" },
+  { v: 10000, label: "١٠٬٠٠٠", hint: "أقصى تغطية · مكلف جداً وبطيء" },
+];
+
+export function getCoverage(): number {
+  if (typeof window === "undefined") return 1000;
+  const v = parseInt(localStorage.getItem("rasd_coverage") || "1000", 10);
+  return COVERAGE_OPTIONS.some((o) => o.v === v) ? v : 1000;
+}
+export function setCoverage(v: number) {
+  try { localStorage.setItem("rasd_coverage", String(v)); } catch { /* ignore */ }
+}

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   Target, TargetType, getTargets, addTarget, removeTarget, setPrimary, savePref,
+  COVERAGE_OPTIONS, getCoverage, setCoverage,
 } from "@/lib/targets";
 
 export default function Settings() {
@@ -10,9 +11,10 @@ export default function Settings() {
   const [aliases, setAliases] = useState("");
   const [type, setType] = useState<TargetType>("person");
   const [busy, setBusy] = useState(false);
+  const [coverage, setCov] = useState(1000);
 
   const refresh = async () => setTargets(await getTargets());
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); setCov(getCoverage()); }, []);
 
   const add = async () => {
     const n = name.trim();
@@ -52,6 +54,27 @@ export default function Settings() {
         <input placeholder="أسماء بديلة / كلمات مفتاحية (اختياري، افصلها بفاصلة)" value={aliases}
           onChange={(e) => setAliases(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()}
           style={{ marginTop: 8 }} />
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <b>عمق التغطية — عدد التغريدات لكل مسح بلوحة القيادة</b>
+        <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+          يتحكّم بعدد التغريدات التي يمسحها النظام في كل تحديث. الأعلى = تغطية أوسع لكن استهلاك أكبر لحصة X وأبطأ.
+        </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+          {COVERAGE_OPTIONS.map((o) => (
+            <button key={o.v} title={o.hint}
+              className={"btn" + (coverage === o.v ? "" : " ghost")}
+              style={{ padding: "8px 14px" }}
+              onClick={() => { setCoverage(o.v); setCov(o.v); }}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+          الحالي: <b style={{ color: "var(--accent)" }}>{COVERAGE_OPTIONS.find((o) => o.v === coverage)?.label}</b>
+          {" — "}{COVERAGE_OPTIONS.find((o) => o.v === coverage)?.hint}
+        </p>
       </div>
 
       <div className="card">

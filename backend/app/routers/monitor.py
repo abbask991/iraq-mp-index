@@ -572,10 +572,11 @@ async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
     from collections import Counter as _C
 
     rng = req.range or "day"
-    key = f"overview:{rng}"
+    cov = min(max(req.limit or 1000, 100), 10000)   # coverage = tweets scanned
+    key = f"overview:{rng}:{cov}"
 
     async def _build():
-        tw = await x.fetch_trend(DISCOVER_SEED, want=500, range=rng)
+        tw = await x.fetch_trend(DISCOVER_SEED, want=cov, range=rng)
         if "error" in tw:
             return {"error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
         tweets, users = tw["tweets"], tw["users"]
@@ -817,10 +818,11 @@ async def monitor_bigdata(req: KeywordReq):
         return {"sparse": True}
     kw = req.keywords[0]
     rng = req.range or "week"
-    key = f"bigdata:{rng}:" + kw
+    cov = min(max(req.limit or 200, 100), 5000)     # coverage = tweets analyzed
+    key = f"bigdata:{rng}:{cov}:" + kw
 
     async def _build():
-        tw = await x.fetch_trend(kw, want=200, range=rng)
+        tw = await x.fetch_trend(kw, want=cov, range=rng)
         if "error" in tw:
             return {"sparse": True, "error": tw["error"], "message": "تعذّر — تأكد من توكن X"}
         tweets, users = tw["tweets"], tw["users"]
