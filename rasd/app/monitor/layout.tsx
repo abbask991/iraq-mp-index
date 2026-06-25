@@ -165,6 +165,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <div className="admin-shell">
  <aside className="admin-side">
         {LangBtn}
+ <Link href="/monitor/chief" className={path === "/monitor/chief" ? "active" : ""}>
+          {lang === "ar" ? "🎖️ ضابط الاستخبارات" : "🎖️ Chief Intelligence"}
+ </Link>
  <Link href="/monitor/overview" className={path === "/monitor/overview" ? "active" : ""}>
           {lang === "ar" ? "لوحة القيادة" : "Command Center"}
  </Link>
