@@ -140,7 +140,8 @@ export default function Influencers() {
                   <Stat l="تأثير" v={n.influence} />
                   <Stat l="منشورات" v={n.posts} />
                 </div>
-                {!!n.top_entities?.length && <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>يتناول: {n.top_entities.slice(0, 3).join(" · ")}</div>}
+                {!!n.supports?.length && <div style={{ fontSize: 11, marginTop: 8, color: "#22c55e" }}>يدعم: {n.supports.slice(0, 2).join(" · ")}</div>}
+                {!!n.against?.length && <div style={{ fontSize: 11, marginTop: 2, color: "#f43f5e" }}>ضد: {n.against.slice(0, 2).join(" · ")}</div>}
               </button>
             ))}
           </div>

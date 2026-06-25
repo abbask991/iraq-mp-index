@@ -11,10 +11,49 @@ from collections import Counter
 
 from app.services import entity_resolver, network, stance, trends, x
 from app.services.collection import smart_classify
+from app.services.influencers import target_stance
 from app.services.media_battlefield import battlefield_summary, graph_builder
 from app.services.media_battlefield import relationship_extractor as rex
 
 _HASH = re.compile(r"#[\w؀-ۿ_]+")
+
+
+async def _ai_stance(handle, posts, candidates):
+    """One AI pass for accurate target-aware stance: given the account's own posts
+    + candidate entities, return {entity: support|oppose|neutral}. Returns {} on
+    any failure so the caller keeps the rule-based result."""
+    import json as _json
+
+    from app.config import ANTHROPIC_API_KEY, CLASSIFY_MODEL
+    from app.services import ai_cache
+    if not (ANTHROPIC_API_KEY and posts and candidates):
+        return {}
+    listed = "\n".join(f"- {p[:160]}" for p in posts[:25])
+    cand = "، ".join(candidates[:10])
+    prompt = (
+        f"حساب @{handle}. أدناه منشوراته. لكل كيان من القائمة، حدّد موقف هذا الحساب منه بناءً على منشوراته فقط: "
+        '"support" (داعم/مؤيد) أو "oppose" (معارض/منتقد) أو "neutral" (محايد/إخباري). '
+        "اعتمد على مَن يخصّه المديح أو الذم في كل جملة، لا على نبرة المنشور عموماً. "
+        'أعد JSON فقط: {"الكيان":"support|oppose|neutral", ...}\n\n'
+        f"الكيانات: {cand}\n\nالمنشورات:\n{listed}"
+    )
+    cached = await ai_cache.get(CLASSIFY_MODEL, prompt)
+    if cached is not None:
+        return cached
+    try:
+        import httpx
+        async with httpx.AsyncClient() as c:
+            r = await c.post("https://api.anthropic.com/v1/messages",
+                             headers={"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01",
+                                      "content-type": "application/json"},
+                             json={"model": CLASSIFY_MODEL, "max_tokens": 400,
+                                   "messages": [{"role": "user", "content": prompt}]}, timeout=45)
+            txt = r.json()["content"][0]["text"]
+            out = _json.loads(txt[txt.find("{"):txt.rfind("}") + 1])
+            await ai_cache.put(CLASSIFY_MODEL, prompt, out)
+            return out
+    except Exception:
+        return {}
 
 
 def _fallback_summary(handle, stance_net, supports, against, allies, tier_label):
@@ -49,21 +88,40 @@ async def build_profile(handle, rng="week", limit=150):
 
     supports, against, allies, hashtags = Counter(), Counter(), Counter(), Counter()
     targets_acc = Counter()
+    ent_net = Counter()                       # canonical -> net stance (target-aware, rule-based)
+    mentioned = Counter()                     # canonical -> mention count (for AI candidates)
     for t in own_tw:
         txt = t.get("text", "")
-        st = stance.classify_stance(txt)["stance"]
-        positive = st == "support" or t.get("sentiment") == "إيجابي"
-        negative = st in ("oppose", "sarcastic") or t.get("sentiment") == "سلبي"
+        for st in target_stance.attribute(txt).values():
+            ent_net[st["canonical"]] += st["net"]
         for e in entity_resolver.extract_entities(txt):
-            if positive:
-                supports[e["canonical"]] += 1
-            elif negative:
-                against[e["canonical"]] += 1
+            mentioned[e["canonical"]] += 1
+        negative_post = t.get("sentiment") == "سلبي"
         for m in t.get("mentions", []):
             if m and m.lower() != handle.lower():
-                (targets_acc if negative else allies)[m] += 1
+                (targets_acc if negative_post else allies)[m] += 1
         for h in _HASH.findall(txt):
             hashtags[h] += 1
+
+    # rule-based classification (fallback)
+    thr = 2 if any(abs(n) >= 2 for n in ent_net.values()) else 1
+    for canon, net in ent_net.items():
+        if net >= thr:
+            supports[canon] = net
+        elif net <= -thr:
+            against[canon] = -net
+
+    # AI refinement (accurate, target-aware) — overrides rules when available
+    candidates = [c for c, _ in mentioned.most_common(10)]
+    ai_verdicts = await _ai_stance(handle, [t.get("text", "") for t in own_tw], candidates)
+    if ai_verdicts:
+        supports, against = Counter(), Counter()
+        for canon, verdict in ai_verdicts.items():
+            cnt = mentioned.get(canon, 1)
+            if str(verdict).lower().startswith("support") or verdict in ("داعم", "مؤيد"):
+                supports[canon] = cnt
+            elif str(verdict).lower().startswith("oppos") or verdict in ("معارض", "منتقد"):
+                against[canon] = cnt
 
     stance_dist = stance.aggregate([t.get("text", "") for t in own_tw]) if own_tw else \
         {"net": 0, "pct": {}, "dominant": "neutral"}
