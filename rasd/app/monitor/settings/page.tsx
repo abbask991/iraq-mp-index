@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { apiGet, apiSend } from "@/lib/api";
+import { supabase } from "@/lib/supabaseClient";
 import {
   Target, TargetType, getTargets, addTarget, removeTarget, setPrimary,
   COVERAGE_OPTIONS, getCoverage, setCoverage,
@@ -242,21 +243,93 @@ function SourceWeightsPanel() {
   );
 }
 
+const ROLE_AR: Record<string, string> = { admin: "مدير", analyst: "محلّل", viewer: "مشاهد", client: "عميل" };
+async function authFetch(path: string, method: string, body?: any) {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  const base = process.env.NEXT_PUBLIC_API_BASE || "";
+  const r = await fetch(base + path, {
+    method,
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
+}
+
 function UsersPanel() {
+  const [users, setUsers] = useState<any[] | null>(null);
+  const [err, setErr] = useState("");
+  const [email, setEmail] = useState(""); const [pw, setPw] = useState(""); const [role, setRole] = useState("viewer");
+  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState("");
+
+  const load = async () => {
+    const r = await authFetch("/api/users", "GET");
+    if (r.ok) { setUsers(r.data.users || []); setErr(""); }
+    else setErr(r.status === 403 ? "هذا القسم للمدير فقط." : r.status === 401 ? "سجّل الدخول لإدارة المستخدمين." : "تعذّر التحميل.");
+  };
+  useEffect(() => { load(); }, []);
+
+  const create = async () => {
+    if (!email.trim() || pw.length < 6) { setMsg("أدخل إيميل وكلمة مرور (6+ أحرف)."); return; }
+    setBusy(true);
+    const r = await authFetch("/api/users", "POST", { email: email.trim(), password: pw, role });
+    setBusy(false);
+    if (r.ok) { setMsg(`أُنشئ ${r.data.email}`); setEmail(""); setPw(""); setRole("viewer"); load(); }
+    else setMsg(typeof r.data.detail === "string" ? r.data.detail : "تعذّر الإنشاء (قد يكون الإيميل مستخدماً).");
+    setTimeout(() => setMsg(""), 4000);
+  };
+  const reset = async (u: any) => {
+    const np = prompt(`كلمة مرور جديدة لـ ${u.email}:`); if (!np || np.length < 6) return;
+    const r = await authFetch("/api/users/reset", "POST", { id: u.id, password: np });
+    setMsg(r.ok ? `أُعيد ضبط كلمة مرور ${u.email}` : "تعذّر إعادة الضبط."); setTimeout(() => setMsg(""), 4000);
+  };
+  const toggle = async (u: any) => {
+    if (!confirm(`${u.disabled ? "تفعيل" : "تعطيل"} ${u.email}؟`)) return;
+    const r = await authFetch("/api/users/disable", "POST", { id: u.id, disabled: !u.disabled });
+    if (r.ok) load(); else setMsg(r.data.detail || "تعذّر."); setTimeout(() => setMsg(""), 4000);
+  };
+
   return (
     <div style={{ marginTop: 14 }}>
-      <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
-        <thead><tr style={{ color: "var(--muted)" }}><th style={{ textAlign: "start" }}>المستخدم</th><th>الدور</th><th>الباقة</th><th>الحالة</th></tr></thead>
-        <tbody>
-          <tr style={{ borderTop: "1px solid var(--line)" }}>
-            <td style={{ padding: "8px 0" }}>abbaskareemsaddam@gmail.com</td>
-            <td style={{ textAlign: "center" }}><span className="chip">مدير</span></td>
-            <td style={{ textAlign: "center" }}>مؤسسية</td>
-            <td style={{ textAlign: "center" }}><span className="chip" style={{ color: "#22c55e" }}>مُفعّل</span></td>
-          </tr>
-        </tbody>
-      </table>
-      <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>إدارة المستخدمين والأدوار عبر Supabase Auth — إضافة/حذف المستخدمين من لوحة Supabase حالياً، وتكامل CRUD الكامل قيد التطوير.</p>
+      {err && <p className="muted">{err}</p>}
+      {!err && (
+        <>
+          <div className="card" style={{ marginBottom: 12 }}>
+            <b style={{ fontSize: 13 }}>إضافة مستخدم جديد</b>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "end" }}>
+              <input placeholder="الإيميل" value={email} onChange={(e) => setEmail(e.target.value)} style={{ flex: 2, minWidth: 160 }} />
+              <input placeholder="كلمة المرور (6+)" type="text" value={pw} onChange={(e) => setPw(e.target.value)} style={{ flex: 1, minWidth: 120 }} />
+              <select value={role} onChange={(e) => setRole(e.target.value)}>
+                {Object.entries(ROLE_AR).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+              <button className="btn" onClick={create} disabled={busy}>{busy ? "…" : "إنشاء"}</button>
+            </div>
+            {msg && <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>{msg}</div>}
+          </div>
+
+          {users === null && <p className="muted">جارٍ التحميل…</p>}
+          {users && (
+            <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
+              <thead><tr style={{ color: "var(--muted)" }}>
+                <th style={{ textAlign: "start" }}>المستخدم</th><th>الدور</th><th>آخر دخول</th><th>الحالة</th><th>إجراءات</th>
+              </tr></thead>
+              <tbody>{users.map((u) => (
+                <tr key={u.id} style={{ borderTop: "1px solid var(--line)" }}>
+                  <td style={{ padding: "8px 0" }}>{u.email}{u.is_admin && <span className="chip" style={{ marginInlineStart: 6, fontSize: 10 }}>مدير</span>}</td>
+                  <td style={{ textAlign: "center" }}>{ROLE_AR[u.role] || u.role}</td>
+                  <td style={{ textAlign: "center" }} className="muted">{u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString("ar") : "—"}</td>
+                  <td style={{ textAlign: "center" }}><span className="chip" style={{ color: u.disabled ? "#f43f5e" : "#22c55e" }}>{u.disabled ? "معطّل" : "مُفعّل"}</span></td>
+                  <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                    <a style={{ cursor: "pointer", marginInlineEnd: 10 }} onClick={() => reset(u)}>إعادة الباسوورد</a>
+                    {!u.is_admin && <a style={{ cursor: "pointer", color: u.disabled ? "#22c55e" : "#f43f5e" }} onClick={() => toggle(u)}>{u.disabled ? "تفعيل" : "تعطيل"}</a>}
+                  </td>
+                </tr>
+              ))}</tbody>
+            </table>
+          )}
+          <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>الإنشاء/إعادة الضبط تتم بأمان عبر الخادم (مفتاح الخدمة لا يصل المتصفّح). متاح للمدير فقط.</p>
+        </>
+      )}
     </div>
   );
 }
