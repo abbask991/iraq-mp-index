@@ -218,5 +218,20 @@ async def report(req: ReportReq):
 
 @router.get("/job/{job_id}")
 async def job_status(job_id: str):
-    status = await redis_client.get_job(job_id)
-    return status or {"id": job_id, "status": "unknown"}
+    """Return the RQ job's real status + result (the rendered report bytes)."""
+    from app import jobq
+    if jobq.available():
+        try:
+            from rq.job import Job
+            job = Job.fetch(job_id, connection=jobq.connection())
+            st = job.get_status(refresh=True)
+            status = "done" if st == "finished" else "failed" if st == "failed" else st
+            out = {"id": job_id, "status": status}
+            if st == "finished" and isinstance(job.result, dict):
+                out.update(job.result)
+            elif st == "failed":
+                out["error"] = (job.exc_info or "")[-300:]
+            return out
+        except Exception:
+            pass
+    return await redis_client.get_job(job_id) or {"id": job_id, "status": "unknown"}
