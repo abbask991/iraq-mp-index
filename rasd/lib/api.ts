@@ -65,3 +65,9 @@ export async function apiPost(kind: Kind, body: unknown): Promise<any> {
   });
   return res.json();
 }
+
+// Generic GET to a backend /monitor/* path (e.g. "/monitor/status").
+export async function apiGet(path: string): Promise<any> {
+  const res = await fetch((BASE || "") + path);
+  return res.json();
+}

@@ -133,6 +133,26 @@ async def monitor_summarize(req: SummaryReq):
     return {"summary": await ai.summarize(req.name, req.stats, req.samples)}
 
 
+@router.get("/status")
+async def system_status():
+    """Lightweight health of each subsystem for the Command Center status panel."""
+    from app import jobq
+    from app.config import ANTHROPIC_API_KEY, X_BEARER_TOKEN
+    from app.services import redis_client
+    redis_ok = False
+    if redis_client.enabled():
+        try:
+            await redis_client.set("status:ping", "1", ex=30)
+            redis_ok = (await redis_client.get("status:ping")) == "1"
+        except Exception:
+            redis_ok = False
+    return {
+        "x": bool(X_BEARER_TOKEN), "ai": bool(ANTHROPIC_API_KEY), "rss": True,
+        "telegram": bool(notify.TELEGRAM_BOT_TOKEN), "redis": redis_ok,
+        "database": db.enabled(), "queue": jobq.available(),
+    }
+
+
 # REAL long-range windows from our OWN archive (mentions table grows daily via
 # the cron) — unlike live X which is capped at the last 7 days.
 ARCHIVE_DAYS = {"day": 1, "week": 7, "month": 30, "year": 365}

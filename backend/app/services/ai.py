@@ -96,6 +96,38 @@ async def content_analysis(title: str, samples: list[dict]) -> dict:
         return empty
 
 
+async def command_brief(facts: str) -> dict:
+    """Executive command-center brief — a 5-9 sentence situation summary + the
+    single risk level, top event, and top recommendation. Returns JSON."""
+    empty = {"brief": "", "risk_level": "—", "top_event": "", "recommendation": ""}
+    if not ANTHROPIC_API_KEY:
+        return empty
+    prompt = (
+        "أنت رئيس غرفة عمليات استخبارات إعلامية. بناءً على المعطيات الآلية أدناه عن آخر 24 ساعة، "
+        "اكتب موجزاً تنفيذياً يقرأه مدير خلال 30 ثانية. أعد JSON فقط بالعربية بهذا الشكل:\n"
+        '{"brief":"5 إلى 9 جُمل تصف ما حدث وأبرز التطورات والاحتمالات",'
+        '"risk_level":"منخفض|متوسط|مرتفع|حرج","top_event":"أهم حدث بجملة",'
+        '"recommendation":"أهم توصية عملية بجملة"}\n\n'
+        "استخدم لغة احتمالية رصينة. لا تخترع أرقاماً غير موجودة.\n\n"
+        f"المعطيات:\n{facts}"
+    )
+    cached = await ai_cache.get(SUMMARY_MODEL, prompt)
+    if cached is not None:
+        return cached
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(_API, headers=_HEADERS(), json={
+                "model": SUMMARY_MODEL, "max_tokens": 900,
+                "messages": [{"role": "user", "content": prompt}],
+            }, timeout=60)
+            txt = r.json()["content"][0]["text"]
+            out = json.loads(txt[txt.find("{"):txt.rfind("}") + 1])
+            await ai_cache.put(SUMMARY_MODEL, prompt, out)
+            return out
+    except Exception:
+        return empty
+
+
 async def dossier_conclusion(name: str, facts: str) -> str:
     """Executive intelligence assessment + recommendations for a full dossier."""
     if not ANTHROPIC_API_KEY:

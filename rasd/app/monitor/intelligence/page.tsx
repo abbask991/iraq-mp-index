@@ -59,6 +59,11 @@ export default function Intelligence() {
 
   useEffect(() => { supabase.from("monitors").select("name,keywords").then(({ data }) => setMonitors(data || [])); }, []);
   useEffect(() => { intelGet("/digest").then(setDigest).catch(() => {}); }, []);
+  useEffect(() => {
+    const qp = new URLSearchParams(window.location.search).get("q");
+    if (qp) { setTerm(qp); run(qp); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const run = async (name: string) => {
     if (!name.trim()) return;
