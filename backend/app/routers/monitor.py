@@ -4,6 +4,8 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 import asyncio
+import json
+import time as _time_mod
 
 from app.config import CRON_SECRET
 from app.services import (
@@ -167,6 +169,14 @@ async def alerts_feed():
     """Recent triggered alerts (for the in-app alerts view)."""
     from app.services import alert_engine
     return {"alerts": await alert_engine.feed()}
+
+
+@router.get("/cron/brief")
+async def cron_brief():
+    """Build + push the daily intelligence brief to Telegram. Point a free pinger
+    (cron-job.org) at this ONCE a day (e.g. 07:00 Baghdad). Idempotent per call."""
+    from app.services import brief as brief_service
+    return await brief_service.send_brief()
 
 
 @router.get("/cron/warm")
@@ -690,7 +700,7 @@ async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
         infl.sort(key=lambda x_: -(x_["influence"] * 40 + x_["engagement"] + x_["posts"] * 5))
         top_influencers = infl[:8]
 
-        return {
+        result = {
             "scanned": len(tweets), "accounts": len(users), "window": rng,
             "sentiment": {"pos": pos, "neg": neg, "neu": neu},
             "media_index": round(50 + (50 * (pos - neg) / len(tweets))) if tweets else 50,
@@ -702,6 +712,19 @@ async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
             "issues": issues,
             "geo": geo.aggregate(users),
         }
+        # publish a STABLE extract so the digest reads geo/campaigns/trending/
+        # sentiment without guessing the coverage-keyed overview cache key.
+        from app.services import redis_client as _rc
+        if _rc.enabled():
+            try:
+                await _rc.set("intel:overview_extract", json.dumps({
+                    "geo": result["geo"], "campaigns": result["campaigns"],
+                    "trending": result["trending"], "sentiment": result["sentiment"],
+                    "ts": _time_mod.time(),
+                }, ensure_ascii=False), ex=86400)
+            except Exception:
+                pass
+        return result
 
     return await cache.swr(key, OVERVIEW_TTL, _build)
 

@@ -172,6 +172,12 @@ async def build_national():
         "top_campaigns": dg.get("active_campaigns", [])[:5],
         "platform_distribution": dg.get("platform_activity", []),
         "geo": dg.get("geo"),
+        "national_sentiment": dg.get("national_sentiment", {}),
+        "emotion_heatmap": dg.get("emotion_heatmap", []),
+        "momentum": [{"name": e["name"],
+                      "velocity": round((e.get("national_trend_probability") or 0) * 100),
+                      "trajectory": e.get("trajectory"), "risk": e.get("risk", 0)}
+                     for e in dg.get("rising", [])[:6]],
         "recommended_actions": summ.get("recommended_actions", []),
         "generated_at": dg.get("generated_at"),
         "disclaimer": "تحليل احتمالي آلي — يتطلّب مراجعة بشرية.",

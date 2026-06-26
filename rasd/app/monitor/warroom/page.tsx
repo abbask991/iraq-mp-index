@@ -6,7 +6,10 @@ import Gauge from "@/components/Gauge";
 import CountUp from "@/components/CountUp";
 import WarGraph from "@/components/WarGraph";
 import RadarChart from "@/components/RadarChart";
+import EmotionHeatmap from "@/components/EmotionHeatmap";
 import IraqMap from "@/components/IraqMap";
+
+const TRAJ = (t: string) => (t === "rising" || t === "escalating" ? "▲" : t === "declining" || t === "cooling" ? "▼" : "▬");
 
 const REFRESH = 45;
 const sevIcon = (s: string) => (s === "red" ? "🔴" : s === "orange" ? "🟠" : "🟡");
@@ -87,6 +90,8 @@ export default function WarRoom() {
   const attacked = d?.most_attacked || [];
   const reds = alerts.filter((a) => a.severity === "red").length;
   const platforms = d?.platform_distribution || [];
+  const heatmap = d?.emotion_heatmap || [];
+  const momentum = d?.momentum || [];
   const radarAxes = [
     { label: "العام", value: risk },
     { label: "سياسي", value: sc.political || 0 },
@@ -239,6 +244,27 @@ export default function WarRoom() {
                   </div>
                 );
               }) : <div className="muted" style={{ fontSize: 13, padding: 8 }}>تُجمَّع بيانات المنصّات حالياً…</div>}
+            </div>
+          </div>
+
+          {/* viz row 2: emotion heatmap · spread velocity */}
+          <div className="wr-viz">
+            <div className="wr-panel">
+              <div className="wr-cap">🌡️ خريطة حرارة المشاعر</div>
+              <EmotionHeatmap data={heatmap} />
+            </div>
+            <div className="wr-panel">
+              <div className="wr-cap">🚀 سرعة الانتشار</div>
+              {momentum.length ? (
+                <div className="wr-velos">
+                  {momentum.slice(0, 4).map((m: any, i: number) => (
+                    <div key={i} className="wr-velo">
+                      <Gauge value={m.velocity || 0} size={78} color={riskColor(m.risk || m.velocity || 0)} />
+                      <div className="wr-velo-name">{m.name} <span style={{ color: m.trajectory === "declining" || m.trajectory === "cooling" ? "#22c55e" : "#f43f5e" }}>{TRAJ(m.trajectory)}</span></div>
+                    </div>
+                  ))}
+                </div>
+              ) : <div className="muted" style={{ fontSize: 13, padding: 8 }}>تُحتسب سرعة الانتشار حالياً…</div>}
             </div>
           </div>
 

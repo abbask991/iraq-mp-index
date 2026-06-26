@@ -91,15 +91,18 @@ async def build_digest(now_ts: float | None = None):
         key=lambda r: -(r["posts"] * (1 + r["national_trend_probability"])))[:8]
     heatmap = sorted(heatmap, key=lambda h: -sum(h["emotions"].values()))[:8]
 
-    # trending / campaigns / geo from the already-cached overview (no new X cost)
-    trending, campaigns, geo = [], [], None
-    raw_ov = await redis_client.get("swr:overview:day:1000")
+    # trending / campaigns / geo / sentiment from the overview's STABLE extract.
+    # (The overview cache key depends on coverage, which the digest can't know, so
+    # the overview publishes this decoupled `intel:overview_extract` for us.)
+    trending, campaigns, geo, national_sentiment = [], [], None, {}
+    raw_ov = await redis_client.get("intel:overview_extract")
     if raw_ov:
         try:
-            ov = json.loads(raw_ov)["v"]
+            ov = json.loads(raw_ov)
             trending = (ov.get("trending") or [])[:8]
             campaigns = (ov.get("campaigns") or [])[:5]
             geo = ov.get("geo")
+            national_sentiment = ov.get("sentiment") or {}
         except Exception:
             pass
 
@@ -143,6 +146,7 @@ async def build_digest(now_ts: float | None = None):
         "top_risk": top_risk, "movers": movers, "rising": rising,
         "rising_narratives": rising_narratives, "emotion_heatmap": heatmap,
         "trending": trending, "active_campaigns": campaigns, "geo": geo,
+        "national_sentiment": national_sentiment,
         "executive": executive, "risk_summary": risk_summary,
         "platform_activity": platform_activity,
         "count": len(entities),
