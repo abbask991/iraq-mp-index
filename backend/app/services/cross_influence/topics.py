@@ -28,7 +28,8 @@ def _ok(w):
 
 
 def _post_topics(t):
-    """Set of (display, key) topics — hashtags + adjacent two-word phrases."""
+    """Set of (display, key) topics — hashtags + distinctive keywords (recall).
+    Bare words are turned into readable phrases later via `phrase_for`."""
     out = set()
     for h in (t.get("hashtags") or []):
         if not h:
@@ -36,12 +37,31 @@ def _post_topics(t):
         key = dedup.normalize(h)
         if key and key not in _GENERIC and len(key) >= 3:
             out.add(("#" + h, "h:" + key))
-    words = dedup.normalize(t.get("text", "")).split()
-    for i in range(len(words) - 1):
-        a, b = words[i], words[i + 1]
-        if _ok(a) and _ok(b):
-            out.add((f"{a} {b}", f"b:{a} {b}"))
+    for w in dedup.normalize(t.get("text", "")).split():
+        if len(w) >= 4 and _ok(w):
+            out.add((w, w))
     return out
+
+
+def phrase_for(key, posts, *, _min=2):
+    """Best two-word phrase containing `key` across the issue's posts, so a bare
+    keyword ("اعاده") is shown as the real issue ("اعاده الاعمار"). Falls back to
+    the key itself."""
+    if key.startswith("#") or key.startswith("h:"):
+        return key.replace("h:", "#")
+    from collections import Counter
+    grams = Counter()
+    for p in posts:
+        words = dedup.normalize(p.get("text", "")).split()
+        for i in range(len(words) - 1):
+            a, b = words[i], words[i + 1]
+            if (a == key or b == key) and _ok(a) and _ok(b):
+                grams[f"{a} {b}"] += 1
+    if grams:
+        best, n = grams.most_common(1)[0]
+        if n >= _min:
+            return best
+    return key
 
 
 def index(posts):

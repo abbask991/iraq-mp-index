@@ -101,12 +101,17 @@ def _analyze(src, tgt, src_pool, tgt_pool, *, light=False):
     located_ok = len(sp_all) >= 15 and len(tp_all) >= 15
     cross_ids = set()                       # location attribution is country-exclusive
     s_idx, t_idx = topics.index(sp_all), topics.index(tp_all)
-    cands = topics.shared(s_idx, t_idx, min_each=2, top=24)
+    cands = topics.shared(s_idx, t_idx, min_each=3, top=24)
 
-    issues_out = []
+    issues_out, seen_labels = [], set()
     for c in cands:
         sp = [sp_all[i] for i in s_idx[c["key"]]["idxs"]]
         tp = [tp_all[i] for i in t_idx[c["key"]]["idxs"]]
+        # name the issue with its dominant two-word phrase, and dedup by that name
+        # so "اعاده" / "الاعمار" collapse into one "اعاده الاعمار" issue.
+        label = topics.phrase_for(c["key"], sp + tp)
+        if label in seen_labels or (len(label.split()) < 2 and not label.startswith("#")):
+            continue                              # require a real phrase or hashtag, not a bare word
         fl = flow.analyze_pair(sp, tp)            # "IQ"=src leads, "SY"=tgt leads
         if not fl:
             continue
@@ -125,9 +130,10 @@ def _analyze(src, tgt, src_pool, tgt_pool, *, light=False):
                                 correlation=fl["correlation"], lag_hours=fl["lag_hours"],
                                 located_ok=located_ok)
         sample = max(sp + tp, key=lambda p: int(p.get("engagement") or 0), default={})
-        cat = issues.classify(c["display"], sample.get("text", ""))
+        cat = issues.classify(label, sample.get("text", ""))
+        seen_labels.add(label)
         row = {
-            "issue": c["display"], "key": c["key"], "category": cat, "concurrent": conc,
+            "issue": label, "key": c["key"], "category": cat, "concurrent": conc,
             "direction": ("متزامن" if conc else
                           f"{countries.name(src)} ← {countries.name(tgt)}" if not src_leads
                           else f"{countries.name(src)} → {countries.name(tgt)}"),
