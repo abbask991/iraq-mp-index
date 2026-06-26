@@ -48,7 +48,7 @@ const SECTORS: { ar: string; en: string; items: Item[] }[] = [
       { icon: "", ar: "الصورة الموحّدة (كل المنصّات)", en: "Unified Picture", href: "/monitor/fusion" },
       { icon: "", ar: "ساحة المعركة الإعلامية", en: "Media Battlefield", href: "/monitor/battlefield" },
       { icon: "", ar: "كشف الشبكات المنسّقة", en: "Coordinated Networks", href: "/monitor/coordination" },
-      { icon: "", ar: "التأثير العابر للحدود (عراق↔سوريا)", en: "Cross-Border Influence", href: "/monitor/cross-influence" },
+      { icon: "", ar: "التأثير الإقليمي (العراق↔الجوار)", en: "Regional Influence", href: "/monitor/regional-influence" },
       { icon: "", ar: "غرفة حرب السرديات", en: "Narrative War Room", href: "/monitor/narratives" },
       { icon: "", ar: "رادار المؤثّرين", en: "Influencer Radar", href: "/monitor/influencers" },
       { icon: "", ar: "الرأي العام الرقمي (PPOI)", en: "Public Opinion (PPOI)", href: "/monitor/opinion" },
