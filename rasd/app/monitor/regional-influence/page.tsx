@@ -86,7 +86,10 @@ export default function RegionalInfluence() {
               ))}
             </div>
             {d.summary && <p style={{ fontSize: 14, lineHeight: 2, marginTop: 12 }}>{d.summary}</p>}
-            <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>فُحص {st.src_scanned} منشور · {st.tgt_scanned} منشور</div>
+            <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>
+              حسابات مُحدّدة الموقع: {d.source_country} {st.src_located} · {d.target_country} {st.tgt_located}
+              {st.located_ok === false && <span style={{ color: "#fb923c", marginInlineStart: 8 }}>⚠ عيّنة موقع صغيرة — الثقة مخفّضة</span>}
+            </div>
           </div>
 
           {d.issues?.length ? d.issues.map((it: any, i: number) => (

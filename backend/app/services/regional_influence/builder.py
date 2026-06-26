@@ -12,7 +12,7 @@ from app.services import cache, x
 from app.services.collection import dedup
 from app.services.cross_influence import actors, flow, topics
 from app.services.media_battlefield import battlefield_summary
-from app.services.regional_influence import countries, influence_type, issues, score
+from app.services.regional_influence import countries, geo_country, influence_type, issues, score
 
 _CONCURRENCY = 6
 _SCORE_FLOOR = 20
@@ -79,13 +79,29 @@ def _first(posts, users):
 
 
 def _analyze(src, tgt, src_pool, tgt_pool, *, light=False):
-    sp_all, su = src_pool["tweets"], src_pool["users"]
-    tp_all, tu = tgt_pool["tweets"], tgt_pool["users"]
-    users = {**tu, **su}
-    cross_ids = ({t.get("author_id") for t in sp_all if t.get("author_id")} &
-                 {t.get("author_id") for t in tp_all if t.get("author_id")})
+    # Merge both keyword pools, then attribute every post to a country by its
+    # author's ACTUAL location — not by which keyword fetched it. This is what
+    # makes direction honest: a Saudi account posting about Iraq is Gulf discourse.
+    users = {**tgt_pool["users"], **src_pool["users"]}
+    seen, merged = set(), []
+    for t in (src_pool["tweets"] + tgt_pool["tweets"]):
+        # key on (author, text) so the SAME tweet fetched twice dedups, but two
+        # different accounts posting identical text (cross-border copypasta — the
+        # influence signal itself) are both kept.
+        key = (t.get("author_id"), dedup.fingerprint(t.get("text", "")))
+        if key[1] and key not in seen:
+            seen.add(key)
+            merged.append(t)
+
+    def _loc_country(t):
+        return geo_country.country_of((users.get(t.get("author_id")) or {}).get("location"))
+
+    sp_all = [t for t in merged if _loc_country(t) == src]
+    tp_all = [t for t in merged if _loc_country(t) == tgt]
+    located_ok = len(sp_all) >= 15 and len(tp_all) >= 15
+    cross_ids = set()                       # location attribution is country-exclusive
     s_idx, t_idx = topics.index(sp_all), topics.index(tp_all)
-    cands = topics.shared(s_idx, t_idx, min_each=4, top=20)
+    cands = topics.shared(s_idx, t_idx, min_each=3, top=20)
 
     issues_out = []
     for c in cands:
@@ -99,15 +115,15 @@ def _analyze(src, tgt, src_pool, tgt_pool, *, light=False):
         lead_posts = sp if src_leads else tp
         fol_posts = tp if src_leads else sp
         h_overlap = _jaccard(_hashtags(sp), _hashtags(tp))
-        a_overlap = _jaccard([p.get("author_id") for p in sp], [p.get("author_id") for p in tp])
         mr = _media_ratio(lead_posts, users)
         sc = score.influence(lag_hours=fl["lag_hours"], correlation=fl["correlation"],
                              shared_vol=min(fl["iq_volume"], fl["sy_volume"]),
-                             hashtag_overlap=h_overlap, account_overlap=a_overlap, media_ratio=mr)
+                             hashtag_overlap=h_overlap, media_ratio=mr)
         if sc < _SCORE_FLOOR:
             continue
         conf = score.confidence(src_vol=fl["iq_volume"], tgt_vol=fl["sy_volume"],
-                                correlation=fl["correlation"], lag_hours=fl["lag_hours"])
+                                correlation=fl["correlation"], lag_hours=fl["lag_hours"],
+                                located_ok=located_ok)
         sample = max(sp + tp, key=lambda p: int(p.get("engagement") or 0), default={})
         cat = issues.classify(c["display"], sample.get("text", ""))
         row = {
@@ -159,6 +175,7 @@ def _analyze(src, tgt, src_pool, tgt_pool, *, light=False):
         "issues": issues_out,
         "stats": {"shared_issues": len(issues_out), "src_leads": src_leads, "tgt_leads": tgt_leads,
                   "concurrent": conc, "strength": strength, "direction": ddir, "lead": dlead,
+                  "src_located": len(sp_all), "tgt_located": len(tp_all), "located_ok": located_ok,
                   "src_scanned": len(sp_all), "tgt_scanned": len(tp_all)},
     }
 
