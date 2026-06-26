@@ -52,6 +52,10 @@ async def _warm_on_startup():
             pass
     asyncio.create_task(_go())
 
+    # internal scheduler — auto warm/alerts/digest + daily brief (no external pinger)
+    from app.services import scheduler
+    asyncio.create_task(scheduler.run())
+
 
 @app.get("/")
 def root():

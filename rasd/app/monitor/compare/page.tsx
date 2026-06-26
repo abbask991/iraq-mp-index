@@ -83,8 +83,23 @@ export default function Compare() {
           action={{ label: "إعادة المحاولة", onClick: run }} />
       )}
 
-      {twA && twB && !busy && (
+      {twA && twB && !busy && (() => {
+        const tally = SCORES.reduce((acc, s) => { const w = winner(s.key, s.invert); if (w === -1) acc.a++; else if (w === 1) acc.b++; else acc.t++; return acc; }, { a: 0, b: 0, t: 0 });
+        const lead = tally.a === tally.b ? null : tally.a > tally.b ? twA : twB;
+        const leadWins = Math.max(tally.a, tally.b);
+        return (
         <>
+          {/* overall verdict */}
+          <div className="cbox" style={{ marginBottom: 14, borderInlineStart: `4px solid ${lead ? "#22c55e" : "#f59e0b"}`, textAlign: "center" }}>
+            <div className="muted" style={{ fontSize: 12 }}>الحكم الاستراتيجي العام</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: lead ? "#22c55e" : "#f59e0b", margin: "2px 0" }}>
+              {lead ? `${lead.identity?.name} متقدّم` : "تعادل استراتيجي"}</div>
+            <div style={{ fontSize: 13 }}>
+              <b>{twA.identity?.name}</b> {tally.a} · <b>{twB.identity?.name}</b> {tally.b}{tally.t ? ` · تعادل ${tally.t}` : ""}
+              <span className="muted"> (من {SCORES.length} مؤشرات)</span>
+            </div>
+          </div>
+
           {/* heads */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 10, marginBottom: 14 }}>
             <div className="cbox" style={{ textAlign: "center" }}>
@@ -146,7 +161,8 @@ export default function Compare() {
             </div>
           </div>
         </>
-      )}
+        );
+      })()}
     </div>
   );
 }
