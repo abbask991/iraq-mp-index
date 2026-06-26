@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import Logo from "@/components/Logo";
 
 export default function Login() {
   const router = useRouter();
@@ -34,6 +35,11 @@ export default function Login() {
 
   return (
  <div className="card" style={{ maxWidth: 440, margin: "40px auto" }}>
+ <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, marginBottom: 16 }}>
+ <Logo size={46} />
+ <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.3px" }}>Sentinel<span style={{ color: "var(--accent2)" }}> Intelligence</span></div>
+ <div className="muted" style={{ fontSize: 11 }}>by Integrate Dynamics</div>
+ </div>
  <div className="auth-tabs">
  <button className={mode === "login" ? "on" : ""} onClick={() => setMode("login")}>تسجيل الدخول</button>
  <button className={mode === "signup" ? "on" : ""} onClick={() => setMode("signup")}>حساب جديد</button>

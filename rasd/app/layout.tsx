@@ -3,8 +3,8 @@ import Link from "next/link";
 import DirInit from "@/components/DirInit";
 
 export const metadata = {
-  title: "مركز الرصد — الرصد والتحليل الإعلامي",
-  description: "مركز الرصد: رصد وتحليل إعلامي احترافي — أخبار، منصّات التواصل، تحليل المشاعر، الإنذار المبكر، وتقارير ذكية.",
+  title: "Sentinel Intelligence — منصّة الاستخبارات الإعلامية",
+  description: "Sentinel Intelligence by Integrate Dynamics — استخبارات إعلامية وسياسية ومؤسسية: رصد متعدّد المنصّات، تحليل الرأي العام، الإنذار المبكر، وتقارير ذكية.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

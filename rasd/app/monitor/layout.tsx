@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getMySub, isActive, daysLeft, PLAN_LABEL, Sub } from "@/lib/subscription";
 import { getLang, setLang, applyDir, tr, Lang, getTheme, setTheme, applyTheme, Theme } from "@/lib/i18n";
 import CommandPalette from "@/components/CommandPalette";
+import Logo from "@/components/Logo";
 
 type Item = { icon: string; ar: string; en: string; href?: string };
 const SECTORS: { ar: string; en: string; items: Item[] }[] = [
@@ -173,8 +174,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <div className="console-bar">
  <div className="cb-left">
  <button className="cb-burger" aria-label="menu" onClick={() => setNavOpen((v) => !v)}>{navOpen ? "✕" : "☰"}</button>
- <span className="cb-logo" />
- <span className="cb-brand">مركز الرصد</span>
+ <Logo size={24} />
+ <span className="cb-brand">Sentinel<span className="cb-brand-2"> Intelligence</span></span>
  <span className="cb-chev">›</span>
  <span className="cb-section">{sectionTitle}</span>
  </div>
@@ -228,6 +229,10 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <span style={{ marginInlineStart: "auto", fontSize: 10, background: "#1f2a3d", padding: "1px 6px", borderRadius: 6 }}>{t(T.comingSoon)}</span>
  </span>
         ))}
+ <div className="side-brand">
+ <Logo size={22} />
+ <span className="t"><b>Sentinel Intelligence</b><br />by Integrate Dynamics</span>
+ </div>
  </aside>
 
  <div className="admin-main">

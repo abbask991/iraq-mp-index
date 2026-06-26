@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import Gauge from "@/components/Gauge";
 
@@ -21,6 +21,8 @@ export default function Corporate() {
     const r = await apiGet(`/api/corporate/intelligence?company=${encodeURIComponent(q)}`).catch(() => null);
     setD(r); setBusy(false);
   };
+
+  useEffect(() => { const u = new URLSearchParams(window.location.search).get("q"); if (u) run(u); /* eslint-disable-next-line */ }, []);
 
   const b = d?.brief || {};
 

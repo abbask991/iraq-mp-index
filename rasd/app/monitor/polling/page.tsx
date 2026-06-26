@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 
 const repC = (lbl?: string) => (lbl === "عالية" ? "#22c55e" : lbl === "متوسطة" ? "#f59e0b" : "#f43f5e");
@@ -31,6 +31,8 @@ export default function Polling() {
     const r = await apiGet(`/api/polling/survey?${qs}`).catch(() => null);
     setD(r); setBusy(false);
   };
+
+  useEffect(() => { const u = new URLSearchParams(window.location.search).get("q"); if (u) run(u); /* eslint-disable-next-line */ }, []);
 
   const res = d?.result || {}; const rep = d?.representativeness || {}; const smp = d?.sample || {};
   const fav = res.favorable;

@@ -21,8 +21,18 @@ export default function CommandPalette({ items }: { items: Item[] }) {
   }, []);
   useEffect(() => { if (open) { setQ(""); setIdx(0); setTimeout(() => inputRef.current?.focus(), 30); } }, [open]);
 
-  const term = q.trim().toLowerCase();
-  const filtered = term ? items.filter((i) => i.label.toLowerCase().includes(term) || (i.group || "").toLowerCase().includes(term)) : items;
+  const raw = q.trim();
+  const term = raw.toLowerCase();
+  const sections = term ? items.filter((i) => i.label.toLowerCase().includes(term) || (i.group || "").toLowerCase().includes(term)) : items;
+  // typing a name → offer to analyze it directly across the intelligence engines
+  const enc = encodeURIComponent(raw);
+  const entityActions: Item[] = raw.length >= 2 ? [
+    { label: `الرأي العام: «${raw}»`, href: `/monitor/opinion?q=${enc}`, group: "تحليل" },
+    { label: `الصورة الموحّدة: «${raw}»`, href: `/monitor/fusion?q=${enc}`, group: "تحليل" },
+    { label: `الاستخبارات المؤسسية: «${raw}»`, href: `/monitor/corporate?q=${enc}`, group: "تحليل" },
+    { label: `استطلاع الرأي: «${raw}»`, href: `/monitor/polling?q=${enc}`, group: "تحليل" },
+  ] : [];
+  const filtered = [...sections, ...entityActions];
   const go = (href: string) => { setOpen(false); router.push(href); };
 
   return (

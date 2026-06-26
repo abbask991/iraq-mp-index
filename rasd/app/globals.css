@@ -530,6 +530,34 @@ h3 { letter-spacing: -.2px; }
 .cmdk-group { font-size: 11px; color: var(--muted); font-weight: 500; }
 .cmdk-foot { padding: 9px 16px; border-top: 1px solid var(--line); }
 
+/* ════════════════════════════════════════════════════════════════════
+   BRANDING (Sentinel Intelligence) + page-header + skeleton polish
+   ════════════════════════════════════════════════════════════════════ */
+.cb-brand { font-weight: 800; letter-spacing: -.2px; }
+.cb-brand-2 { color: var(--accent2); font-weight: 800; }
+
+/* unified page header — accent bar before the first heading of every page */
+.admin-main > div > h2:first-child,
+.admin-main > h2:first-child {
+  position: relative; padding-inline-start: 15px; font-size: 21px; letter-spacing: -.3px;
+}
+.admin-main > div > h2:first-child::before,
+.admin-main > h2:first-child::before {
+  content: ""; position: absolute; inset-inline-start: 0; top: .14em; height: .78em; width: 4px;
+  border-radius: 4px; background: var(--grad-accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* richer skeleton shimmer */
+.skel { background: linear-gradient(100deg, var(--line) 30%, color-mix(in srgb, var(--accent) 9%, var(--hover)) 50%, var(--line) 70%);
+  background-size: 200% 100%; }
+
+/* sidebar brand footer */
+.side-brand { margin-top: 18px; padding: 13px 8px 2px; border-top: 1px solid var(--line);
+  display: flex; align-items: center; gap: 9px; }
+.side-brand .t { font-size: 11px; color: var(--muted); line-height: 1.45; }
+.side-brand .t b { color: var(--text); font-weight: 700; }
+
 /* Settings: fixed tab rail → horizontal scrollable tabs on phones */
 @media (max-width: 760px) {
   .set-grid { grid-template-columns: 1fr !important; }

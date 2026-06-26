@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import IraqMap from "@/components/IraqMap";
 
@@ -21,6 +21,8 @@ export default function Fusion() {
     const r = await apiGet(`/api/fusion/picture?entity=${encodeURIComponent(q)}`).catch(() => null);
     setD(r); setBusy(false);
   };
+
+  useEffect(() => { const u = new URLSearchParams(window.location.search).get("q"); if (u) run(u); /* eslint-disable-next-line */ }, []);
 
   const s = d?.synthesis || {};
 
