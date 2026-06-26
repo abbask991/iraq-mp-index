@@ -97,6 +97,19 @@ async def build_picture(entity: str, rng: str = "week", x_limit: int = 300) -> d
         for p, c in zip(fused, cls):
             p["sentiment"], p["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
 
+    # progressive enrichment: fire keyword-search across search-capable platforms
+    # (background, throttled to once per 6h per entity) so the picture fills with
+    # all platforms over time — like X, no links needed.
+    try:
+        import asyncio
+
+        from app.services import redis_client
+        from app.services.social import cross_platform
+        if await redis_client.setnx(f"enrich:{entity}", "1", 21600):
+            asyncio.create_task(cross_platform.enrich_entity(entity, limit=10))
+    except Exception:
+        pass
+
     # 3) stored cross-platform posts for this entity
     cross = [store.to_post(r) for r in await store.query(entity, limit=300)]
     for p in cross:

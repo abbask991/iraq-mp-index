@@ -16,6 +16,8 @@ export default function CrossPlatform() {
   const [url, setUrl] = useState("");
   const [feed, setFeed] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [byKeyword, setByKeyword] = useState(false);
+  const [keyword, setKeyword] = useState("");
 
   useEffect(() => { apiGet("/api/social/platforms").then(setStatus).catch(() => {}); setSources(load()); }, []);
 
@@ -48,6 +50,26 @@ export default function CrossPlatform() {
     setBusy(false);
   };
 
+  const searchAll = async () => {
+    const kw = keyword.trim(); if (!kw) return;
+    const searchable = (status?.searchable || []) as string[];
+    if (!searchable.length) return;
+    setBusy(true); setFeed({ posts: [], sources: searchable.length });
+    const all: any[] = [];
+    for (const p of searchable) {
+      const started = await apiSend("/api/social/collect", "POST", { platform: p, url: kw, limit: 10, mode: "search" }).catch(() => null);
+      const job = started?.job_id;
+      if (!job) continue;
+      for (let i = 0; i < 30; i++) {
+        await new Promise((r) => setTimeout(r, 7000));
+        const res = await apiGet(`/api/social/result?job=${encodeURIComponent(job)}&platform=${p}&mode=search&entity=${encodeURIComponent(kw)}`).catch(() => null);
+        if (res?.status === "ready") { all.push(...(res.posts || [])); setFeed({ posts: [...all], sources: searchable.length }); break; }
+        if (res?.status === "failed") break;
+      }
+    }
+    setBusy(false);
+  };
+
   const plats = status?.platforms || [];
 
   return (
@@ -67,8 +89,27 @@ export default function CrossPlatform() {
         </div>
       )}
 
+      {/* mode toggle */}
+      <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
+        <button className={byKeyword ? "btn" : "btn ghost"} onClick={() => setByKeyword(true)}>🔍 بحث بالكلمة (مثل X)</button>
+        <button className={!byKeyword ? "btn" : "btn ghost"} onClick={() => setByKeyword(false)}>🔗 روابط مصادر</button>
+      </div>
+
+      {/* keyword search (like X) */}
+      {byKeyword && (
+        <div className="card" style={{ marginTop: 10 }}>
+          <b style={{ fontSize: 13 }}>رصد موضوع عبر المنصّات تلقائياً</b>
+          <p className="muted" style={{ fontSize: 11, marginTop: 4 }}>يبحث في: {(status?.searchable || []).map((p: string) => PLAT_ICON[p]).join(" ")} — بدون روابط (فيسبوك/تلغرام يحتاجون مصادر).</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            <input placeholder="مثال: وزارة الكهرباء" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && searchAll()} style={{ flex: 2, minWidth: 220 }} />
+            <button className="btn" onClick={searchAll} disabled={busy || !keyword.trim()}>{busy ? "جارٍ البحث…" : "ابحث عبر المنصّات"}</button>
+          </div>
+        </div>
+      )}
+
       {/* add source */}
-      <div className="card" style={{ marginTop: 14 }}>
+      {!byKeyword && (
+      <div className="card" style={{ marginTop: 10 }}>
         <b style={{ fontSize: 13 }}>إضافة مصدر</b>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "end" }}>
           <select value={platform} onChange={(e) => setPlatform(e.target.value)}>
@@ -90,6 +131,7 @@ export default function CrossPlatform() {
           <button className="btn" onClick={run} disabled={busy || !sources.length}>{busy ? "جارٍ الجمع… (قد يستغرق دقيقة)" : "جمع المنشورات"}</button>
         </div>
       </div>
+      )}
 
       {busy && <div style={{ marginTop: 14 }}><span className="spinner" /> الجمع عبر المنصّات غير فوري (يُشغّل مهمة بالخلفية لكل مصدر)…</div>}
 

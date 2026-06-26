@@ -9,13 +9,59 @@ from app.services.social_providers import base
 
 def status() -> dict:
     prov = base.get()
+    searchable = set(getattr(prov, "SEARCHABLE", []))
     return {
         "provider": base.active_name(),
         "enabled": bool(prov and prov.enabled()),
         "platforms": [{"key": p, "ar": base.PLATFORM_AR.get(p, p),
-                       "supported": bool(prov and p in getattr(prov, "SUPPORTED", []))}
+                       "supported": bool(prov and p in getattr(prov, "SUPPORTED", [])),
+                       "searchable": p in searchable}
                       for p in base.PLATFORMS],
+        "searchable": sorted(searchable),
     }
+
+
+async def enrich_entity(keyword: str, limit: int = 10):
+    """Background: keyword-search every search-capable platform for `keyword`,
+    wait for each, and store results tagged with the entity — so the unified
+    picture progressively fills with all platforms (like X) without any links."""
+    import asyncio
+    import time
+
+    from app.services.fusion import store
+    prov = base.get()
+    if not prov or not prov.enabled():
+        return
+    for p in getattr(prov, "SEARCHABLE", []):
+        try:
+            s = await prov.start(p, keyword, limit=limit, mode="search")
+            jid = s.get("job_id")
+            if not jid:
+                continue
+            deadline = time.time() + 200
+            while time.time() < deadline:
+                r = await prov.poll(jid, p, "search")
+                if r.get("status") != "collecting":
+                    if r.get("posts"):
+                        await store.store_posts(r["posts"], keyword)
+                    break
+                await asyncio.sleep(8)
+        except Exception:
+            continue
+
+
+async def discover(keyword: str, limit: int = 10) -> dict:
+    """Keyword/topic monitoring across all search-capable platforms (like X) —
+    fire each as a job and return the job handles for polling."""
+    prov = base.get()
+    if not prov or not prov.enabled():
+        return {"jobs": [], "error": "provider not configured"}
+    jobs = []
+    for p in getattr(prov, "SEARCHABLE", []):
+        s = await prov.start(p, keyword, limit=limit, mode="search")
+        if s.get("job_id"):
+            jobs.append({"platform": p, "job_id": s["job_id"]})
+    return {"jobs": jobs, "keyword": keyword}
 
 
 async def start_source(platform: str, url: str, limit: int = 15, mode: str = "auto") -> dict:

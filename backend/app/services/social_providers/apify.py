@@ -18,21 +18,31 @@ SUPPORTED = ["instagram", "tiktok", "facebook", "youtube", "reddit"]
 _API = "https://api.apify.com/v2"
 _HASH = re.compile(r"#[\w؀-ۿ_]+")
 
-# platform -> {actor, input(url, n)} — popular public actors. Swap an actor here
-# and the rest of the platform keeps working.
+# platform -> {actor, url(link,n), search(keyword,n)|None}. `search` lets a
+# platform be monitored by TOPIC like X (no link needed); None = link-only.
 ACTOR_MAP = {
     "instagram": {"actor": "apify~instagram-scraper",
-                  "input": lambda u, n: {"directUrls": [u], "resultsType": "posts", "resultsLimit": n}},
+                  "url": lambda u, n: {"directUrls": [u], "resultsType": "posts", "resultsLimit": n},
+                  "search": lambda kw, n: {"search": kw, "searchType": "hashtag",
+                                           "resultsType": "posts", "resultsLimit": n}},
     "tiktok":    {"actor": "clockworks~tiktok-scraper",
-                  "input": lambda u, n: {"profiles": [u], "resultsPerPage": n,
-                                         "shouldDownloadVideos": False, "shouldDownloadCovers": False}},
+                  "url": lambda u, n: {"profiles": [u], "resultsPerPage": n,
+                                       "shouldDownloadVideos": False, "shouldDownloadCovers": False},
+                  "search": lambda kw, n: {"searchQueries": [kw], "resultsPerPage": n,
+                                           "shouldDownloadVideos": False, "shouldDownloadCovers": False}},
     "facebook":  {"actor": "apify~facebook-posts-scraper",
-                  "input": lambda u, n: {"startUrls": [{"url": u}], "resultsLimit": n}},
+                  "url": lambda u, n: {"startUrls": [{"url": u}], "resultsLimit": n},
+                  "search": None},                         # FB blocks keyword search → link-only
     "youtube":   {"actor": "streamers~youtube-scraper",
-                  "input": lambda u, n: {"startUrls": [{"url": u}], "maxResults": n}},
+                  "url": lambda u, n: {"startUrls": [{"url": u}], "maxResults": n},
+                  "search": lambda kw, n: {"searchQueries": [kw], "maxResults": n}},
     "reddit":    {"actor": "trudax~reddit-scraper-lite",
-                  "input": lambda u, n: {"startUrls": [{"url": u}], "maxItems": n}},
+                  "url": lambda u, n: {"startUrls": [{"url": u}], "maxItems": n},
+                  "search": lambda kw, n: {"searches": [kw], "maxItems": n, "type": "posts"}},
 }
+
+# platforms that can be monitored by keyword (like X)
+SEARCHABLE = [p for p, c in ACTOR_MAP.items() if c.get("search")]
 
 
 def enabled() -> bool:
@@ -84,7 +94,12 @@ async def start(platform: str, target: str, limit: int = 15, mode: str = "auto")
     if platform not in ACTOR_MAP:
         return {"job_id": None, "error": f"unsupported platform {platform}"}
     cfg = ACTOR_MAP[platform]
-    payload = cfg["input"](target, max(1, limit))
+    if mode == "search":
+        if not cfg.get("search"):
+            return {"job_id": None, "error": f"{platform} لا يدعم البحث بالكلمة — استخدم رابطاً"}
+        payload = cfg["search"](target, max(1, limit))
+    else:
+        payload = cfg["url"](target, max(1, limit))
     async with httpx.AsyncClient() as c:
         r = await c.post(f"{_API}/acts/{cfg['actor']}/runs?token={_tok()}", json=payload, timeout=30)
     if r.status_code not in (200, 201):
