@@ -52,6 +52,12 @@ const SECTORS: { ar: string; en: string; items: Item[] }[] = [
       { icon: "", ar: "أرشيف X (يكبر يومياً)", en: "X Archive (grows daily)", href: "/monitor/archive" },
     ],
   },
+  {
+    ar: "القطاع الخامس · الاستخبارات المؤسسية", en: "Sector 5 · Corporate Intelligence",
+    items: [
+      { icon: "", ar: "مركز الاستخبارات المؤسسية", en: "Corporate Intelligence", href: "/monitor/corporate" },
+    ],
+  },
 ];
 
 const T = {
