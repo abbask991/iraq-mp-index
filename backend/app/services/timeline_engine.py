@@ -24,6 +24,7 @@ def reconstruct(posts, users=None, metrics=None):
         "amplification_stages": amplification,
         "turning_points": turning_points,
         "milestones": milestones,
+        "series": timeline.hourly_series(posts),
         "narrative_chain": evo["chain"],
         "narrative_shifts": evo["shifts"],
         "narrative_stages": evo["stages"],

@@ -4,6 +4,7 @@ import { apiGet } from "@/lib/api";
 import { getTargets, primaryKeyword, Target } from "@/lib/targets";
 import Gauge from "@/components/Gauge";
 import { SkelCards } from "@/components/Skeleton";
+import EvolutionChart from "@/components/EvolutionChart";
 import EmptyState from "@/components/EmptyState";
 import BattlefieldGraph from "@/components/BattlefieldGraph";
 
@@ -159,10 +160,15 @@ export default function Battlefield() {
             </div>
           </div>
 
-          {/* timeline turning points */}
+          {/* timeline turning points + evolution chart */}
           {d.timeline?.turning_points?.length > 0 && (
             <div className="cbox" style={{ marginTop: 14 }}>
-              <h4>⏳ نقاط التحوّل</h4>
+              <h4>⏳ نقاط التحوّل + منحنى التطوّر</h4>
+              {d.timeline?.series?.length > 1 && (
+                <div style={{ margin: "4px 0 12px" }}>
+                  <EvolutionChart series={d.timeline.series} turningPoints={d.timeline.turning_points} />
+                </div>
+              )}
               {(d.timeline.turning_points || []).slice(0, 6).map((m: any, i: number) => (
                 <div key={i} style={{ fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
                   <span className="muted" style={{ fontSize: 11 }}>{m.at ? new Date(m.at).toLocaleString("ar-IQ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}</span>

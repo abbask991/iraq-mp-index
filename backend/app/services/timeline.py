@@ -33,6 +33,22 @@ def _platform(post):
                                     "news" if post.get("src_type") else "x")
 
 
+def hourly_series(posts) -> list[dict]:
+    """Hourly volume (+ negative count) over time — the curve for the evolution
+    chart, with ISO timestamps so turning points can be aligned onto it."""
+    dated = sorted(((p, _dt(p)) for p in posts if _dt(p)), key=lambda x: x[1])
+    if not dated:
+        return []
+    buckets = defaultdict(int)
+    neg = defaultdict(int)
+    for p, when in dated:
+        key = when.replace(minute=0, second=0, microsecond=0)
+        buckets[key] += 1
+        if p.get("sentiment") == "سلبي":
+            neg[key] += 1
+    return [{"t": k.isoformat(), "count": buckets[k], "neg": neg[k]} for k in sorted(buckets)]
+
+
 def detect_timeline_milestones(posts, metrics=None) -> list[dict]:
     """Derive milestone events from a set of posts (+ optional metrics)."""
     dated = sorted(((p, _dt(p)) for p in posts if _dt(p)), key=lambda x: x[1])
