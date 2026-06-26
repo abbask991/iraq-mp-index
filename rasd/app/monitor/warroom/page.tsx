@@ -4,7 +4,8 @@ import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import Gauge from "@/components/Gauge";
 import CountUp from "@/components/CountUp";
-import BattlefieldGraph from "@/components/BattlefieldGraph";
+import WarGraph from "@/components/WarGraph";
+import RadarChart from "@/components/RadarChart";
 import IraqMap from "@/components/IraqMap";
 
 const REFRESH = 45;
@@ -85,6 +86,16 @@ export default function WarRoom() {
   const camps = d?.top_campaigns || [];
   const attacked = d?.most_attacked || [];
   const reds = alerts.filter((a) => a.severity === "red").length;
+  const platforms = d?.platform_distribution || [];
+  const radarAxes = [
+    { label: "العام", value: risk },
+    { label: "سياسي", value: sc.political || 0 },
+    { label: "أزمة", value: sc.crisis || 0 },
+    { label: "حملات", value: sc.campaign || 0 },
+    { label: "سمعة", value: sc.reputation || 0 },
+  ];
+  const PLAT_AR: Record<string, string> = { x: "إكس", news: "أخبار", telegram: "تيليغرام", facebook: "فيسبوك", instagram: "إنستغرام", tiktok: "تيك توك", youtube: "يوتيوب", reddit: "ريديت" };
+  const PLAT_C: Record<string, string> = { x: "#4f9dff", news: "#a855f7", telegram: "#34d6c6", facebook: "#3b82f6", instagram: "#ec4899", tiktok: "#f43f5e", youtube: "#ef4444", reddit: "#fb923c" };
 
   // breaking ticker items
   const ticker: string[] = [
@@ -159,8 +170,7 @@ export default function WarRoom() {
             </div>
             <div className="wr-graph">
               <div className="wr-cap">🕸️ خريطة التهديد الحيّة — كيانات · سرديات · حملات</div>
-              {d.nodes?.length ? <BattlefieldGraph data={{ nodes: d.nodes, edges: d.edges }} onSelect={() => {}} />
-                : <div className="muted" style={{ padding: 30, textAlign: "center" }}>لا بيانات شبكة بعد.</div>}
+              <WarGraph data={{ nodes: d.nodes, edges: d.edges }} />
             </div>
             <div className="wr-side">
               <div className="wr-cap" style={{ color: "#f43f5e" }}>● بثّ التنبيهات الحيّ</div>
@@ -208,6 +218,27 @@ export default function WarRoom() {
                   <b style={{ color: "var(--accent)", fontSize: 13 }}>{n.posts || 0}</b>
                 </div>
               )) : <span className="muted">—</span>}
+            </div>
+          </div>
+
+          {/* viz row: risk radar · platform activity */}
+          <div className="wr-viz">
+            <div className="wr-panel">
+              <div className="wr-cap">🎯 مصفوفة المخاطر الوطنية</div>
+              <RadarChart axes={radarAxes} color={riskColor(risk)} />
+            </div>
+            <div className="wr-panel">
+              <div className="wr-cap">📡 نشاط المنصّات</div>
+              {platforms.length ? platforms.slice(0, 7).map((p: any, i: number) => {
+                const k = (p.platform || "x").toLowerCase();
+                return (
+                  <div key={i} className="wr-platrow">
+                    <span className="wr-platname">{PLAT_AR[k] || p.platform}</span>
+                    <span className="wr-platbar"><span style={{ width: `${Math.min(100, p.pct || 0)}%`, background: PLAT_C[k] || "#4f9dff" }} /></span>
+                    <span style={{ fontWeight: 800, fontSize: 12, minWidth: 36, textAlign: "left" }}>{p.pct}%</span>
+                  </div>
+                );
+              }) : <div className="muted" style={{ fontSize: 13, padding: 8 }}>تُجمَّع بيانات المنصّات حالياً…</div>}
             </div>
           </div>
 
