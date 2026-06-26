@@ -101,7 +101,7 @@ def _analyze(src, tgt, src_pool, tgt_pool, *, light=False):
     located_ok = len(sp_all) >= 15 and len(tp_all) >= 15
     cross_ids = set()                       # location attribution is country-exclusive
     s_idx, t_idx = topics.index(sp_all), topics.index(tp_all)
-    cands = topics.shared(s_idx, t_idx, min_each=3, top=20)
+    cands = topics.shared(s_idx, t_idx, min_each=2, top=24)
 
     issues_out = []
     for c in cands:
