@@ -171,6 +171,7 @@ async def build_national():
         "top_narratives": dg.get("rising_narratives", [])[:6],
         "top_campaigns": dg.get("active_campaigns", [])[:5],
         "platform_distribution": dg.get("platform_activity", []),
+        "geo": dg.get("geo"),
         "recommended_actions": summ.get("recommended_actions", []),
         "generated_at": dg.get("generated_at"),
         "disclaimer": "تحليل احتمالي آلي — يتطلّب مراجعة بشرية.",
