@@ -7,15 +7,28 @@ function Stat({ l, v, c }: { l: string; v: any; c?: string }) {
   return <div style={{ textAlign: "center" }}><div style={{ fontWeight: 800, fontSize: 18, color: c }}>{v}</div><div className="muted" style={{ fontSize: 11 }}>{l}</div></div>;
 }
 
+const TYPES = ["موثّق", "مؤثّر", "عادي"];
+const WEIGHTINGS = [{ v: "population", l: "ترجيح سكّاني" }, { v: "equal", l: "موازنة المحافظات" }, { v: "raw", l: "بدون ترجيح" }];
+
 export default function Polling() {
   const [subject, setSubject] = useState("");
   const [d, setD] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [size, setSize] = useState(500);
+  const [types, setTypes] = useState<string[]>([...TYPES]);
+  const [excludeBots, setExcludeBots] = useState(true);
+  const [weighting, setWeighting] = useState("population");
+
+  const toggleType = (t: string) => setTypes((p) => p.includes(t) ? p.filter((x) => x !== t) : [...p, t]);
 
   const run = async (s?: string) => {
     const q = (s ?? subject).trim(); if (!q) return;
     setSubject(q); setBusy(true); setD(null);
-    const r = await apiGet(`/api/polling/survey?subject=${encodeURIComponent(q)}`).catch(() => null);
+    const qs = new URLSearchParams({
+      subject: q, sample_size: String(size), exclude_bots: String(excludeBots),
+      weighting, account_types: types.length === TYPES.length ? "" : types.join(","),
+    }).toString();
+    const r = await apiGet(`/api/polling/survey?${qs}`).catch(() => null);
     setD(r); setBusy(false);
   };
 
@@ -30,6 +43,43 @@ export default function Polling() {
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0" }}>
         <input placeholder="الموضوع (مثال: محمد شياع السوداني)" value={subject} onChange={(e) => setSubject(e.target.value)} onKeyDown={(e) => e.key === "Enter" && run()} style={{ flex: 1, minWidth: 220 }} />
         <button className="btn" onClick={() => run()} disabled={busy}>{busy ? "جارٍ القياس…" : "إجراء الاستطلاع"}</button>
+      </div>
+
+      {/* تصميم العيّنة */}
+      <div className="cbox" style={{ marginBottom: 14 }}>
+        <h4 style={{ marginTop: 0 }}>تصميم العيّنة</h4>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14 }}>
+          <div>
+            <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>حجم العيّنة المستهدف</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[200, 500, 1000, 2000, 3000].map((s) => (
+                <button key={s} className={size === s ? "btn" : "btn ghost"} style={{ fontSize: 12, padding: "5px 12px" }} onClick={() => setSize(s)}>{s.toLocaleString()}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>نوع العيّنة (الحسابات)</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {TYPES.map((t) => (
+                <button key={t} className={types.includes(t) ? "btn" : "btn ghost"} style={{ fontSize: 12, padding: "5px 12px" }} onClick={() => toggleType(t)}>{t}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>طريقة الترجيح (النسبة)</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {WEIGHTINGS.map((w) => (
+                <button key={w.v} className={weighting === w.v ? "btn" : "btn ghost"} style={{ fontSize: 12, padding: "5px 12px" }} onClick={() => setWeighting(w.v)}>{w.l}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>تنقية</div>
+            <button className={excludeBots ? "btn" : "btn ghost"} style={{ fontSize: 12, padding: "5px 12px" }} onClick={() => setExcludeBots((v) => !v)}>
+              {excludeBots ? "✓ استبعاد الحسابات الآلية" : "تضمين الحسابات الآلية"}
+            </button>
+          </div>
+        </div>
       </div>
 
       {busy && <div><span className="spinner" /> جمع العيّنة · استبعاد الآليين · تصنيف المواقف · ترجيح…</div>}

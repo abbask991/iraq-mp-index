@@ -1,16 +1,23 @@
-"""Social Opinion Survey — measure public opinion on a subject (party / figure /
-company) from social media, with polling-grade methodology.
+"""Social Opinion Survey — configurable public-opinion measurement.
 
-Pipeline: collect mentions (X live + stored cross-platform) → exclude bots →
-classify each as support / oppose / no-opinion (stance) → tally raw result →
-weight by governorate population → compute margin of error → score
-representativeness + confidence → break down by governorate, platform, demographic
-proxy. Output reads like a poll: favorable %, ±MoE, n, confidence, method notes.
+The researcher controls the sampling design:
+  • sample_size   — how many mentions to draw (the target n)
+  • account_types — which respondents count (verified / influencer / regular)
+  • exclude_bots  — drop automated accounts
+  • platforms     — which platforms to include
+  • weighting     — population (correct geographic skew) | equal (balance
+                    governorates) | raw (no weighting)
+
+Then: collect → filter to the chosen sample → classify stance → tally →
+weight → margin of error → representativeness → breakdowns. Output reads like a
+poll and is honest about non-probability sampling.
 """
 from collections import Counter, defaultdict
 
 from app.services import geo, network, stance, x
 from app.services.polling import weighting
+
+ACCOUNT_TYPES = ["موثّق", "مؤثّر", "عادي"]
 
 
 def _classify(text):
@@ -22,72 +29,88 @@ def _classify(text):
     return "neutral"
 
 
-async def run_survey(subject: str, rng: str = "week", limit: int = 500) -> dict:
+def _acct_type(verified, followers):
+    return "موثّق" if verified else "مؤثّر" if (followers or 0) > 30000 else "عادي"
+
+
+async def run_survey(subject: str, rng: str = "week", *, sample_size: int = 500,
+                     account_types=None, exclude_bots: bool = True,
+                     platforms=None, weighting_method: str = "population") -> dict:
     import time as _t
     subject = (subject or "").strip()
     if not subject:
         return {"error": "missing subject"}
+    allowed_types = set(account_types) if account_types else set(ACCOUNT_TYPES)
+    allowed_plats = set(platforms) if platforms else None        # None = all
 
-    tw = await x.fetch_trend(subject, want=limit, range=rng)
+    tw = await x.fetch_trend(subject, want=sample_size, range=rng)
     tweets = tw.get("tweets", []) if "error" not in tw else []
     users = tw.get("users", {}) if "error" not in tw else {}
 
     support = oppose = neutral = 0
-    bots_excluded = 0
+    bots_excluded = filtered_out = 0
     geo_support = defaultdict(lambda: {"support": 0, "oppose": 0})
     geo_counts = Counter()
     by_platform = defaultdict(lambda: {"support": 0, "oppose": 0})
     acct_types = Counter()
 
-    for t in tweets:
-        u = users.get(t.get("author_id"), {})
-        if u and network.bot_score(u)[0] > 60:           # exclude likely bots from the sample
-            bots_excluded += 1
-            continue
-        v = _classify(t.get("text", ""))
+    def _tally(v, plat):
+        nonlocal support, oppose, neutral
         if v == "support":
             support += 1
         elif v == "oppose":
             oppose += 1
         else:
             neutral += 1
-        by_platform["x"][v if v != "neutral" else "support"] += 0  # ensure key
         if v in ("support", "oppose"):
-            by_platform["x"][v] += 1
-        # geography (from author location)
-        gid = geo.locate(u.get("location", "")) if u else None
-        if gid:
-            geo_counts[gid] += 1
-            if v in ("support", "oppose"):
-                geo_support[gid][v] += 1
-        # account type composition
-        fol = u.get("public_metrics", {}).get("followers_count", 0) if u else 0
-        acct_types["موثّق" if u.get("verified") else "مؤثّر" if fol > 30000 else "عادي"] += 1
+            by_platform[plat][v] += 1
 
-    # stored cross-platform mentions (no reliable geo → raw + platform only)
+    if allowed_plats is None or "x" in allowed_plats:
+        for t in tweets:
+            u = users.get(t.get("author_id"), {})
+            if exclude_bots and u and network.bot_score(u)[0] > 60:
+                bots_excluded += 1
+                continue
+            fol = u.get("public_metrics", {}).get("followers_count", 0) if u else 0
+            atype = _acct_type(u.get("verified"), fol)
+            if atype not in allowed_types:
+                filtered_out += 1
+                continue
+            acct_types[atype] += 1
+            v = _classify(t.get("text", ""))
+            _tally(v, "x")
+            gid = geo.locate(u.get("location", "")) if u else None
+            if gid:
+                geo_counts[gid] += 1
+                if v in ("support", "oppose"):
+                    geo_support[gid][v] += 1
+
+    # stored cross-platform mentions
+    cross = []
     try:
         from app.services.fusion import store
-        cross = await store.query(subject, limit=400)
+        rows = await store.query(subject, limit=400)
+        for r in rows:
+            plat = r.get("platform", "other")
+            if allowed_plats is not None and plat not in allowed_plats:
+                continue
+            atype = _acct_type(False, r.get("author_followers", 0))
+            if atype not in allowed_types:
+                filtered_out += 1
+                continue
+            acct_types[atype] += 1
+            cross.append(r)
+            _tally(_classify(r.get("text", "")), plat)
     except Exception:
-        cross = []
-    for r in cross:
-        v = _classify(r.get("text", ""))
-        if v == "support":
-            support += 1
-        elif v == "oppose":
-            oppose += 1
-        else:
-            neutral += 1
-        if v in ("support", "oppose"):
-            by_platform[r.get("platform", "other")][v] += 1
+        pass
 
-    n = support + oppose                                  # stance-bearing sample
+    n = support + oppose
     analyzed = support + oppose + neutral
     raw_support = round(support / n * 100, 1) if n else None
 
-    wt = weighting.weight_by_population(geo_support)
+    wt = weighting.weight_by_population(geo_support, method=weighting_method) if weighting_method != "raw" else {"weighted_support": None}
     weighted = wt["weighted_support"]
-    weighting_applied = weighted is not None
+    weighting_applied = weighting_method != "raw" and weighted is not None
     headline = weighted if weighting_applied else raw_support
     moe = weighting.margin_of_error((headline or 50) / 100, n)
     rep = weighting.representativeness(geo_counts)
@@ -97,10 +120,9 @@ async def run_survey(subject: str, rng: str = "week", limit: int = 500) -> dict:
     for gid, d in geo_support.items():
         tot = d["support"] + d["oppose"]
         if tot >= 3:
-            meta = geo._META.get(gid, {}) if hasattr(geo, "_META") else {}
+            meta = getattr(geo, "_META", {}).get(gid, {})
             gov_breakdown.append({"id": gid, "name": meta.get("name", gid),
-                                  "support_pct": round(d["support"] / tot * 100),
-                                  "sample": tot})
+                                  "support_pct": round(d["support"] / tot * 100), "sample": tot})
     gov_breakdown.sort(key=lambda x_: -x_["sample"])
 
     platform_breakdown = []
@@ -110,29 +132,28 @@ async def run_survey(subject: str, rng: str = "week", limit: int = 500) -> dict:
             platform_breakdown.append({"platform": plat, "support_pct": round(d["support"] / tot * 100), "sample": tot})
     platform_breakdown.sort(key=lambda x_: -x_["sample"])
 
+    wm_ar = {"population": "ترجيح سكّاني", "equal": "موازنة المحافظات", "raw": "بدون ترجيح"}.get(weighting_method, weighting_method)
     return {
         "subject": subject, "period": rng, "generated_at": int(_t.time()),
+        "config": {"sample_size": sample_size, "account_types": sorted(allowed_types),
+                   "exclude_bots": exclude_bots, "weighting_method": weighting_method,
+                   "platforms": sorted(allowed_plats) if allowed_plats else "الكل"},
         "result": {
             "favorable": headline, "unfavorable": round(100 - headline, 1) if headline is not None else None,
             "raw_favorable": raw_support, "weighted_favorable": weighted,
             "weighting_applied": weighting_applied,
             "margin_of_error": moe, "net": round((headline or 50) - (100 - (headline or 50)), 1),
         },
-        "sample": {
-            "n": n, "analyzed": analyzed, "no_opinion": neutral,
-            "bots_excluded": bots_excluded, "x_mentions": len(tweets), "cross_mentions": len(cross),
-            "account_types": dict(acct_types),
-        },
-        "representativeness": rep,
-        "confidence": conf,
-        "geography": gov_breakdown,
-        "platforms": platform_breakdown,
-        "method": (f"عيّنة غير احتمالية من {n} رأياً ذا موقف (من {analyzed} إشارة، استُبعد {bots_excluded} حساب آلي ومكرّرات). "
-                   + ("النتيجة مُرجّحة جغرافياً حسب توزيع السكان عبر المحافظات. "
-                      if weighting_applied else
-                      "النتيجة خام (غير مُرجّحة) — العيّنة الجغرافية غير كافية للترجيح الموثوق. ")
+        "sample": {"n": n, "analyzed": analyzed, "no_opinion": neutral,
+                   "bots_excluded": bots_excluded, "filtered_out": filtered_out,
+                   "x_mentions": len(tweets), "cross_mentions": len(cross),
+                   "account_types": dict(acct_types)},
+        "representativeness": rep, "confidence": conf,
+        "geography": gov_breakdown, "platforms": platform_breakdown,
+        "method": (f"عيّنة غير احتمالية، الحجم المستهدف {sample_size}، n={n} رأياً ذا موقف (من {analyzed} إشارة؛ "
+                   f"استُبعد {bots_excluded} آلي و{filtered_out} خارج نوع العيّنة). طريقة الترجيح: {wm_ar}. "
+                   + ("" if weighting_applied or weighting_method == "raw" else "(تعذّر الترجيح — عيّنة جغرافية غير كافية، عُرضت النتيجة الخام.) ")
                    + f"هامش الخطأ ±{moe} نقطة عند ثقة 95%."),
-        "disclaimer": ("هذا قياس رأي من السوشيال ميديا — عيّنة غير احتمالية تميل للفئات النشطة رقمياً. "
-                       "الترجيح الجغرافي يصحّح جزءاً من التحيّز، لكنه لا يكافئ استطلاعاً ميدانياً تمثيلياً. "
-                       f"تمثيلية العيّنة: {rep['label']} ({rep['score']}/100)."),
+        "disclaimer": ("قياس رأي من السوشيال ميديا — عيّنة غير احتمالية تميل للفئات النشطة رقمياً. "
+                       f"تمثيلية العيّنة: {rep['label']} ({rep['score']}/100). يُكمّل الاستطلاع الميداني ولا يستبدله."),
     }

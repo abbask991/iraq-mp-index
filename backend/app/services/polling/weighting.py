@@ -30,17 +30,19 @@ def margin_of_error(p: float, n: int, z: float = 1.96) -> float:
     return round(z * math.sqrt(max(1e-9, p * (1 - p)) / n) * 100, 1)
 
 
-def weight_by_population(geo_support: dict, *, min_cell: int = 5, min_govs: int = 4) -> dict:
-    """Population-weighted support % across governorates. Guards against noise:
-    only governorates with ≥min_cell stance-bearing responses count, and weighting
-    is only applied when ≥min_govs qualify (else returns None → caller uses raw).
-    Weighting tiny cells would let one big-population governorate's noise dominate."""
+def weight_by_population(geo_support: dict, *, min_cell: int = 5, min_govs: int = 4,
+                         method: str = "population") -> dict:
+    """Weighted support % across governorates. method="population" weights each
+    governorate by its population share (corrects geographic skew); "equal" gives
+    every covered governorate equal weight (geographic balance). Guards noise:
+    only governorates with ≥min_cell responses count, applied only when ≥min_govs
+    qualify (else None → caller uses raw)."""
     num, denom, covered = 0.0, 0.0, 0
     for gid, d in geo_support.items():
         tot = d.get("support", 0) + d.get("oppose", 0)
         if tot < min_cell:
             continue
-        share = POP_SHARE.get(gid, 1.0 / _TOTAL_GOV)
+        share = 1.0 if method == "equal" else POP_SHARE.get(gid, 1.0 / _TOTAL_GOV)
         num += share * (d["support"] / tot)
         denom += share
         covered += 1
