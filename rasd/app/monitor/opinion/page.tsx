@@ -93,6 +93,31 @@ export default function Opinion() {
             <p className="muted" style={{ fontSize: 12.5 }}>{g.explanation}</p>
           </div>
 
+          {/* opinion drift over time */}
+          {d.drift?.available && (
+            <div className="cbox" style={{ marginTop: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                <h4 style={{ margin: 0 }}>انجراف الرأي عبر الزمن</h4>
+                <span className="chip" style={{ color: d.drift.shift === "stable" ? "#22c55e" : "#fb923c" }}>{d.drift.label} · {d.drift.snapshots} لقطة</span>
+              </div>
+              <div style={{ display: "flex", gap: 16, margin: "8px 0", flexWrap: "wrap", fontSize: 13 }}>
+                {d.drift.oppose_change_24h != null && <div>المعارضة (24س): <b style={{ color: d.drift.oppose_change_24h > 0 ? "#f43f5e" : "#22c55e" }}>{d.drift.oppose_change_24h > 0 ? "▲ +" : "▼ "}{d.drift.oppose_change_24h}</b></div>}
+                {d.drift.oppose_change_7d != null && <div>المعارضة (7أيام): <b style={{ color: d.drift.oppose_change_7d > 0 ? "#f43f5e" : "#22c55e" }}>{d.drift.oppose_change_7d > 0 ? "+" : ""}{d.drift.oppose_change_7d}</b></div>}
+                {d.drift.poi_change_24h != null && <div>مؤشر الرأي (24س): <b>{d.drift.poi_change_24h > 0 ? "+" : ""}{d.drift.poi_change_24h}</b></div>}
+              </div>
+              {/* sparkline */}
+              {!!d.drift.timeline?.length && (
+                <svg viewBox={`0 0 ${Math.max(2, d.drift.timeline.length) * 18} 50`} width="100%" height="50" style={{ marginTop: 4 }}>
+                  <polyline fill="none" stroke="var(--accent)" strokeWidth="2"
+                    points={d.drift.timeline.map((p: any, i: number) => `${i * 18},${50 - (p.poi / 100 * 46) - 2}`).join(" ")} />
+                </svg>
+              )}
+            </div>
+          )}
+          {d.drift && !d.drift.available && (
+            <div className="cbox" style={{ marginTop: 14 }}><span className="muted" style={{ fontSize: 12 }}>انجراف الرأي: يحتاج لقطات متعدّدة عبر الزمن — يتراكم تلقائياً مع كل قياس (شغّل migration 010).</span></div>
+          )}
+
           <div className="cc-grid" style={{ marginTop: 14 }}>
             <div className="cbox">
               <h4 style={{ marginTop: 0, color: "#f43f5e" }}>أبرز الشكاوى</h4>
@@ -134,7 +159,8 @@ export default function Opinion() {
           )}
 
           <p className="muted" style={{ fontSize: 11, marginTop: 12 }}>
-            {d.sample?.opinions} رأي من {d.sample?.posts_scanned} منشور + {d.sample?.news} خبر · {d.sample?.bots_downweighted} آلي مُخفّض. {d.disclaimer}
+            {d.sample?.opinions} رأي من {d.sample?.posts_scanned} منشور + {d.sample?.cross_platform || 0} عبر المنصّات + {d.sample?.news} خبر · {d.sample?.bots_downweighted} آلي مُخفّض ·
+            تصنيف: <b>{d.classifier === "ai" ? "ذكاء اصطناعي" : "قاعدي"}</b> · منصّات: {(d.sample?.platforms || []).join("، ")}. {d.disclaimer}
           </p>
         </>
       )}

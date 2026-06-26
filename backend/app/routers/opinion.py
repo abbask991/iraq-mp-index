@@ -14,3 +14,12 @@ async def opinion_for(target: str, range: str = "day"):
         return {"error": "missing target"}
     rng = range if range in ("day", "week") else "day"
     return await cache.swr(f"ppoi:{rng}:{t}", 1800, lambda: opinion.build_opinion(t, rng=rng))
+
+
+@router.get("/drift")
+async def drift(target: str):
+    from app.services.opinion import drift as drift_engine
+    t = (target or "").strip()
+    if not t:
+        return {"error": "missing target"}
+    return await drift_engine.compute(t)
