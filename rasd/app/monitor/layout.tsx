@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getMySub, isActive, daysLeft, PLAN_LABEL, Sub } from "@/lib/subscription";
 import { getLang, setLang, applyDir, tr, Lang, getTheme, setTheme, applyTheme, Theme } from "@/lib/i18n";
+import CommandPalette from "@/components/CommandPalette";
 
 type Item = { icon: string; ar: string; en: string; href?: string };
 const SECTORS: { ar: string; en: string; items: Item[] }[] = [
@@ -160,6 +161,12 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   ];
   const cur = topItems.find((it) => it.href === path);
   const sectionTitle = cur ? t(cur as { ar: string; en: string }) : (lang === "ar" ? "مركز العمليات" : "Operations");
+  const paletteItems = [
+    { label: lang === "ar" ? "لوحة القيادة" : "Command Center", href: "/monitor/overview", group: lang === "ar" ? "رئيسي" : "Main" },
+    { label: lang === "ar" ? "التقرير الشامل" : "Full Dossier", href: "/monitor/dossier", group: lang === "ar" ? "رئيسي" : "Main" },
+    { label: lang === "ar" ? "الإعدادات" : "Settings", href: "/monitor/settings", group: lang === "ar" ? "رئيسي" : "Main" },
+    ...SECTORS.flatMap((s) => s.items.filter((it) => it.href).map((it) => ({ label: t(it), href: it.href!, group: t(s) }))),
+  ];
 
   return (
  <>
@@ -172,6 +179,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <span className="cb-section">{sectionTitle}</span>
  </div>
  <div className="cb-right">
+ <CommandPalette items={paletteItems} />
  <span className="cb-clock"><span className="cb-dot" />{clock}</span>
  <button className="cb-btn" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>{lang === "ar" ? "EN" : "ع"}</button>
  <button className="cb-btn" onClick={toggleTheme}>{theme === "dark" ? "☀" : "☾"}</button>
