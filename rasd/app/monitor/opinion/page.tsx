@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import Gauge from "@/components/Gauge";
 import IraqMap from "@/components/IraqMap";
+import EvidenceModal from "@/components/EvidenceModal";
 
 const idxColor = (i: number) => (i <= 29 ? "#f43f5e" : i <= 44 ? "#fb923c" : i <= 55 ? "#f59e0b" : i <= 70 ? "#84cc16" : "#22c55e");
 const gapColor = (g: number) => (g <= 20 ? "#22c55e" : g <= 40 ? "#f59e0b" : g <= 70 ? "#fb923c" : "#f43f5e");
@@ -12,6 +13,7 @@ export default function Opinion() {
   const [target, setTarget] = useState("");
   const [d, setD] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [evid, setEvid] = useState<string | null>(null);
 
   const run = async (t?: string) => {
     const q = (t ?? target).trim(); if (!q) return;
@@ -61,11 +63,12 @@ export default function Opinion() {
               </div>
             </div>
             {/* support vs oppose */}
-            <div style={{ display: "flex", height: 22, borderRadius: 11, overflow: "hidden", marginTop: 14, border: "1px solid var(--line)" }}>
-              <div style={{ width: `${d.support_percent}%`, background: "#22c55e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#04121a" }}>مؤيّد {d.support_percent}%</div>
+            <div style={{ display: "flex", height: 24, borderRadius: 12, overflow: "hidden", marginTop: 14, border: "1px solid var(--line)", cursor: "pointer" }}>
+              <div title="اضغط لعرض الأدلة" onClick={() => setEvid("support")} style={{ width: `${d.support_percent}%`, background: "#22c55e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#04121a" }}>مؤيّد {d.support_percent}%</div>
               <div style={{ width: `${d.neutral_percent}%`, background: "var(--line)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--muted)" }}>{d.neutral_percent}%</div>
-              <div style={{ width: `${d.oppose_percent}%`, background: "#f43f5e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>معارض {d.oppose_percent}%</div>
+              <div title="اضغط لعرض الأدلة" onClick={() => setEvid("oppose")} style={{ width: `${d.oppose_percent}%`, background: "#f43f5e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>معارض {d.oppose_percent}%</div>
             </div>
+            <div className="muted" style={{ fontSize: 11, textAlign: "center", marginTop: 6 }}>↑ اضغط على «مؤيّد» أو «معارض» لرؤية المنشورات الفعلية</div>
           </div>
 
           {/* AI summary */}
@@ -166,6 +169,7 @@ export default function Opinion() {
           </p>
         </>
       )}
+      {evid && <EvidenceModal target={target} filter={evid} onClose={() => setEvid(null)} />}
     </div>
   );
 }

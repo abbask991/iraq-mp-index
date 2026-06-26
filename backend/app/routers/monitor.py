@@ -154,6 +154,21 @@ async def system_status():
     }
 
 
+@router.get("/cron/alerts")
+async def cron_alerts():
+    """Evaluate alert conditions on the digest + push to Telegram. Point the free
+    pinger here (e.g. every 15 min)."""
+    from app.services import alert_engine
+    return await alert_engine.evaluate_and_notify()
+
+
+@router.get("/alerts-feed")
+async def alerts_feed():
+    """Recent triggered alerts (for the in-app alerts view)."""
+    from app.services import alert_engine
+    return {"alerts": await alert_engine.feed()}
+
+
 @router.get("/cron/warm")
 async def cron_warm():
     """Proactively warm the heavy caches so pages open instantly. Point a free

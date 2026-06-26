@@ -15,8 +15,12 @@ export default function ChiefAI() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState(""); const [ans, setAns] = useState<any>(null);
   const [bookBusy, setBookBusy] = useState(false);
+  const [alerts, setAlerts] = useState<any[]>([]);
 
-  useEffect(() => { apiGet("/api/chief-ai/dashboard").then((r) => { setD(r); setLoading(false); }).catch(() => setLoading(false)); }, []);
+  useEffect(() => {
+    apiGet("/api/chief-ai/dashboard").then((r) => { setD(r); setLoading(false); }).catch(() => setLoading(false));
+    apiGet("/monitor/alerts-feed").then((r) => setAlerts(r?.alerts || [])).catch(() => {});
+  }, []);
 
   const downloadBook = async () => {
     setBookBusy(true);
@@ -62,6 +66,19 @@ export default function ChiefAI() {
       </div>
 
       {loading && <SkelCards count={4} />}
+
+      {alerts.length > 0 && (
+        <div className="cbox" style={{ margin: "12px 0", borderInlineStart: "4px solid #f43f5e" }}>
+          <h4 style={{ marginTop: 0 }}>تنبيهات لحظية ({alerts.length})</h4>
+          {alerts.slice(0, 5).map((a: any, i: number) => (
+            <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 0", borderTop: i ? "1px solid var(--line)" : 0, fontSize: 13 }}>
+              <span>{a.severity === "red" ? "🔴" : a.severity === "orange" ? "🟠" : "🟡"}</span>
+              <span style={{ flex: 1 }}>{a.message}</span>
+              {a.ts && <span className="muted" style={{ fontSize: 11 }}>{new Date(a.ts * 1000).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })}</span>}
+            </div>
+          ))}
+        </div>
+      )}
 
       {d && (
         <>

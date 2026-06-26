@@ -43,9 +43,13 @@ async def run_survey(subject: str, rng: str = "week", *, sample_size: int = 500,
     allowed_types = set(account_types) if account_types else set(ACCOUNT_TYPES)
     allowed_plats = set(platforms) if platforms else None        # None = all
 
+    from app.services.opinion import ai_opinion
     tw = await x.fetch_trend(subject, want=sample_size, range=rng)
     tweets = tw.get("tweets", []) if "error" not in tw else []
     users = tw.get("users", {}) if "error" not in tw else {}
+    # target-aware classification (AI when available; rule fallback) — accuracy
+    xv = await ai_opinion.classify(subject, [{"text": t.get("text", "")} for t in tweets])
+    x_stance = {id(tweets[i]): xv[i].get("stance", "neutral") for i in range(len(tweets))}
 
     support = oppose = neutral = 0
     bots_excluded = filtered_out = 0
@@ -77,7 +81,7 @@ async def run_survey(subject: str, rng: str = "week", *, sample_size: int = 500,
                 filtered_out += 1
                 continue
             acct_types[atype] += 1
-            v = _classify(t.get("text", ""))
+            v = x_stance.get(id(t), "neutral")
             _tally(v, "x")
             gid = geo.locate(u.get("location", "")) if u else None
             if gid:
@@ -90,7 +94,8 @@ async def run_survey(subject: str, rng: str = "week", *, sample_size: int = 500,
     try:
         from app.services.fusion import store
         rows = await store.query(subject, limit=400)
-        for r in rows:
+        cv = await ai_opinion.classify(subject, [{"text": r.get("text", "")} for r in rows]) if rows else []
+        for i, r in enumerate(rows):
             plat = r.get("platform", "other")
             if allowed_plats is not None and plat not in allowed_plats:
                 continue
@@ -100,7 +105,7 @@ async def run_survey(subject: str, rng: str = "week", *, sample_size: int = 500,
                 continue
             acct_types[atype] += 1
             cross.append(r)
-            _tally(_classify(r.get("text", "")), plat)
+            _tally(cv[i].get("stance", "neutral") if i < len(cv) else "neutral", plat)
     except Exception:
         pass
 
