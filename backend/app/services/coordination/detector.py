@@ -40,16 +40,19 @@ def detect_network(topic, tweets, users, news_count=0):
 
 
 def _verdict(score, net, rings):
-    cells, largest = net["cells"], net["largest_cell"]
+    """Tiering keys off REPEATED coordination (strong links / cell size), not the
+    mere existence of one weak ring — a single ring with no strong links is just
+    'limited possible coordination', to avoid over-flagging organic echoes."""
+    cells, largest, strong = net["cells"], net["largest_cell"], net["strong_edges"]
     nr = len(rings)
-    if score >= 70 or (cells and largest >= 6):
+    if score >= 70 or (strong >= 3 and largest >= 6):
         return {"level": "حرج", "label": "شبكة منسّقة عالية الاحتمال", "color": "#f43f5e",
-                "text": f"رُصدت {cells} خليّة متناسقة، أكبرها {largest} حساباً، عبر {nr} حلقة محتوى متكرّر."}
-    if score >= 45 or cells:
+                "text": f"رُصدت {cells} خليّة متناسقة، أكبرها {largest} حساباً، بـ{strong} رابط تنسيق متكرّر عبر {nr} حلقة محتوى."}
+    if score >= 45 or strong >= 2 or largest >= 5:
         return {"level": "مرتفع", "label": "إشارات تنسيق واضحة", "color": "#fb923c",
-                "text": f"{cells} خليّة محتملة و{nr} حلقة محتوى متطابق — يُنصح بالمراجعة."}
+                "text": f"{cells} خليّة و{strong} رابط متكرّر و{nr} حلقة محتوى متطابق — يُنصح بالمراجعة."}
     if score >= 25 or nr:
         return {"level": "متوسط", "label": "تنسيق محدود محتمل", "color": "#eab308",
-                "text": f"{nr} حلقة محتوى متشابه دون شبكة حسابات واضحة بعد."}
+                "text": f"{nr} حلقة محتوى متشابه دون شبكة حسابات راسخة بعد — قد يكون صدى عضوياً."}
     return {"level": "منخفض", "label": "لا مؤشرات تنسيق", "color": "#22c55e",
             "text": "النشاط يبدو عضوياً — لا حلقات نسخ ولا تزامن غير طبيعي."}
