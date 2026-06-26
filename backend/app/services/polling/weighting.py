@@ -30,21 +30,23 @@ def margin_of_error(p: float, n: int, z: float = 1.96) -> float:
     return round(z * math.sqrt(max(1e-9, p * (1 - p)) / n) * 100, 1)
 
 
-def weight_by_population(geo_support: dict) -> dict:
-    """geo_support = {gov_id: {"support": x, "oppose": y}}. Returns the
-    population-weighted support % across covered governorates (renormalized)."""
-    num, denom = 0.0, 0.0
+def weight_by_population(geo_support: dict, *, min_cell: int = 5, min_govs: int = 4) -> dict:
+    """Population-weighted support % across governorates. Guards against noise:
+    only governorates with ≥min_cell stance-bearing responses count, and weighting
+    is only applied when ≥min_govs qualify (else returns None → caller uses raw).
+    Weighting tiny cells would let one big-population governorate's noise dominate."""
+    num, denom, covered = 0.0, 0.0, 0
     for gid, d in geo_support.items():
         tot = d.get("support", 0) + d.get("oppose", 0)
-        if tot <= 0:
+        if tot < min_cell:
             continue
         share = POP_SHARE.get(gid, 1.0 / _TOTAL_GOV)
-        rate = d["support"] / tot
-        num += share * rate
+        num += share * (d["support"] / tot)
         denom += share
-    if denom == 0:
-        return {"weighted_support": None, "covered": 0}
-    return {"weighted_support": round(num / denom * 100, 1), "covered": denom}
+        covered += 1
+    if covered < min_govs or denom == 0:
+        return {"weighted_support": None, "covered": covered}
+    return {"weighted_support": round(num / denom * 100, 1), "covered": covered}
 
 
 def representativeness(geo_counts: dict) -> dict:

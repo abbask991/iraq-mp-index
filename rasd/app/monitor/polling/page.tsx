@@ -52,6 +52,9 @@ export default function Polling() {
               </div>
             )}
             <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+              <span className="chip" style={{ color: res.weighting_applied ? "#22c55e" : "#fb923c" }}>
+                {res.weighting_applied ? "مُرجّح سكّانياً ✓" : "خام (عيّنة غير كافية للترجيح)"}
+              </span>
               {res.weighted_favorable != null && <span className="chip">مُرجّح: {res.weighted_favorable}%</span>}
               {res.raw_favorable != null && <span className="chip">خام: {res.raw_favorable}%</span>}
               <span className="chip">صافي: {res.net > 0 ? "+" : ""}{res.net}</span>

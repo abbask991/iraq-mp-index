@@ -87,7 +87,8 @@ async def run_survey(subject: str, rng: str = "week", limit: int = 500) -> dict:
 
     wt = weighting.weight_by_population(geo_support)
     weighted = wt["weighted_support"]
-    headline = weighted if weighted is not None else raw_support
+    weighting_applied = weighted is not None
+    headline = weighted if weighting_applied else raw_support
     moe = weighting.margin_of_error((headline or 50) / 100, n)
     rep = weighting.representativeness(geo_counts)
     conf = weighting.confidence(n, rep["score"])
@@ -114,6 +115,7 @@ async def run_survey(subject: str, rng: str = "week", limit: int = 500) -> dict:
         "result": {
             "favorable": headline, "unfavorable": round(100 - headline, 1) if headline is not None else None,
             "raw_favorable": raw_support, "weighted_favorable": weighted,
+            "weighting_applied": weighting_applied,
             "margin_of_error": moe, "net": round((headline or 50) - (100 - (headline or 50)), 1),
         },
         "sample": {
@@ -125,8 +127,11 @@ async def run_survey(subject: str, rng: str = "week", limit: int = 500) -> dict:
         "confidence": conf,
         "geography": gov_breakdown,
         "platforms": platform_breakdown,
-        "method": (f"عيّنة غير احتمالية من {n} رأياً ذا موقف (من {analyzed} إشارة، استُبعد {bots_excluded} حساب آلي ومكرّرات)، "
-                   f"مُرجّحة جغرافياً حسب توزيع السكان عبر المحافظات. هامش الخطأ ±{moe} نقطة عند ثقة 95%."),
+        "method": (f"عيّنة غير احتمالية من {n} رأياً ذا موقف (من {analyzed} إشارة، استُبعد {bots_excluded} حساب آلي ومكرّرات). "
+                   + ("النتيجة مُرجّحة جغرافياً حسب توزيع السكان عبر المحافظات. "
+                      if weighting_applied else
+                      "النتيجة خام (غير مُرجّحة) — العيّنة الجغرافية غير كافية للترجيح الموثوق. ")
+                   + f"هامش الخطأ ±{moe} نقطة عند ثقة 95%."),
         "disclaimer": ("هذا قياس رأي من السوشيال ميديا — عيّنة غير احتمالية تميل للفئات النشطة رقمياً. "
                        "الترجيح الجغرافي يصحّح جزءاً من التحيّز، لكنه لا يكافئ استطلاعاً ميدانياً تمثيلياً. "
                        f"تمثيلية العيّنة: {rep['label']} ({rep['score']}/100)."),
