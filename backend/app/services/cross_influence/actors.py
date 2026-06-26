@@ -5,13 +5,15 @@ from datetime import datetime, timezone
 from app.services.cross_influence.flow import _dt
 
 
-def rank(posts, users, *, by_time=False, top=5):
+def rank(posts, users, *, by_time=False, top=5, exclude=None):
     """Aggregate an issue's posts by account. Leaders rank by earliest+loudest;
-    receivers rank by engagement."""
+    receivers rank by engagement. `exclude` drops cross-pool (pan-regional)
+    accounts so a leader can't also appear as a receiver."""
+    exclude = exclude or set()
     agg = defaultdict(lambda: {"eng": 0, "posts": 0, "first": None})
     for p in posts:
         uid = p.get("author_id")
-        if not uid:
+        if not uid or uid in exclude:
             continue
         a = agg[uid]
         a["eng"] += int(p.get("engagement") or 0)

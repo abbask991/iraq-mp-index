@@ -57,7 +57,7 @@ def _onset(series):
     if not any(series):
         return None
     pk = max(series)
-    thr = max(2, 0.2 * pk)
+    thr = max(1, 0.2 * pk)
     for i, v in enumerate(series):
         if v >= thr:
             return i
@@ -82,20 +82,35 @@ def analyze_pair(iq_posts, sy_posts):
     oi, os_ = _onset(si), _onset(ss)
     if oi is None or os_ is None:
         return None
+    pi = si.index(max(si)) if any(si) else oi
+    ps = ss.index(max(ss)) if any(ss) else os_
 
-    if oi <= os_:
+    # leader = earlier ONSET; tie-break by earlier PEAK; if both tie → concurrent
+    if oi != os_:
+        iq_leads = oi < os_
+        concurrent = False
+    elif pi != ps:
+        iq_leads = pi < ps
+        concurrent = False
+    else:
+        iq_leads = True
+        concurrent = True
+
+    if iq_leads:
         leader, follower, lead_on, fol_on, lser, fser = "IQ", "SY", oi, os_, si, ss
     else:
         leader, follower, lead_on, fol_on, lser, fser = "SY", "IQ", os_, oi, ss, si
-    lag_hours = fol_on - lead_on
+    lag_hours = abs(os_ - oi)
     _, corr = _best_lag(lser, fser, max_lag=min(48, len(grid) - 2))
     iq_vol, sy_vol = sum(si), sum(ss)
     shared_vol = min(iq_vol, sy_vol)
-    magnitude = round(100 * (0.5 * max(0.0, corr)
-                             + 0.3 * min(1.0, shared_vol / 40.0)
-                             + 0.2 * (1.0 if 1 <= lag_hours <= 72 else 0.3)))
+    # reward a CLEAR lead-lag (real spillover) over mere concurrency
+    lag_clarity = 1.0 if 2 <= lag_hours <= 72 else (0.55 if lag_hours == 1 else 0.15)
+    magnitude = round(100 * (0.35 * max(0.0, corr)
+                             + 0.30 * min(1.0, shared_vol / 50.0)
+                             + 0.35 * lag_clarity))
     return {
-        "leader": leader, "follower": follower,
+        "leader": leader, "follower": follower, "concurrent": concurrent,
         "lag_hours": lag_hours, "correlation": round(corr, 2),
         "magnitude": max(0, min(100, magnitude)),
         "iq_volume": iq_vol, "sy_volume": sy_vol,

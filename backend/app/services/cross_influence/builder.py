@@ -54,6 +54,11 @@ async def build(rng: str = "week", per_query: int = 130):
                 "budget_capped": bool(c1 or c2)}
     users = {**syu, **iqu}
 
+    # pan-regional accounts caught in BOTH pools aren't country-specific — exclude
+    # them from leader/receiver lists so a leader can't double as a receiver.
+    cross_ids = {t.get("author_id") for t in iq if t.get("author_id")} & \
+                {t.get("author_id") for t in sy if t.get("author_id")}
+
     iq_idx, sy_idx = topics.index(iq), topics.index(sy)
     cands = topics.shared(iq_idx, sy_idx, min_each=4, top=20)
 
@@ -64,19 +69,22 @@ async def build(rng: str = "week", per_query: int = 130):
         fl = flow.analyze_pair(ip, sp)
         if not fl or fl["magnitude"] < _MAG_FLOOR:
             continue
+        conc = fl.get("concurrent")
         lead_posts = ip if fl["leader"] == "IQ" else sp
         fol_posts = sp if fl["leader"] == "IQ" else ip
         sample = max(ip + sp, key=lambda p: int(p.get("engagement") or 0), default={})
         issues.append({
-            "issue": c["display"], "key": c["key"],
-            "leader": fl["leader"], "leader_country": _AR[fl["leader"]],
-            "follower": fl["follower"], "follower_country": _AR[fl["follower"]],
+            "issue": c["display"], "key": c["key"], "concurrent": conc,
+            "leader": None if conc else fl["leader"],
+            "leader_country": "متزامن" if conc else _AR[fl["leader"]],
+            "follower": None if conc else fl["follower"],
+            "follower_country": "متبادل" if conc else _AR[fl["follower"]],
             "magnitude": fl["magnitude"], "lag_hours": fl["lag_hours"],
             "correlation": fl["correlation"],
             "iq_count": c["iq_count"], "sy_count": c["sy_count"],
             "lead_onset": fl["lead_onset"], "follow_onset": fl["follow_onset"],
-            "leaders": actors.rank(lead_posts, users, by_time=True, top=5),
-            "receivers": actors.rank(fol_posts, users, by_time=False, top=5),
+            "leaders": actors.rank(lead_posts, users, by_time=True, top=5, exclude=cross_ids),
+            "receivers": actors.rank(fol_posts, users, by_time=False, top=5, exclude=cross_ids),
             "sample": (sample.get("text") or "")[:200],
             "series": fl["series"],
         })
@@ -86,6 +94,7 @@ async def build(rng: str = "week", per_query: int = 130):
     issues.sort(key=lambda x: -x["magnitude"])
     iq_leads = sum(1 for i in issues if i["leader"] == "IQ")
     sy_leads = sum(1 for i in issues if i["leader"] == "SY")
+    concurrent = sum(1 for i in issues if i.get("concurrent"))
     avg_mag = round(sum(i["magnitude"] for i in issues) / len(issues)) if issues else 0
     avg_lag = round(sum(i["lag_hours"] for i in issues) / len(issues)) if issues else 0
     if iq_leads > sy_leads:
@@ -101,6 +110,7 @@ async def build(rng: str = "week", per_query: int = 130):
         "period": rng,
         "overview": {
             "shared_issues": len(issues), "iq_leads": iq_leads, "sy_leads": sy_leads,
+            "concurrent": concurrent,
             "avg_magnitude": avg_mag, "avg_lag_hours": avg_lag,
             "iq_scanned": len(iq), "sy_scanned": len(sy),
             "direction": direction,

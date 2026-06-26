@@ -44,6 +44,7 @@ export default function CrossInfluence() {
               {[["قضايا مشتركة", ov.shared_issues, "#4f9dff"],
                 ["العراق يقود", ov.iq_leads, "#22c55e"],
                 ["سوريا تقود", ov.sy_leads, "#f59e0b"],
+                ["متزامنة", ov.concurrent, "#a855f7"],
                 ["متوسط التأثير", ov.avg_magnitude, magColor(ov.avg_magnitude || 0)],
                 ["متوسط الزمن (س)", ov.avg_lag_hours, "#a855f7"]].map(([l, v, c]: any) => (
                 <div key={l} style={{ textAlign: "center", padding: "8px 4px", border: "1px solid var(--line)", borderRadius: 12, background: "var(--input)" }}>
@@ -67,9 +68,15 @@ export default function CrossInfluence() {
 
               {/* direction line */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "8px 0", fontSize: 15, fontWeight: 700, flexWrap: "wrap" }}>
-                <span>{flag(it.leader_country)} {it.leader_country}</span>
-                <span style={{ color: "#4f9dff", fontWeight: 900 }}>──تأثير {it.lag_hours}س──▶</span>
-                <span>{flag(it.follower_country)} {it.follower_country}</span>
+                {it.concurrent ? (
+                  <span style={{ color: "#a855f7" }}>🔄 تداول متزامن (عراق ⇄ سوريا) — بلا قائد واضح</span>
+                ) : (
+                  <>
+                    <span>{flag(it.leader_country)} {it.leader_country}</span>
+                    <span style={{ color: "#4f9dff", fontWeight: 900 }}>──تأثير {it.lag_hours}س──▶</span>
+                    <span>{flag(it.follower_country)} {it.follower_country}</span>
+                  </>
+                )}
                 <span className="muted" style={{ fontSize: 12 }}>· ارتباط {it.correlation} · {it.iq_count}/{it.sy_count} منشور</span>
               </div>
 
