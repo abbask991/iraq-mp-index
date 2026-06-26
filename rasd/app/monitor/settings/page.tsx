@@ -66,9 +66,9 @@ export default function Settings() {
       {loading && <p className="muted">جارٍ التحميل…</p>}
 
       {!loading && (
-        <div style={{ display: "grid", gridTemplateColumns: "210px 1fr", gap: 16, marginTop: 14, alignItems: "start" }}>
+        <div className="set-grid" style={{ display: "grid", gridTemplateColumns: "210px 1fr", gap: 16, marginTop: 14, alignItems: "start" }}>
           {/* tab rail */}
-          <div className="cbox" style={{ padding: 6, position: "sticky", top: 70 }}>
+          <div className="cbox set-rail" style={{ padding: 6, position: "sticky", top: 70 }}>
             {cats.map((c) => (
               <button key={c.category} onClick={() => setActive(c.category)}
                 style={{

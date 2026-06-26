@@ -106,6 +106,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   }, []);
 
   const [clock, setClock] = useState("");
+  const [navOpen, setNavOpen] = useState(false);
   useEffect(() => {
     const f = () => setClock(new Date().toLocaleTimeString("ar-IQ", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }));
     f(); const id = setInterval(f, 1000); return () => clearInterval(id);
@@ -164,6 +165,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <>
  <div className="console-bar">
  <div className="cb-left">
+ <button className="cb-burger" aria-label="menu" onClick={() => setNavOpen((v) => !v)}>{navOpen ? "✕" : "☰"}</button>
  <span className="cb-logo" />
  <span className="cb-brand">مركز الرصد</span>
  <span className="cb-chev">›</span>
@@ -175,8 +177,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <button className="cb-btn" onClick={toggleTheme}>{theme === "dark" ? "☀" : "☾"}</button>
  </div>
  </div>
+ {navOpen && <div className="nav-overlay" onClick={() => setNavOpen(false)} />}
  <div className="admin-shell">
- <aside className="admin-side">
+ <aside className={"admin-side" + (navOpen ? " open" : "")} onClick={(e) => { if ((e.target as HTMLElement).closest("a")) setNavOpen(false); }}>
         {LangBtn}
  <Link href="/monitor/overview" className={path === "/monitor/overview" ? "active" : ""}>
           {lang === "ar" ? "لوحة القيادة" : "Command Center"}
