@@ -53,6 +53,27 @@ async def query(entity: str, *, platforms=None, since=None, limit=300) -> list[d
         return []
 
 
+async def platform_totals(limit: int = 2000) -> dict:
+    """Aggregate stored posts by platform (reach + count) — feeds the Chief AI
+    cross-platform view. Aggregated in Python (PostgREST has no easy GROUP BY)."""
+    if not db.enabled():
+        return {"platforms": [], "total_reach": 0, "total_posts": 0}
+    try:
+        rows = await db.select("social_posts", f"select=platform,reach&order=collected_at.desc&limit={limit}")
+    except Exception:
+        return {"platforms": [], "total_reach": 0, "total_posts": 0}
+    agg: dict = {}
+    for r in rows or []:
+        p = r.get("platform")
+        a = agg.setdefault(p, {"posts": 0, "reach": 0})
+        a["posts"] += 1
+        a["reach"] += int(r.get("reach", 0) or 0)
+    platforms = [{"platform": k, **v} for k, v in sorted(agg.items(), key=lambda x: -x[1]["reach"])]
+    return {"platforms": platforms,
+            "total_reach": sum(p["reach"] for p in platforms),
+            "total_posts": sum(p["posts"] for p in platforms)}
+
+
 def to_post(row: dict) -> dict:
     """DB row → the in-memory fused-post shape used by picture/reach."""
     return {

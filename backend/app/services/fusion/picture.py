@@ -110,7 +110,23 @@ async def build_picture(entity: str, rng: str = "week", x_limit: int = 300) -> d
     except Exception:
         pass
 
-    # 3) stored cross-platform posts for this entity
+    # 3a) Google News (native — already in the platform via RSS)
+    try:
+        from app.services import news
+        news_hits = await news.fetch_news([entity], cap=40, range=rng)
+    except Exception:
+        news_hits = []
+    if news_hits:
+        ncls, _ = await smart_classify.classify_posts([{"text": h.get("title", "")} for h in news_hits])
+        for h, c in zip(news_hits, ncls):
+            h["_sent"] = c.get("sentiment", "محايد")
+    for h in news_hits:
+        fused.append({"platform": "news", "url": h.get("link"), "text": h.get("title", ""),
+                      "created_at": h.get("date"), "type": "عام", "sentiment": h.get("_sent", "محايد"),
+                      "author": {"username": h.get("source"), "followers": 0},
+                      "engagement": {"likes": 0, "comments": 0, "shares": 0, "views": 0}})
+
+    # 3b) stored cross-platform posts for this entity (Apify-collected)
     cross = [store.to_post(r) for r in await store.query(entity, limit=300)]
     for p in cross:
         p.setdefault("type", "عام")

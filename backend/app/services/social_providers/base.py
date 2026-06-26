@@ -14,9 +14,12 @@ A provider module must expose:
 """
 import os
 
-PLATFORMS = ["instagram", "tiktok", "facebook", "youtube", "reddit", "x"]
+PLATFORMS = ["instagram", "tiktok", "facebook", "facebook_groups", "facebook_ads",
+             "youtube", "reddit", "telegram", "x", "news"]
 PLATFORM_AR = {"instagram": "إنستغرام", "tiktok": "تيك توك", "facebook": "فيسبوك",
-               "youtube": "يوتيوب", "reddit": "ريديت", "x": "إكس"}
+               "facebook_groups": "مجموعات فيسبوك", "facebook_ads": "إعلانات فيسبوك",
+               "youtube": "يوتيوب", "reddit": "ريديت", "telegram": "تلغرام",
+               "x": "إكس", "news": "أخبار (Google News)"}
 
 _PROVIDERS: dict = {}
 

@@ -17,8 +17,14 @@ _AUDIENCE_SEEN = 0.10                # fraction of followers that typically see 
 _IMPACT_W = {"likes": 1.0, "shares": 3.0, "comments": 2.0, "views": 0.02}
 
 
+# a news article ≈ this many impressions (media authority proxy; no engagement data)
+_NEWS_BASE_REACH = 8000
+
+
 def estimated_reach(platform: str, eng: dict, followers: int = 0) -> int:
     eng = eng or {}
+    if platform == "news":
+        return _NEWS_BASE_REACH                        # media reach proxy per article
     views = int(eng.get("views", 0) or 0)
     if views > 0:
         return views                                   # real impressions

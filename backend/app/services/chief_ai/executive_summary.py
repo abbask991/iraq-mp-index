@@ -57,7 +57,15 @@ async def build_dashboard() -> dict:
     questions = advisor.get("questions") or question_engine.suggest(dg)
     risk_lv = (dg.get("executive") or {}).get("risk_level", "—")
 
+    # cross-platform reach (fusion store) — the CIO sees beyond X
+    try:
+        from app.services.fusion import store as fusion_store
+        cross_platform = await fusion_store.platform_totals()
+    except Exception:
+        cross_platform = {"platforms": [], "total_reach": 0, "total_posts": 0}
+
     return {
+        "cross_platform": cross_platform,
         "generated_at": dg.get("generated_at"),
         "executive_brief": advisor.get("executive_brief") or (dg.get("executive") or {}).get("brief", ""),
         "risk_level": risk_lv,

@@ -90,6 +90,21 @@ export default function ChiefAI() {
             ))}
           </div>
 
+          {/* cross-platform reach (fusion) */}
+          {d.cross_platform?.platforms?.length > 0 && (
+            <div className="cbox" style={{ margin: "14px 0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                <h4 style={{ margin: 0 }}>الانتشار عبر المنصّات</h4>
+                <span className="chip">وصول إجمالي {Number(d.cross_platform.total_reach).toLocaleString()}</span>
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+                {d.cross_platform.platforms.map((p: any) => (
+                  <span key={p.platform} className="chip">{p.platform}: {Number(p.reach).toLocaleString()} · {p.posts} منشور</span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 8. Strategic forecast — multi-horizon */}
           <div className="cbox" style={{ margin: "14px 0" }}>
             <h4>التوقّع الاستراتيجي عبر المدى</h4>

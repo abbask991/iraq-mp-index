@@ -14,7 +14,8 @@ import httpx
 from app.services.social_providers import base
 
 NAME = "apify"
-SUPPORTED = ["instagram", "tiktok", "facebook", "youtube", "reddit"]
+SUPPORTED = ["instagram", "tiktok", "facebook", "facebook_groups", "facebook_ads",
+             "youtube", "reddit", "telegram"]
 _API = "https://api.apify.com/v2"
 _HASH = re.compile(r"#[\w؀-ۿ_]+")
 
@@ -39,6 +40,15 @@ ACTOR_MAP = {
     "reddit":    {"actor": "trudax~reddit-scraper-lite",
                   "url": lambda u, n: {"startUrls": [{"url": u}], "maxItems": n},
                   "search": lambda kw, n: {"searches": [kw], "maxItems": n, "type": "posts"}},
+    "facebook_groups": {"actor": "apify~facebook-groups-scraper",
+                        "url": lambda u, n: {"startUrls": [{"url": u}], "resultsLimit": n},
+                        "search": None},
+    "facebook_ads": {"actor": "apify~facebook-ads-scraper",
+                     "url": lambda u, n: {"urls": [{"url": u}], "count": n},
+                     "search": lambda kw, n: {"searchTerms": [kw], "count": n, "activeStatus": "all"}},
+    "telegram":  {"actor": "tri_angle~telegram-scraper",
+                  "url": lambda u, n: {"channels": [u], "postsLimit": n},
+                  "search": None},
 }
 
 # platforms that can be monitored by keyword (like X)
