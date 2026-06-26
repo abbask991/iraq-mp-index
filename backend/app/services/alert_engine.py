@@ -52,6 +52,39 @@ async def evaluate() -> list[dict]:
         if n.get("neg_ratio", 0) > 0.65 and n.get("posts", 0) >= 40:
             triggered.append({"type": "narrative", "severity": "yellow", "key": n.get("narrative"),
                               "message": f"سردية سلبية صاعدة: «{n.get('narrative')}» — {n.get('posts')} منشور."})
+
+    # ---- opinion-drift alerts (cheap: from stored snapshots) ----
+    from app.services import db
+    if db.enabled():
+        try:
+            from app.services.opinion import drift as drift_engine
+            rows = await db.select("opinion_snapshots", "select=target&order=created_at.desc&limit=80")
+            seen_t, tlist = set(), []
+            for r in (rows or []):
+                t = r.get("target")
+                if t and t not in seen_t:
+                    seen_t.add(t)
+                    tlist.append(t)
+            for t in tlist[:8]:
+                dr = await drift_engine.compute(t)
+                if dr.get("shift") == "sudden_shift":
+                    ch = dr.get("oppose_change_24h")
+                    triggered.append({"type": "drift", "severity": "orange", "key": t,
+                                      "message": f"تحوّل رأي مفاجئ تجاه «{t}» — المعارضة {'+' if (ch or 0) > 0 else ''}{ch} نقطة خلال 24 ساعة."})
+        except Exception:
+            pass
+
+        # ---- fraud alerts (scan recently-collected cross-platform posts) ----
+        try:
+            from app.services.corporate import fraud
+            rows = await db.select("social_posts", "select=text,author&order=collected_at.desc&limit=200")
+            fr = fraud.scan_feed([{"text": r.get("text", ""), "author": r.get("author")} for r in (rows or [])])
+            for f in fr.get("flagged", [])[:3]:
+                triggered.append({"type": "fraud", "severity": "red", "key": (f.get("text") or "")[:30],
+                                  "message": f"احتيال/انتحال محتمل ({'، '.join(f.get('signals', []))}): {(f.get('text') or '')[:90]}"})
+        except Exception:
+            pass
+
     return triggered
 
 
