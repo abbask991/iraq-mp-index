@@ -154,6 +154,15 @@ async def system_status():
     }
 
 
+@router.get("/cron/warm")
+async def cron_warm():
+    """Proactively warm the heavy caches so pages open instantly. Point a free
+    pinger (UptimeRobot / cron-job.org) at this every ~15 min. Cheap: only stale
+    caches actually rebuild."""
+    from app.services import warm
+    return {"warmed": await warm.warm_all()}
+
+
 @router.get("/reports-recent")
 async def reports_recent(limit: int = 8):
     """Recently generated reports (for the Command Center 'Recent Reports' panel)."""

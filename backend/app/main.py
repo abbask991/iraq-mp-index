@@ -34,6 +34,22 @@ app.include_router(polling.router)
 app.include_router(opinion.router)
 
 
+@app.on_event("startup")
+async def _warm_on_startup():
+    """Warm the heavy caches shortly after boot so the first users hit warm pages,
+    not cold builds. Fire-and-forget; delayed so the server is ready first."""
+    import asyncio
+
+    async def _go():
+        await asyncio.sleep(20)
+        try:
+            from app.services import warm
+            await warm.warm_all()
+        except Exception:
+            pass
+    asyncio.create_task(_go())
+
+
 @app.get("/")
 def root():
     return {"service": "rasd-api", "status": "ok"}
