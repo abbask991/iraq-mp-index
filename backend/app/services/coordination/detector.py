@@ -48,9 +48,9 @@ def _verdict(score, net, rings):
     if score >= 70 or (strong >= 3 and largest >= 6):
         return {"level": "حرج", "label": "شبكة منسّقة عالية الاحتمال", "color": "#f43f5e",
                 "text": f"رُصدت {cells} خليّة متناسقة، أكبرها {largest} حساباً، بـ{strong} رابط تنسيق متكرّر عبر {nr} حلقة محتوى."}
-    if score >= 45 or strong >= 2 or largest >= 5:
+    if score >= 45 or strong >= 2 or largest >= 8:
         return {"level": "مرتفع", "label": "إشارات تنسيق واضحة", "color": "#fb923c",
-                "text": f"{cells} خليّة و{strong} رابط متكرّر و{nr} حلقة محتوى متطابق — يُنصح بالمراجعة."}
+                "text": f"{cells} خليّة و{strong} رابط تنسيق متكرّر و{nr} حلقة محتوى متطابق — يُنصح بالمراجعة."}
     if score >= 25 or nr:
         return {"level": "متوسط", "label": "تنسيق محدود محتمل", "color": "#eab308",
                 "text": f"{nr} حلقة محتوى متشابه دون شبكة حسابات راسخة بعد — قد يكون صدى عضوياً."}
