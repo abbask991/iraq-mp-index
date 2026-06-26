@@ -71,14 +71,14 @@ def _first(d: dict, *keys, default=None):
 
 
 def _author(platform, r):
-    am = r.get("authorMeta") or r.get("author") or {}
+    am = r.get("authorMeta") or r.get("author") or r.get("user") or {}
     if isinstance(am, str):
         am = {"name": am}
     return base.profile(
         platform,
-        username=_first(r, "ownerUsername", "username", "channelName")
+        username=_first(r, "ownerUsername", "username", "channelName", "pageName")
         or _first(am, "name", "nickName", "userName"),
-        name=_first(r, "ownerFullName", "fullName") or _first(am, "nickName", "name"),
+        name=_first(r, "ownerFullName", "fullName", "pageName") or _first(am, "nickName", "name"),
         url=_first(r, "ownerUrl", "channelUrl"),
         followers=_first(am, "fans", "followers", default=0) or _first(r, "followers", default=0),
         verified=bool(_first(r, "verified", default=False) or _first(am, "verified", default=False)))
@@ -92,9 +92,10 @@ def _norm(platform, r: dict):
         url=_first(r, "url", "webVideoUrl", "postUrl", "link"),
         text=text, created_at=_first(r, "timestamp", "createTimeISO", "date", "createdAt"),
         author=_author(platform, r),
-        likes=_first(r, "likesCount", "diggCount", "likes", "upVotes", "score", default=0),
-        comments=_first(r, "commentsCount", "commentCount", "numberOfComments", default=0),
-        shares=_first(r, "sharesCount", "shareCount", "reshareCount", default=0),
+        likes=_first(r, "likesCount", "diggCount", "likes", "upVotes", "score",
+                     "reactionLikeCount", "topReactionsCount", default=0),
+        comments=_first(r, "commentsCount", "commentCount", "numberOfComments", "comments", default=0),
+        shares=_first(r, "sharesCount", "shareCount", "reshareCount", "shares", default=0),
         views=_first(r, "videoViewCount", "playCount", "viewCount", "views", default=0),
         media_type=_first(r, "type", "mediaType"),
         hashtags=_first(r, "hashtags", default=None) or _HASH.findall(text))
