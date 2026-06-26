@@ -163,6 +163,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   const cur = topItems.find((it) => it.href === path);
   const sectionTitle = cur ? t(cur as { ar: string; en: string }) : (lang === "ar" ? "مركز العمليات" : "Operations");
   const paletteItems = [
+    { label: lang === "ar" ? "غرفة الحرب (مباشر)" : "Live War Room", href: "/monitor/warroom", group: lang === "ar" ? "رئيسي" : "Main" },
     { label: lang === "ar" ? "لوحة القيادة" : "Command Center", href: "/monitor/overview", group: lang === "ar" ? "رئيسي" : "Main" },
     { label: lang === "ar" ? "التقرير الشامل" : "Full Dossier", href: "/monitor/dossier", group: lang === "ar" ? "رئيسي" : "Main" },
     { label: lang === "ar" ? "الإعدادات" : "Settings", href: "/monitor/settings", group: lang === "ar" ? "رئيسي" : "Main" },
@@ -190,6 +191,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <div className="admin-shell">
  <aside className={"admin-side" + (navOpen ? " open" : "")} onClick={(e) => { if ((e.target as HTMLElement).closest("a")) setNavOpen(false); }}>
         {LangBtn}
+ <Link href="/monitor/warroom" className={path === "/monitor/warroom" ? "active" : ""} style={{ background: path === "/monitor/warroom" ? undefined : "color-mix(in srgb, #f43f5e 12%, transparent)", fontWeight: 800 }}>
+          {lang === "ar" ? "🔴 غرفة الحرب (مباشر)" : "🔴 Live War Room"}
+ </Link>
  <Link href="/monitor/overview" className={path === "/monitor/overview" ? "active" : ""}>
           {lang === "ar" ? "لوحة القيادة" : "Command Center"}
  </Link>
