@@ -357,3 +357,95 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
   .lp-hero h1 { font-size: 34px; }
   .lp-h2 { font-size: 26px; }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   PREMIUM UI LAYER — refined tokens, depth, motion (applies everywhere)
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+  --radius: 16px;
+  --ring: 0 0 0 3px rgba(52,214,198,.16);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.30), 0 2px 8px rgba(0,0,0,.18);
+  --shadow-md: 0 6px 22px rgba(0,0,0,.34), 0 2px 6px rgba(0,0,0,.22);
+  --shadow-lg: 0 20px 48px rgba(0,0,0,.42);
+  --glow: 0 0 0 1px rgba(52,214,198,.10), 0 10px 36px rgba(52,214,198,.10);
+  --grad-accent: linear-gradient(135deg, var(--accent), var(--accent2));
+}
+[data-theme="light"] {
+  --ring: 0 0 0 3px rgba(13,148,136,.14);
+  --shadow-sm: 0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.05);
+  --shadow-md: 0 8px 24px rgba(15,23,42,.10), 0 2px 6px rgba(15,23,42,.06);
+  --shadow-lg: 0 22px 50px rgba(15,23,42,.16);
+  --glow: 0 0 0 1px rgba(13,148,136,.10), 0 12px 36px rgba(13,148,136,.10);
+}
+
+/* refined cards: hairline top accent, layered depth, smooth lift */
+.cbox, .card, .cc-kpi {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition: transform .22s cubic-bezier(.2,.7,.2,1), box-shadow .22s ease, border-color .22s ease;
+  position: relative;
+}
+.cbox::before, .card::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; border-radius: var(--radius) var(--radius) 0 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.10), transparent);
+  pointer-events: none;
+}
+[data-theme="light"] .cbox::before, [data-theme="light"] .card::before { background: linear-gradient(90deg, transparent, rgba(13,148,136,.18), transparent); }
+.cbox:hover, .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+
+/* section headers: accent bar before the title */
+.cbox > h4:first-child, .cbox > h3:first-child {
+  display: flex; align-items: center; gap: 9px;
+}
+.cbox > h4:first-child::before, .cbox > h3:first-child::before {
+  content: ""; width: 3px; height: 1em; border-radius: 3px; background: var(--grad-accent); flex: none;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+/* premium pills */
+.chip {
+  padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  backdrop-filter: blur(6px); letter-spacing: .2px;
+}
+
+/* buttons: glow + tactile press */
+.btn {
+  border-radius: 11px; font-weight: 800; letter-spacing: .2px;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 28%, transparent), inset 0 1px 0 rgba(255,255,255,.22);
+  transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
+}
+.btn:hover { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 38%, transparent), inset 0 1px 0 rgba(255,255,255,.25); }
+.btn:active { transform: translateY(0) scale(.98); }
+.btn.ghost { box-shadow: none; backdrop-filter: blur(6px); border-radius: 11px; }
+.btn.ghost:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+
+/* inputs: soft focus ring */
+input, textarea, select { border-radius: 11px; transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+input:focus, textarea:focus, select:focus { box-shadow: var(--ring); }
+
+/* KPI numerals: subtle gradient sheen + tighter */
+.cc-kpi { overflow: hidden; }
+.cc-kpi::after { content: ""; position: absolute; inset: -40% 60% auto -40%; height: 80%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 14%, transparent), transparent); pointer-events: none; }
+.cc-kpi .v { background: linear-gradient(180deg, var(--text), color-mix(in srgb, var(--text) 72%, var(--muted))); -webkit-background-clip: text; background-clip: text; }
+
+/* sidebar active: glow */
+.admin-side a.active { box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 32%, transparent); }
+.admin-side a { transition: background .16s ease, color .16s ease, padding .16s ease, box-shadow .2s ease; }
+
+/* gauges + svgs render crisp */
+svg { shape-rendering: geometricPrecision; }
+
+/* heading rhythm */
+h2 { font-size: 21px; letter-spacing: -.4px; }
+h3 { letter-spacing: -.2px; }
+.muted { line-height: 1.7; }
+
+/* nicer mini progress bars (used across pages) */
+[style*="background: var(--accent)"][style*="height: 100%"] { box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .cbox, .cc-kpi, .btn, .admin-side a { transition: none !important; animation: none !important; }
+}
