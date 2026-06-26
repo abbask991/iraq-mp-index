@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import CORS_ORIGINS
-from app.routers import battlefield, chief_ai, influencers, intelligence, monitor, narratives, settings, social, users
+from app.routers import battlefield, chief_ai, fusion, influencers, intelligence, monitor, narratives, settings, social, users
 
 app = FastAPI(title="مركز الرصد API", version="0.2.0")
 
@@ -28,6 +28,7 @@ app.include_router(settings.router)
 app.include_router(influencers.router)
 app.include_router(users.router)
 app.include_router(social.router)
+app.include_router(fusion.router)
 
 
 @app.get("/")

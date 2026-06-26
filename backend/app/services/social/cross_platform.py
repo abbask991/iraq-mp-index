@@ -27,11 +27,19 @@ async def start_source(platform: str, url: str, limit: int = 15, mode: str = "au
     return await prov.start(platform, url, limit=limit, mode=mode)
 
 
-async def poll_source(job_id: str, platform: str, mode: str = "auto") -> dict:
+async def poll_source(job_id: str, platform: str, mode: str = "auto", entity: str | None = None) -> dict:
     prov = base.get()
     if not prov or not prov.enabled():
         return {"status": "failed", "error": "provider not configured", "posts": [], "profile": None}
-    return await prov.poll(job_id, platform, mode)
+    r = await prov.poll(job_id, platform, mode)
+    # persist collected posts into the unified store so they feed the fusion picture
+    if r.get("status") == "ready" and r.get("posts"):
+        try:
+            from app.services.fusion import store
+            await store.store_posts(r["posts"], entity)
+        except Exception:
+            pass
+    return r
 
 
 async def collect_source(platform: str, url: str, limit: int = 15, mode: str = "auto") -> dict:

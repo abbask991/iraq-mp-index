@@ -32,7 +32,7 @@ async def collect(req: CollectReq):
 
 
 @router.get("/result")
-async def result(job: str, platform: str, mode: str = "auto"):
-    """Poll a collection job. status: collecting | ready | failed. Ready results
-    are cached so repeat polls are instant."""
-    return await cross_platform.poll_source(job, platform, mode)
+async def result(job: str, platform: str, mode: str = "auto", entity: str = ""):
+    """Poll a collection job. status: collecting | ready | failed. Ready posts are
+    persisted to the unified store (tagged with `entity`) to feed the fusion picture."""
+    return await cross_platform.poll_source(job, platform, mode, entity=entity or None)
