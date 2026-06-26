@@ -194,6 +194,18 @@ async def compare(source="IQ", target="SY", rng="week"):
         return {"error": "NO_DATA", "message": "تعذّر جلب أحد الخطّين — تأكد من توكن X أو سقف الميزانية."}
     res = _analyze(source, target, sp, tp, light=False)
     st = res["stats"]
+    # AI pass: clean issue names (fix clitics) + accurate categories, then re-dedup
+    if res["issues"]:
+        labeled = await issues.ai_label([{"raw": it["issue"], "sample": it.get("sample", "")} for it in res["issues"]])
+        seen, deduped = set(), []
+        for it, lab in zip(res["issues"], labeled):
+            it["issue"], it["category"] = lab["label"], lab["category"]
+            if it["issue"] in seen:
+                continue
+            seen.add(it["issue"])
+            deduped.append(it)
+        res["issues"] = deduped
+        st["shared_issues"] = len(deduped)
     summary = await _summarize(source, target, res["issues"], st) if res["issues"] else ""
     return {
         "source": source, "target": target,
