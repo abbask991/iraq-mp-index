@@ -115,7 +115,7 @@ async def analyze(handle_or_url: str, rng: str = "month") -> dict:
         "amplifies": [{"username": u, "count": c} for u, c in mentions.most_common(8)],
         "top_hashtags": disc.get("hashtags", [])[:8],
         "top_keywords": disc.get("keywords", [])[:8],
-        "emotions": [{"emotion": k, "value": round(v * 100)} for k, v in top_emo],
+        "emotions": [{"emotion": k, "value": round(v)} for k, v in top_emo],
         "collusion": {"score": collusion, "label": operative, "duplicate_ratio": dup_ratio},
         "summary": summary,
         "disclaimer": "تحليل احتمالي آلي لحساب عام على X ضمن آخر فترة — مؤشرات لا اتهامات قاطعة، وتتطلّب مراجعة بشرية.",
@@ -126,7 +126,7 @@ async def _profile_ai(handle, prof, stances, disc, top_emo, bs, dup_ratio, collu
     from app.services.media_battlefield import battlefield_summary
     st = "؛ ".join(f"{s['entity']}: {s['stance']} (تأييد {s['support']}/معارضة {s['oppose']})" for s in stances) or "لا مواقف واضحة"
     tags = "، ".join(h.get("hashtag", h) if isinstance(h, dict) else str(h) for h in disc.get("hashtags", [])[:5]) or "—"
-    emo = "، ".join(f"{k} {round(v*100)}%" for k, v in top_emo[:3])
+    emo = "، ".join(f"{k} {round(v)}%" for k, v in top_emo[:3])
     facts = (
         f"بروفايل حساب X @{handle}. النبذة: «{(prof.get('description') or '')[:160]}». "
         f"المتابعون {prof.get('public_metrics', {}).get('followers_count', 0)}. "
