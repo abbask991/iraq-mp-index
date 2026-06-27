@@ -57,16 +57,17 @@ async def _ai_profile(handle, prof, sample_texts):
         '"opposes":["جهات/أشخاص يعارضهم أو ينتقدهم"],"endorses":["قضايا/سياسات يؤيّدها"],'
         '"themes":["أبرز المحاور المتكرّرة"],"collusion_note":"إشارات تنسيق/تواطؤ إن وُجدت (تكرار رسائل، '
         'لغة دعائية موحّدة، تضخيم منظّم)","credibility_note":"تقييم المصداقية والموضوعية",'
-        '"summary":"بروفايل تحليلي 4-6 جمل عن شخصيته السياسية وأجندته"}\n'
-        "استخدم لغة احتمالية رصينة. املأ «themes» و«summary» و«leaning» دائماً ما دام المحتوى ذا طابع عام/سياسي.\n\n"
-        f"النبذة: «{(prof.get('description') or '')[:200]}»\n\nالمنشورات:\n{joined}"
+        '"summary":"بروفايل تحليلي جملتان-ثلاث عن شخصيته السياسية وأجندته"}\n'
+        "كن موجزاً جداً: القوائم كلمات قليلة لكل عنصر، والملخّص ٣ جُمل كحدّ أقصى (لتجنّب اقتطاع الإجابة). "
+        "استخدم لغة احتمالية رصينة. املأ «themes» و«summary» و«leaning» دائماً ما دام المحتوى عاماً/سياسياً.\n\n"
+        f"النبذة: «{(prof.get('description') or '')[:160]}»\n\nالمنشورات:\n{joined}"
     )
     try:
         async with httpx.AsyncClient() as c:
             r = await c.post("https://api.anthropic.com/v1/messages",
                              headers={"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01",
                                       "content-type": "application/json"},
-                             json={"model": SUMMARY_MODEL, "max_tokens": 1100,
+                             json={"model": SUMMARY_MODEL, "max_tokens": 2000,
                                    "messages": [{"role": "user", "content": prompt}]}, timeout=60)
             out = _extract_json(r.json()["content"][0]["text"])
             return {**fallback, **out} if out else fallback
