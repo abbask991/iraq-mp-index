@@ -1,0 +1,132 @@
+"""Facebook reception analysis — where the Iraqi PUBLIC actually is.
+
+Facebook has no "dislike" button (7 reactions: Like/Love/Care = positive,
+Haha/Wow = ambiguous, Sad/Angry = negative). So approval/rejection is measured
+from the reaction BREAKDOWN per post + (next) comment sentiment. Scrapes PUBLIC
+pages/groups via Apify (billed separately from the X provider — NOT AICE credits).
+"""
+import asyncio
+import os
+import re
+import time
+
+import httpx
+
+_API = "https://api.apify.com/v2"
+_ACTOR = "apify~facebook-posts-scraper"
+
+_POS = ["reactionLikeCount", "reactionLoveCount", "reactionCareCount"]
+_NEG = ["reactionAngryCount", "reactionSadCount"]
+_AMB = ["reactionHahaCount", "reactionWowCount"]
+
+
+def enabled() -> bool:
+    return bool(os.getenv("APIFY_TOKEN"))
+
+
+def normalize_target(s: str) -> str:
+    """Accept a full URL, an @handle, or a bare page name → a facebook.com URL."""
+    s = (s or "").strip()
+    if not s:
+        return ""
+    if s.startswith("http"):
+        return s
+    s = s.lstrip("@").strip("/")
+    return f"https://www.facebook.com/{s}"
+
+
+async def _scrape(url: str, limit: int) -> dict:
+    tok = os.getenv("APIFY_TOKEN")
+    if not tok:
+        return {"error": "APIFY_TOKEN_MISSING", "items": []}
+    payload = {"startUrls": [{"url": url}], "resultsLimit": max(1, min(limit, 50))}
+    async with httpx.AsyncClient() as c:
+        r = await c.post(f"{_API}/acts/{_ACTOR}/runs?token={tok}", json=payload, timeout=30)
+        if r.status_code not in (200, 201):
+            return {"error": f"run {r.status_code}", "items": []}
+        data = r.json().get("data", {})
+        rid, ds = data.get("id"), data.get("defaultDatasetId")
+        deadline = time.time() + 110
+        while time.time() < deadline:
+            s = await c.get(f"{_API}/actor-runs/{rid}?token={tok}", timeout=20)
+            st = s.json().get("data", {}).get("status")
+            if st not in ("READY", "RUNNING"):
+                break
+            await asyncio.sleep(6)
+        d = await c.get(f"{_API}/datasets/{ds}/items?token={tok}&clean=true&limit={limit}", timeout=45)
+        items = d.json() if d.status_code == 200 and isinstance(d.json(), list) else []
+    return {"error": None, "items": items}
+
+
+def _metrics(it: dict) -> dict:
+    pos = sum(int(it.get(k) or 0) for k in _POS)
+    neg = sum(int(it.get(k) or 0) for k in _NEG)
+    amb = sum(int(it.get(k) or 0) for k in _AMB)
+    likes = int(it.get("likes") or 0)
+    if pos == 0 and neg == 0 and amb == 0:        # breakdown unavailable → total likes as positive
+        pos = likes
+    denom = pos + neg
+    approval = round(pos / denom * 100) if denom else None
+    return {
+        "text": (it.get("text") or "")[:240],
+        "url": it.get("url") or it.get("facebookUrl"),
+        "time": it.get("time") or it.get("timestamp"),
+        "likes": likes, "comments": int(it.get("comments") or 0), "shares": int(it.get("shares") or 0),
+        "pos": pos, "neg": neg, "amb": amb,
+        "approval": approval, "rejection": (100 - approval) if approval is not None else None,
+        "angry": int(it.get("reactionAngryCount") or 0), "sad": int(it.get("reactionSadCount") or 0),
+    }
+
+
+async def analyze_page(target: str, limit: int = 20) -> dict:
+    if not enabled():
+        return {"error": "APIFY_TOKEN_MISSING", "message": "أضِف APIFY_TOKEN لتفعيل رصد فيسبوك."}
+    url = normalize_target(target)
+    res = await _scrape(url, limit)
+    if res["error"]:
+        return {"error": res["error"], "target": target, "message": "تعذّر الجلب من Apify."}
+    items = [it for it in res["items"] if isinstance(it, dict) and not it.get("error") and it.get("text") is not None]
+    if not items:
+        bad = next((it for it in res["items"] if isinstance(it, dict) and it.get("error")), {})
+        return {"error": "NO_DATA", "target": target,
+                "message": ("الصفحة خاصة أو الرابط غير صحيح — جرّب رابط الصفحة الكامل."
+                            if bad.get("error") in ("no_items", "private") else "لا منشورات عامة.")}
+
+    posts = [_metrics(it) for it in items]
+    posts = [p for p in posts if (p["pos"] + p["neg"] + p["amb"] + p["comments"]) > 0]
+    page_name = items[0].get("pageName") or items[0].get("user", {}).get("name") or target
+
+    tot_pos = sum(p["pos"] for p in posts)
+    tot_neg = sum(p["neg"] for p in posts)
+    approval = round(tot_pos / (tot_pos + tot_neg) * 100) if (tot_pos + tot_neg) else None
+    scored = [p for p in posts if p["approval"] is not None]
+    most_rejected = max(scored, key=lambda p: (p["rejection"] or 0, p["neg"]), default=None)
+    most_approved = max(scored, key=lambda p: (p["approval"] or 0, p["pos"]), default=None)
+
+    summary = await _summarize(page_name, approval, len(posts), tot_pos, tot_neg, most_rejected)
+
+    return {
+        "target": target, "page_name": page_name, "posts_analyzed": len(posts),
+        "approval": approval, "rejection": (100 - approval) if approval is not None else None,
+        "total_positive": tot_pos, "total_negative": tot_neg,
+        "total_comments": sum(p["comments"] for p in posts),
+        "total_shares": sum(p["shares"] for p in posts),
+        "most_rejected": most_rejected, "most_approved": most_approved,
+        "posts": sorted(posts, key=lambda p: -(p["pos"] + p["neg"]))[:12],
+        "summary": summary,
+        "note": "القياس من تفصيل التفاعلات (👍❤️🤗 إيجابي · 😠😢 سلبي). تحليل مشاعر التعليقات يُضاف لاحقاً لدقّة أعلى.",
+        "disclaimer": "تحليل احتمالي آلي لمحتوى عام على فيسبوك — مؤشرات لا أحكام قاطعة.",
+    }
+
+
+async def _summarize(page, approval, n, pos, neg, worst):
+    from app.services.media_battlefield import battlefield_summary
+    w = (f"أكثر منشور رفضاً: «{worst['text'][:80]}» ({worst['rejection']}% رفض، {worst['neg']} تفاعل غاضب/حزين)."
+         if worst else "")
+    facts = (
+        f"تحليل تفاعل جمهور فيسبوك مع صفحة «{page}». حُلّل {n} منشور. "
+        f"نسبة التأييد العامة {approval}% (تفاعلات إيجابية {pos} مقابل سلبية {neg}). {w} "
+        f"اكتب موجزاً: كيف يستقبل الجمهور هذه الصفحة، وأي المحتوى يثير الرفض أو التأييد، وما الدلالة."
+    )
+    out = await battlefield_summary.summarize(facts)
+    return out.get("summary", "")

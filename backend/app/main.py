@@ -42,6 +42,8 @@ app.include_router(predictive.router)
 app.include_router(patient_zero.router)
 app.include_router(disinfo.router)
 app.include_router(profiler.router)
+from app.routers import facebook as facebook_router  # noqa: E402
+app.include_router(facebook_router.router)
 
 
 @app.on_event("startup")

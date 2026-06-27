@@ -58,6 +58,7 @@ const SECTORS: { ar: string; en: string; items: Item[] }[] = [
       { icon: "", ar: "رادار المؤثّرين", en: "Influencer Radar", href: "/monitor/influencers" },
       { icon: "", ar: "الرأي العام الرقمي (PPOI)", en: "Public Opinion (PPOI)", href: "/monitor/opinion" },
       { icon: "", ar: "استطلاع الرأي الاجتماعي", en: "Social Opinion Poll", href: "/monitor/polling" },
+      { icon: "", ar: "رصد فيسبوك (تأييد/رفض)", en: "Facebook Reception", href: "/monitor/facebook" },
       { icon: "", ar: "الرصد عبر المنصّات", en: "Cross-Platform", href: "/monitor/cross-platform" },
       { icon: "", ar: "التوأم الرقمي", en: "Digital Twin", href: "/monitor/intelligence" },
       { icon: "", ar: "المقارنة (كيان مقابل كيان)", en: "Compare Entities", href: "/monitor/compare" },
