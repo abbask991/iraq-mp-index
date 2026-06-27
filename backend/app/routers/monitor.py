@@ -647,6 +647,8 @@ async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
         import time as _time
         from app.services.collection import multi_fetch, runlog, smart_classify
         _t0 = _time.time()
+        from app.services.collection import budget as _bdg
+        _bdg.set_category("national")
         tw = await multi_fetch.national(cov=cov, range=rng)   # AICE Phase 5: parallel queries
         tweets, users = tw["tweets"], tw["users"]
         if not tweets:

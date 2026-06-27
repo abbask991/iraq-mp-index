@@ -165,6 +165,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   const topItems = [
     { href: "/monitor/overview", ar: "لوحة القيادة", en: "Command Center" },
     { href: "/monitor/dossier", ar: "التقرير الشامل", en: "Full Dossier" },
+    { href: "/monitor/usage", ar: "الاستهلاك والكلفة", en: "Usage & Cost" },
     { href: "/monitor/settings", ar: "الإعدادات", en: "Settings" },
     ...SECTORS.flatMap((s) => s.items),
   ];

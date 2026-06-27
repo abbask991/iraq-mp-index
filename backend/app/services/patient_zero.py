@@ -19,6 +19,8 @@ def _dt(p):
 
 
 async def trace(topic: str, rng: str = "month"):
+    from app.services.collection import budget
+    budget.set_category("patient_zero")
     # a WIDE window so we actually catch the first mention, not just recent noise
     tw = await x.fetch_trend(topic, want=320, range=rng)
     if "error" in tw:

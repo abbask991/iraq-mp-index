@@ -57,6 +57,8 @@ async def assess(text: str, rng: str = "week") -> dict:
     if len(text) < 8:
         return {"error": "SHORT", "message": "الصق نصّاً أو ادّعاءً أطول للتحليل."}
 
+    from app.services.collection import budget
+    budget.set_category("disinfo")
     ai = await _ai_assess(text)
 
     # real spread pattern — is a coordinated/bot network pushing it?

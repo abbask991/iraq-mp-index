@@ -24,6 +24,8 @@ def tier(followers: int) -> dict:
 
 async def scan(rng="day", limit=600, min_followers=5000):
     from app.services.collection import multi_fetch
+    from app.services.collection import budget
+    budget.set_category("influencers")
     tw = await multi_fetch.national(cov=limit, range=rng)   # AICE Phase 5: parallel queries
     tweets, users = tw["tweets"], tw["users"]
     if not tweets:

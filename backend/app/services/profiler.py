@@ -79,6 +79,8 @@ async def analyze(handle_or_url: str, rng: str = "month") -> dict:
     handle = clean_handle(handle_or_url)
     if not handle:
         return {"error": "BAD_HANDLE", "message": "أدخل معرّف X صحيح أو رابط بروفايل."}
+    from app.services.collection import budget
+    budget.set_category("profiler")
     tw = await x.fetch_user_timeline(handle, want=120, range=rng)
     if "error" in tw:
         msg = ("نفد رصيد مزوّد البيانات (TwitterAPI.io) — يرجى إعادة الشحن."

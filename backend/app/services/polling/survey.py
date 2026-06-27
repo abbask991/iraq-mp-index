@@ -44,6 +44,8 @@ async def run_survey(subject: str, rng: str = "week", *, sample_size: int = 500,
     allowed_plats = set(platforms) if platforms else None        # None = all
 
     from app.services.opinion import ai_opinion
+    from app.services.collection import budget
+    budget.set_category("polling")
     tw = await x.fetch_trend(subject, want=sample_size, range=rng)
     tweets = tw.get("tweets", []) if "error" not in tw else []
     users = tw.get("users", {}) if "error" not in tw else {}

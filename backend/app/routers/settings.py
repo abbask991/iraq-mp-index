@@ -55,6 +55,28 @@ async def collector(limit: int = 30):
     return {"runs": runs, "totals": agg, "budget": await budget.status()}
 
 
+@router.get("/usage")
+async def usage_dashboard():
+    """Spend & usage dashboard — total, by-category breakdown, 14-day series,
+    and the automatic-refresh frequencies (X-fetch cost drivers)."""
+    from app.services.collection import budget
+    b = await budget.status()
+    return {
+        "budget": b,
+        "categories": await budget.categories(),
+        "daily": await budget.daily(14),
+        "frequencies": [
+            {"job": "المسح الوطني (تسخين تلقائي)", "every": "مرّة باليوم", "fetches_x": True, "tweets": 15000},
+            {"job": "عند نشر تحديث (إعادة تشغيل السيرفر)", "every": "عند كل deploy", "fetches_x": True, "tweets": 15000},
+            {"job": "التنبيهات", "every": "كل ٣٠ دقيقة", "fetches_x": False, "tweets": 0},
+            {"job": "تحديث الديجست", "every": "كل ٦ ساعات", "fetches_x": False, "tweets": 0},
+            {"job": "التقرير اليومي", "every": "مرّة باليوم", "fetches_x": False, "tweets": 0},
+            {"job": "غرفة الحرب (تحديث تلقائي)", "every": "كل ٤٥ ثانية وهي مفتوحة", "fetches_x": False, "tweets": 0},
+        ],
+        "note": "X يُجلب فقط عند فتح تحليل جديد لهدف برد كاشه، أو التسخين التلقائي مرّة باليوم.",
+    }
+
+
 @router.get("/health")
 async def health():
     """System Health panel — subsystem status + best-effort operational metrics."""

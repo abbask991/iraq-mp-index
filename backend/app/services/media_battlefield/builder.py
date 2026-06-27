@@ -31,6 +31,8 @@ def _acc(a):
 
 
 async def build_entity(name, rng="week", limit=300):
+    from app.services.collection import budget
+    budget.set_category("battlefield")
     tw = await x.fetch_trend(name, want=limit, range=rng)
     if "error" in tw:
         return {**EMPTY, "error": tw["error"], "message": "تعذّر — تأكد من توكن X", "entity": {"name": name}}

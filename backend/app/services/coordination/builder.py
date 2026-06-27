@@ -6,6 +6,8 @@ from app.services.media_battlefield import battlefield_summary
 
 
 async def build(target, rng="week", limit=220):
+    from app.services.collection import budget
+    budget.set_category("coordination")
     tw = await x.fetch_trend(target, want=limit, range=rng)
     if "error" in tw:
         return {"error": tw["error"], "topic": target, "period": rng,

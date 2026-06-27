@@ -19,6 +19,8 @@ _SCORE_FLOOR = 20
 
 
 async def _fetch_pool(cc, rng, per_query):
+    from app.services.collection import budget
+    budget.set_category("regional")
     qs = countries.COUNTRIES[cc]["queries"]
     sem = asyncio.Semaphore(_CONCURRENCY)
 
