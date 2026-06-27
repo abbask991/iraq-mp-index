@@ -39,17 +39,22 @@ async def _safe(coro_factory):
 async def _tick():
     now = datetime.now(_BAGHDAD)
 
-    if await _won("warm", 14 * 60):                     # keep caches/national live (~15 min)
-        from app.services import warm
-        await _safe(warm.warm_all)
-
-    if await _won("alerts", 14 * 60):                   # evaluate + push alerts (~15 min)
+    # CHEAP jobs only (no X fetch) — alerts/digest read stored data + Redis.
+    if await _won("alerts", 28 * 60):                   # evaluate + push alerts (~30 min)
         from app.services import alert_engine
         await _safe(alert_engine.evaluate_and_notify)
 
-    if await _won("digest", 175 * 60):                  # rebuild ready-made digest (~3h, cheap)
+    if await _won("digest", 350 * 60):                  # rebuild ready-made digest (~6h, no fetch)
         from app.services import intel_digest
         await _safe(lambda: intel_digest.build_digest(time.time()))
+
+    # EXPENSIVE warm (15k national X fetch) runs at most ONCE/day, before the
+    # brief — NOT every 15 min (that drained the X budget). Pages otherwise warm
+    # on-demand via SWR when actually viewed, and the AICE cap is the hard backstop.
+    warm_hour = int(os.getenv("WARM_HOUR", "6"))
+    if now.hour == warm_hour and await _won(f"warm:{now:%Y-%m-%d}", 23 * 3600):
+        from app.services import warm
+        await _safe(warm.warm_all)
 
     brief_hour = int(os.getenv("BRIEF_HOUR", "7"))
     if now.hour == brief_hour:                          # daily brief, once per calendar day
