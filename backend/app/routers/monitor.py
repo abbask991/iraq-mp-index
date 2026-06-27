@@ -17,11 +17,11 @@ from app.services import (
 # — once a key is warm they always get an instant answer and the refresh happens
 # in the background. Generous windows keep X-API/AI usage bounded (a key is
 # recomputed at most once per window, only while it's actively viewed).
-NEWS_TTL = 900   # 15 min
-X_TTL = 600      # 10 min
-HEAVY_TTL = 900  # content / dossier / bigdata
+NEWS_TTL = 1800   # 30 min
+X_TTL = 1800      # 30 min
+HEAVY_TTL = 2700  # 45 min — content / dossier / bigdata
 OVERVIEW_TTL = 43200  # command-center national scan refreshes ~every 12h — cost control for high coverage (AICE max+crisis)
-OVERVIEW_TTL = 600
+OVERVIEW_TTL = 3600   # 1h — the 15k national scan re-fetches at most once/hour while viewed (was 10 min = 6x the cost)
 
 router = APIRouter(prefix="/monitor", tags=["monitor"])
 

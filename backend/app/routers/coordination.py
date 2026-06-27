@@ -11,4 +11,4 @@ router = APIRouter(prefix="/api/coordination", tags=["coordination"])
 
 @router.get("/{target}")
 async def coordination(target: str, range: str = "week"):
-    return await cache.swr(f"coord:{range}:{target}", 900, lambda: builder.build(target, range))
+    return await cache.swr(f"coord:{range}:{target}", 1800, lambda: builder.build(target, range))

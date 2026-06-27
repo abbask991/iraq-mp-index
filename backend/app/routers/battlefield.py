@@ -19,26 +19,26 @@ async def national():
 
 @router.get("/entity/{entity_id}")
 async def entity(entity_id: str, range: str = "week"):
-    return await cache.swr(f"bf:entity:{range}:{entity_id}", 900,
+    return await cache.swr(f"bf:entity:{range}:{entity_id}", 1800,
                            lambda: bf.build_entity(entity_id, range))
 
 
 @router.get("/campaign/{campaign_id}")
 async def campaign_view(campaign_id: str, range: str = "week"):
     # centre the battlefield on the campaign hashtag/term
-    return await cache.swr(f"bf:campaign:{range}:{campaign_id}", 900,
+    return await cache.swr(f"bf:campaign:{range}:{campaign_id}", 1800,
                            lambda: bf.build_entity(campaign_id, range))
 
 
 @router.get("/narrative/{narrative_id}")
 async def narrative_view(narrative_id: str, range: str = "week"):
-    return await cache.swr(f"bf:narrative:{range}:{narrative_id}", 900,
+    return await cache.swr(f"bf:narrative:{range}:{narrative_id}", 1800,
                            lambda: bf.build_entity(narrative_id, range))
 
 
 @router.get("/timeline/{target_type}/{target_id}")
 async def timeline(target_type: str, target_id: str, range: str = "week"):
-    d = await cache.swr(f"bf:entity:{range}:{target_id}", 900,
+    d = await cache.swr(f"bf:entity:{range}:{target_id}", 1800,
                         lambda: bf.build_entity(target_id, range))
     return {"target_type": target_type, "target_id": target_id, "timeline": d.get("timeline", {})}
 
@@ -48,7 +48,7 @@ async def edge(edge_id: str, entity_id: str = "", range: str = "week"):
     """Edge detail — looked up inside the (cached) entity snapshot it belongs to."""
     if not entity_id:
         return {"id": edge_id, "note": "مرّر entity_id لاسترجاع تفاصيل العلاقة من خريطة ذلك الكيان."}
-    d = await cache.swr(f"bf:entity:{range}:{entity_id}", 900, lambda: bf.build_entity(entity_id, range))
+    d = await cache.swr(f"bf:entity:{range}:{entity_id}", 1800, lambda: bf.build_entity(entity_id, range))
     for e in d.get("edges", []):
         if e.get("id") == edge_id:
             return e
