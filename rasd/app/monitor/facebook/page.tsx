@@ -65,10 +65,44 @@ export default function Facebook() {
                   <span className="chip">🔁 {fmt(d.total_shares)} مشاركة</span>
                   <span className="chip muted">{d.posts_analyzed} منشور</span>
                 </div>
+                {d.comment_sentiment && (
+                  <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
+                    📊 المدمَج {d.approval}% (تفاعلات {d.reaction_approval}% · تعليقات {d.comment_sentiment.approval}%) —
+                    التعليقات تكشف الرأي الفعلي أعمق من اللايكات.
+                  </div>
+                )}
                 {d.summary && <p style={{ fontSize: 14, lineHeight: 1.9, marginTop: 10 }}>{d.summary}</p>}
               </div>
             </div>
           </div>
+
+          {/* comment sentiment */}
+          {d.comment_sentiment && (
+            <div className="cbox" style={{ marginBottom: 14 }}>
+              <h4>💬 مشاعر التعليقات (الرأي الفعلي · {d.comment_sentiment.analyzed} تعليق)</h4>
+              <div style={{ display: "flex", height: 14, borderRadius: 999, overflow: "hidden", marginBottom: 8 }}>
+                <span style={{ width: `${(d.comment_sentiment.pos / d.comment_sentiment.analyzed) * 100}%`, background: "#22c55e" }} />
+                <span style={{ width: `${(d.comment_sentiment.neu / d.comment_sentiment.analyzed) * 100}%`, background: "#8a97ad" }} />
+                <span style={{ width: `${(d.comment_sentiment.neg / d.comment_sentiment.analyzed) * 100}%`, background: "#f43f5e" }} />
+              </div>
+              <div style={{ display: "flex", gap: 12, fontSize: 12.5, flexWrap: "wrap" }}>
+                <span style={{ color: "#22c55e" }}>إيجابي {d.comment_sentiment.pos}</span>
+                <span className="muted">محايد {d.comment_sentiment.neu}</span>
+                <span style={{ color: "#f43f5e" }}>سلبي {d.comment_sentiment.neg}</span>
+              </div>
+              {d.sample_comments?.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  {d.sample_comments.map((c: any, i: number) => (
+                    <div key={i} style={{ fontSize: 12.5, padding: "4px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+                      <span style={{ color: c.sentiment === "إيجابي" ? "#22c55e" : c.sentiment === "سلبي" ? "#f43f5e" : "#8a97ad", fontWeight: 700 }}>● </span>
+                      {c.text}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>ملاحظة: السخرية بالعربي/الإنجليزي قد تُقرأ حرفياً أحياناً — مراجعة بشرية مستحسنة.</p>
+            </div>
+          )}
 
           {/* most rejected / approved */}
           <div className="grid" style={{ marginBottom: 14 }}>
