@@ -197,6 +197,22 @@ async def fetch_trend(keyword: str, want: int = 150, range: str = "week"):
     return {"tweets": tweets, "users": users}
 
 
+async def fetch_user_timeline(username: str, want: int = 120, range: str = "month"):
+    """A specific account's recent timeline (for deep profiling). Uses the
+    provider's dedicated user endpoint — the `from:` search operator is NOT
+    honored by TwitterAPI.io. Same return shape as fetch_trend."""
+    from app.services.providers import twitterapi_io
+    if twitterapi_io.enabled():
+        from app.services.collection import budget
+        if not await budget.allowed():
+            return {"error": "BUDGET_CAP_REACHED", "tweets": [], "users": {}}
+        res = await twitterapi_io.fetch_user_tweets(username, want=want)
+        if "error" not in res and res.get("tweets"):
+            await budget.add(len(res["tweets"]))
+        return res
+    return {"error": "X_TOKEN_MISSING"}
+
+
 async def fetch_replies(tweet_id: str, want: int = 60):
     if not X_BEARER_TOKEN:
         return {"error": "X_TOKEN_MISSING"}

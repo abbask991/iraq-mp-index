@@ -5,7 +5,6 @@ import Gauge from "@/components/Gauge";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 
-const stanceColor = (s: string) => (s === "مؤيّد" ? "#22c55e" : s === "معارض" ? "#f43f5e" : "#8a97ad");
 const colColor = (v: number) => (v >= 60 ? "#f43f5e" : v >= 35 ? "#fb923c" : "#22c55e");
 
 export default function Profiler() {
@@ -56,16 +55,34 @@ export default function Profiler() {
             {p.bio && <p style={{ fontSize: 13.5, marginTop: 8, lineHeight: 1.8 }}>{p.bio}</p>}
           </div>
 
-          {/* stance map */}
+          {/* leaning + stance map */}
           <div className="cbox" style={{ marginBottom: 14 }}>
-            <h4>🎯 مواقفه (دعم / معارضة / تأييد)</h4>
-            {d.leaning_stances?.length ? d.leaning_stances.map((s: any, i: number) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
-                <span style={{ flex: 1, fontWeight: 600 }}>{s.entity}</span>
-                <span style={{ fontSize: 12, color: "var(--muted)" }}>تأييد {s.support} · معارضة {s.oppose} · {s.mentions} منشور</span>
-                <span className="chip" style={{ background: stanceColor(s.stance), color: "#fff", fontWeight: 800, minWidth: 64, textAlign: "center" }}>{s.stance}</span>
+            <h4>🎯 التوجّه والمواقف (دعم / معارضة / تأييد)</h4>
+            {d.leaning && <p style={{ fontSize: 14, lineHeight: 1.9, marginTop: 0 }}><b>الميول:</b> {d.leaning}</p>}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 6 }}>
+              <div>
+                <div className="muted" style={{ fontSize: 12, fontWeight: 700, marginBottom: 5, color: "#22c55e" }}>🟢 يدعم / ينحاز لـ</div>
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                  {(d.supports || []).map((s: string, i: number) => <span key={i} className="chip" style={{ color: "#22c55e" }}>{s}</span>)}
+                  {!d.supports?.length && <span className="muted">—</span>}
+                </div>
               </div>
-            )) : <span className="muted">لم يُرصد موقف واضح من الكيانات المتابَعة.</span>}
+              <div>
+                <div className="muted" style={{ fontSize: 12, fontWeight: 700, marginBottom: 5, color: "#f43f5e" }}>🔴 يعارض / يهاجم</div>
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                  {(d.opposes || []).map((s: string, i: number) => <span key={i} className="chip" style={{ color: "#f43f5e" }}>{s}</span>)}
+                  {!d.opposes?.length && <span className="muted">—</span>}
+                </div>
+              </div>
+            </div>
+            {d.endorses?.length ? (
+              <div style={{ marginTop: 10 }}>
+                <div className="muted" style={{ fontSize: 12, fontWeight: 700, marginBottom: 5, color: "#4f9dff" }}>🔵 يؤيّد / يروّج لـ</div>
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                  {d.endorses.map((s: string, i: number) => <span key={i} className="chip" style={{ color: "#4f9dff" }}>{s}</span>)}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="grid" style={{ marginBottom: 14 }}>
@@ -84,6 +101,8 @@ export default function Profiler() {
                   {cr.reasons?.length ? <div className="muted" style={{ fontSize: 11.5 }}>{cr.reasons.join(" · ")}</div> : null}
                 </div>
               </div>
+              {c.note && <p style={{ fontSize: 12.5, marginTop: 8, lineHeight: 1.8 }}><b style={{ color: colColor(c.score || 0) }}>تواطؤ:</b> {c.note}</p>}
+              {cr.note && <p style={{ fontSize: 12.5, marginTop: 4, lineHeight: 1.8 }}><b>المصداقية:</b> {cr.note}</p>}
             </div>
             {/* emotions + amplifies */}
             <div className="cbox">
@@ -100,10 +119,11 @@ export default function Profiler() {
           </div>
 
           {/* topics */}
-          {(d.top_hashtags?.length || d.top_keywords?.length) ? (
+          {(d.themes?.length || d.top_hashtags?.length || d.top_keywords?.length) ? (
             <div className="cbox" style={{ marginBottom: 14 }}>
-              <h4>🏷️ أبرز المواضيع</h4>
+              <h4>🏷️ أبرز المحاور والمواضيع</h4>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {(d.themes || []).map((t: string, i: number) => <span key={"t" + i} className="chip" style={{ color: "#fb923c" }}>{t}</span>)}
                 {(d.top_hashtags || []).map((t: any, i: number) => <span key={"h" + i} className="chip" style={{ color: "var(--accent)" }}>#{t.hashtag || t}</span>)}
                 {(d.top_keywords || []).map((t: any, i: number) => <span key={"k" + i} className="chip">{t.keyword || t}</span>)}
               </div>

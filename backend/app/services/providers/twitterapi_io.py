@@ -118,3 +118,53 @@ async def fetch_trend(keyword: str, want: int = 150, range: str = "week") -> dic
             if not cursor:
                 break
     return {"tweets": tweets[:want], "users": users}
+
+
+_USER_TWEETS = "https://api.twitterapi.io/twitter/user/last_tweets"
+
+
+async def fetch_user_tweets(username: str, want: int = 120, include_replies: bool = True) -> dict:
+    """A specific account's timeline via the dedicated user endpoint (NOT the
+    `from:` search operator, which TwitterAPI.io does not honor). Same return
+    shape as fetch_trend."""
+    key = os.getenv("TWITTERAPI_IO_KEY")
+    if not key:
+        return {"error": "TWITTERAPI_IO_KEY_MISSING"}
+    headers = {"X-API-Key": key}
+    tweets, users, cursor, pages = [], {}, "", 0
+    deadline = time.time() + _TIME_BUDGET
+    async with httpx.AsyncClient() as client:
+        while len(tweets) < want and pages < 20 and time.time() < deadline:
+            pages += 1
+            url = f"{_USER_TWEETS}?userName={quote(username)}"
+            if cursor:
+                url += f"&cursor={quote(cursor)}"
+            r = await client.get(url, headers=headers, timeout=30)
+            if r.status_code != 200:
+                return {"error": r.status_code} if not tweets else {"tweets": tweets[:want], "users": users}
+            j = r.json()
+            data = j.get("data") if isinstance(j.get("data"), dict) else j
+            rows = (data.get("tweets") if isinstance(data, dict) else None) or j.get("tweets") or []
+            for t in rows:
+                if t.get("type") == "retweet" or t.get("retweeted_tweet"):
+                    continue
+                a = t.get("author") or {}
+                aid = a.get("id") or a.get("userName") or username
+                if aid not in users and a:
+                    users[aid] = _user(a)
+                hashtags, mentions, links, domains = _entities(t)
+                tweets.append({
+                    "text": t.get("text", ""), "author_id": aid, "created_at": _iso(t.get("createdAt", "")),
+                    "engagement": (t.get("likeCount", 0) or 0) + (t.get("retweetCount", 0) or 0)
+                    + (t.get("replyCount", 0) or 0) + (t.get("quoteCount", 0) or 0),
+                    "views": t.get("viewCount", 0) or 0,
+                    "domains": domains, "hashtags": hashtags, "mentions": mentions, "links": links,
+                })
+                if len(tweets) >= want:
+                    break
+            if not j.get("has_next_page"):
+                break
+            cursor = j.get("next_cursor") or (data.get("next_cursor") if isinstance(data, dict) else "") or ""
+            if not cursor:
+                break
+    return {"tweets": tweets[:want], "users": users}

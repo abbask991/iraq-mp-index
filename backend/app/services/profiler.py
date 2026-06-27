@@ -1,14 +1,18 @@
 """Deep account profiler. Give it an X handle or profile URL and it builds a deep
-profile of the person: who they support / oppose (target-aware stance per entity),
-their political leaning, dominant themes, emotional tone, credibility / bot-likeness,
-and collusion / coordinated-operative signals (copypasta + bot markers + narrow
-focus). Evidence-based and probabilistic."""
+profile of the person from their ACTUAL timeline: political leaning, who they
+support / oppose / endorse (extracted by AI from their own content — not limited
+to a watchlist), dominant themes, emotional tone, credibility / bot-likeness, and
+collusion / coordinated-operative signals. Evidence-based and probabilistic."""
+import json
 import re
 from collections import Counter
 
-from app.services import db, emotions, entity_resolver, network, trends, x
-from app.services.collection import dedup
-from app.services.opinion import ai_opinion
+import httpx
+
+from app.config import ANTHROPIC_API_KEY, SUMMARY_MODEL
+from app.services import emotions, network, trends, x
+from app.services.collection import cluster, dedup
+from app.services.media_battlefield.battlefield_summary import _extract_json
 
 _URL = re.compile(r"(?:twitter\.com|x\.com)/(@?[A-Za-z0-9_]{2,15})", re.I)
 _BARE = re.compile(r"^@?([A-Za-z0-9_]{2,15})$")
@@ -17,13 +21,13 @@ _RESERVED = {"https", "http", "www", "home", "search", "i", "intent"}
 
 def clean_handle(s: str) -> str:
     s = (s or "").strip()
-    m = _URL.search(s)                          # a profile URL → take the path segment
+    m = _URL.search(s)
     if m:
         return m.group(1).lstrip("@")
-    m = _BARE.match(s)                          # a bare @handle / handle
+    m = _BARE.match(s)
     if m and m.group(1).lower() not in _RESERVED:
         return m.group(1)
-    m = re.search(r"@([A-Za-z0-9_]{2,15})", s)  # @handle inside other text
+    m = re.search(r"@([A-Za-z0-9_]{2,15})", s)
     return m.group(1) if m else ""
 
 
@@ -31,20 +35,50 @@ def _find_profile(handle, users, tweets):
     for u in users.values():
         if (u.get("username") or "").lower() == handle.lower():
             return u
-    # fall back to the author of the fetched tweets
-    if tweets:
-        return users.get(tweets[0].get("author_id"))
-    return None
+    return users.get(tweets[0].get("author_id")) if tweets else None
+
+
+async def _ai_profile(handle, prof, sample_texts):
+    """AI extracts the real political profile from the account's own tweets."""
+    fallback = {"leaning": "", "supports": [], "opposes": [], "endorses": [],
+                "themes": [], "collusion_note": "", "credibility_note": "", "summary": ""}
+    if not ANTHROPIC_API_KEY or not sample_texts:
+        return fallback
+    joined = "\n".join(f"- {t[:200]}" for t in sample_texts[:30])
+    prompt = (
+        "أنت محلّل استخبارات. أمامك نبذة حساب على X وعيّنة من منشوراته. استخرج بروفايلاً سياسياً دقيقاً "
+        "**من المحتوى نفسه** (لا تعتمد على معرفة خارجية ولا تخترع). أعد كائن JSON واحداً فقط بالعربية:\n"
+        '{"leaning":"وصف التوجّه/الميول السياسية بجملة","supports":["جهات/أشخاص يدعمهم أو ينحاز لهم"],'
+        '"opposes":["جهات/أشخاص يهاجمهم أو يعارضهم"],"endorses":["ما يروّج له أو يؤيّده من قضايا/سياسات"],'
+        '"themes":["أبرز المحاور التي يكرّرها"],"collusion_note":"هل تظهر إشارات تنسيق/تواطؤ (تكرار رسائل، '
+        'لغة دعائية موحّدة، تضخيم منظّم)؟","credibility_note":"تقييم موجز للمصداقية والموضوعية",'
+        '"summary":"بروفايل تحليلي 4-6 جمل"}\n'
+        "إن لم تتوفّر إشارات كافية لحقلٍ ما، اتركه فارغاً. استخدم لغة احتمالية رصينة.\n\n"
+        f"النبذة: «{(prof.get('description') or '')[:200]}»\n\nالمنشورات:\n{joined}"
+    )
+    try:
+        async with httpx.AsyncClient() as c:
+            r = await c.post("https://api.anthropic.com/v1/messages",
+                             headers={"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01",
+                                      "content-type": "application/json"},
+                             json={"model": SUMMARY_MODEL, "max_tokens": 1100,
+                                   "messages": [{"role": "user", "content": prompt}]}, timeout=60)
+            out = _extract_json(r.json()["content"][0]["text"])
+            return {**fallback, **out} if out else fallback
+    except Exception:
+        return fallback
 
 
 async def analyze(handle_or_url: str, rng: str = "month") -> dict:
     handle = clean_handle(handle_or_url)
     if not handle:
         return {"error": "BAD_HANDLE", "message": "أدخل معرّف X صحيح أو رابط بروفايل."}
-    tw = await x.fetch_trend(f"from:{handle}", want=140, range=rng)
+    tw = await x.fetch_user_timeline(handle, want=120, range=rng)
     if "error" in tw:
-        return {"error": tw["error"], "handle": handle,
-                "message": "تعذّر الجلب — تأكد من المعرّف أو توكن X أو سقف الميزانية."}
+        msg = ("نفد رصيد مزوّد البيانات (TwitterAPI.io) — يرجى إعادة الشحن."
+               if tw["error"] in (402, "BUDGET_CAP_REACHED") else
+               "تعذّر الجلب — تأكد من المعرّف أو توكن X.")
+        return {"error": tw["error"], "handle": handle, "message": msg}
     tweets, users = tw.get("tweets", []), tw.get("users", {})
     if len(tweets) < 5:
         return {"error": "NO_DATA", "handle": handle,
@@ -53,7 +87,7 @@ async def analyze(handle_or_url: str, rng: str = "month") -> dict:
     prof = _find_profile(handle, users, tweets) or {}
     pm = prof.get("public_metrics", {})
     bs, bot_reasons = network.bot_score(prof) if prof else (0, [])
-    texts = [t.get("text", "") for t in tweets]
+    texts = [t.get("text", "") for t in tweets if t.get("text")]
 
     emo = emotions.aggregate(texts)
     top_emo = sorted(emo.items(), key=lambda x: -x[1])[:4]
@@ -65,40 +99,18 @@ async def analyze(handle_or_url: str, rng: str = "month") -> dict:
             if m and m.lower() != handle.lower():
                 mentions[m] += 1
 
-    # which monitored entities does this account talk about, and with what stance?
-    monitors = await db.get_monitors(40)
-    ent_hits = []
-    for m in monitors:
-        name = m.get("name") or (m.get("keywords") or [""])[0]
-        nn = entity_resolver.normalize_arabic(name)
-        if not nn:
-            continue
-        posts = [t for t in tweets if nn in entity_resolver.normalize_arabic(t.get("text", ""))]
-        if len(posts) >= 2:
-            ent_hits.append((name, posts))
-    ent_hits.sort(key=lambda x: -len(x[1]))
-
-    stances = []
-    for name, posts in ent_hits[:5]:
-        cls = await ai_opinion.classify(name, posts)
-        sup = sum(1 for c in cls if c.get("stance") == "support")
-        opp = sum(1 for c in cls if c.get("stance") == "oppose")
-        net = ("مؤيّد" if sup > opp else "معارض" if opp > sup else "محايد")
-        stances.append({"entity": name, "mentions": len(posts), "support": sup,
-                        "oppose": opp, "stance": net,
-                        "intensity": round(100 * abs(sup - opp) / max(1, sup + opp))})
-
-    # collusion / coordinated-operative signal
-    fps = [dedup.fingerprint(t) for t in texts if t]
+    fps = [dedup.fingerprint(t) for t in texts]
     dup_ratio = round(1 - len(set(fps)) / len(fps), 2) if fps else 0
     age_days = network._age_days(prof.get("created_at", "") or "") or 0
-    posts_per_day = round(len(tweets) / max(1, min(age_days, 30)), 1) if age_days else len(tweets)
+    ppd = round(len(tweets) / max(1, min(age_days, 30)), 1) if age_days else len(tweets)
     collusion = min(100, round(bs * 0.5 + dup_ratio * 100 * 0.3
-                               + (15 if (pm.get("followers_count", 0) < 50 and posts_per_day > 15) else 0)))
+                               + (15 if (pm.get("followers_count", 0) < 50 and ppd > 15) else 0)))
     operative = ("مؤشّر تشغيل منظّم مرتفع" if collusion >= 60 else "إشارات اشتباه" if collusion >= 35
                  else "يبدو حساباً طبيعياً")
 
-    summary = await _profile_ai(handle, prof, stances, disc, top_emo, bs, dup_ratio, collusion)
+    # AI extracts supports/opposes/endorses from the account's OWN tweets
+    reps = [texts[c["rep"]] for c in cluster.build_clusters(tweets)][:30] or texts[:30]
+    ai = await _ai_profile(handle, prof, reps)
 
     return {
         "handle": handle, "period": rng,
@@ -108,32 +120,20 @@ async def analyze(handle_or_url: str, rng: str = "month") -> dict:
             "verified": prof.get("verified", False),
             "followers": pm.get("followers_count", 0), "following": pm.get("following_count", 0),
             "tweets_total": pm.get("tweet_count", 0), "age_days": age_days,
-            "posts_analyzed": len(tweets), "posts_per_day": posts_per_day,
+            "posts_analyzed": len(tweets), "posts_per_day": ppd,
         },
-        "credibility": {"bot_likeness": bs, "reasons": bot_reasons[:4]},
-        "leaning_stances": stances,
+        "leaning": ai.get("leaning", ""),
+        "supports": ai.get("supports", []),
+        "opposes": ai.get("opposes", []),
+        "endorses": ai.get("endorses", []),
+        "themes": ai.get("themes", []),
+        "credibility": {"bot_likeness": bs, "reasons": bot_reasons[:4], "note": ai.get("credibility_note", "")},
+        "collusion": {"score": collusion, "label": operative, "duplicate_ratio": dup_ratio,
+                      "note": ai.get("collusion_note", "")},
         "amplifies": [{"username": u, "count": c} for u, c in mentions.most_common(8)],
         "top_hashtags": disc.get("hashtags", [])[:8],
         "top_keywords": disc.get("keywords", [])[:8],
         "emotions": [{"emotion": k, "value": round(v)} for k, v in top_emo],
-        "collusion": {"score": collusion, "label": operative, "duplicate_ratio": dup_ratio},
-        "summary": summary,
+        "summary": ai.get("summary", ""),
         "disclaimer": "تحليل احتمالي آلي لحساب عام على X ضمن آخر فترة — مؤشرات لا اتهامات قاطعة، وتتطلّب مراجعة بشرية.",
     }
-
-
-async def _profile_ai(handle, prof, stances, disc, top_emo, bs, dup_ratio, collusion):
-    from app.services.media_battlefield import battlefield_summary
-    st = "؛ ".join(f"{s['entity']}: {s['stance']} (تأييد {s['support']}/معارضة {s['oppose']})" for s in stances) or "لا مواقف واضحة"
-    tags = "، ".join(h.get("hashtag", h) if isinstance(h, dict) else str(h) for h in disc.get("hashtags", [])[:5]) or "—"
-    emo = "، ".join(f"{k} {round(v)}%" for k, v in top_emo[:3])
-    facts = (
-        f"بروفايل حساب X @{handle}. النبذة: «{(prof.get('description') or '')[:160]}». "
-        f"المتابعون {prof.get('public_metrics', {}).get('followers_count', 0)}. "
-        f"مواقفه من الكيانات: {st}. أبرز الوسوم: {tags}. النبرة العاطفية: {emo}. "
-        f"احتمال آلية/بوت {bs}/100، تكرار محتوى {round(dup_ratio*100)}%، مؤشر تواطؤ/تنسيق {collusion}/100. "
-        f"اكتب بروفايلاً تحليلياً موجزاً: التوجّه السياسي العام، مَن يدعم ومَن يعارض، أنماطه وأجندته المحتملة، "
-        f"مصداقيته، وهل توجد إشارات تواطؤ/تشغيل منظّم. استخدم لغة احتمالية رصينة."
-    )
-    out = await battlefield_summary.summarize(facts)
-    return out.get("summary", "")
