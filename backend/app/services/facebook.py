@@ -6,11 +6,22 @@ from the reaction BREAKDOWN per post + (next) comment sentiment. Scrapes PUBLIC
 pages/groups via Apify (billed separately from the X provider — NOT AICE credits).
 """
 import asyncio
+import json
 import os
 import re
 import time
 
 import httpx
+
+from app.services import redis_client
+
+# Starter list — EDIT from the UI with the real Iraqi page slugs you care about.
+# (Use the exact facebook.com/<slug> from the page's address bar.)
+_DEFAULT_PAGES = [
+    "aljazeera", "alsumaria.tv", "alsharqiyatv", "AfaqTV", "rudawarabia",
+    "dijlahtv", "almasalah", "almaalomah", "INANEWS.IQ", "ultrairaqofficial",
+]
+_PAGES_KEY = "fb:pages"
 
 _API = "https://api.apify.com/v2"
 _ACTOR = "apify~facebook-posts-scraper"
@@ -180,6 +191,105 @@ async def _summarize(page, approval, n, pos, neg, worst, comment_sent=None):
         f"تحليل تفاعل جمهور فيسبوك مع صفحة «{page}». حُلّل {n} منشور. "
         f"نسبة التأييد المدمجة {approval}% (تفاعلات إيجابية {pos} مقابل سلبية {neg}). {cs} {w} "
         f"اكتب موجزاً: كيف يستقبل الجمهور هذه الصفحة، وأي المحتوى يثير الرفض أو التأييد، وما الدلالة."
+    )
+    out = await battlefield_summary.summarize(facts)
+    return out.get("summary", "")
+
+
+# ---- Iraqi national pulse (aggregate across a curated, editable page list) ----
+async def get_pages() -> list:
+    try:
+        raw = await redis_client.get(_PAGES_KEY)
+        if raw:
+            v = json.loads(raw)
+            if isinstance(v, list) and v:
+                return v
+    except Exception:
+        pass
+    return list(_DEFAULT_PAGES)
+
+
+async def set_pages(pages: list) -> list:
+    clean = [str(p).strip() for p in (pages or []) if str(p).strip()][:60]
+    try:
+        await redis_client.set(_PAGES_KEY, json.dumps(clean, ensure_ascii=False), ex=86400 * 60)
+    except Exception:
+        pass
+    return clean
+
+
+async def national(per_page: int = 8) -> dict:
+    """Aggregate Facebook reception across the seed pages → a national pulse.
+    Posts only (no per-comment scrape) to bound Apify cost. SWR-cached at router."""
+    if not enabled():
+        return {"error": "APIFY_TOKEN_MISSING", "message": "أضِف APIFY_TOKEN لتفعيل رصد فيسبوك."}
+    pages = await get_pages()
+    sem = asyncio.Semaphore(4)
+
+    async def _one(p):
+        async with sem:
+            return p, await _scrape(normalize_target(p), per_page)
+
+    results = await asyncio.gather(*(_one(p) for p in pages))
+    page_rows, all_posts, failed = [], [], []
+    for name, res in results:
+        items = [it for it in res.get("items", []) if isinstance(it, dict) and not it.get("error") and it.get("text") is not None]
+        if not items:
+            failed.append(name)
+            continue
+        posts = [_metrics(it) for it in items]
+        posts = [p for p in posts if (p["pos"] + p["neg"]) > 0]
+        if not posts:
+            failed.append(name)
+            continue
+        pos = sum(p["pos"] for p in posts)
+        neg = sum(p["neg"] for p in posts)
+        eng = sum(p["pos"] + p["neg"] + p["amb"] + p["comments"] + p["shares"] for p in posts)
+        pname = items[0].get("pageName") or name
+        page_rows.append({"page": pname, "target": name, "posts": len(posts), "engagement": eng,
+                          "pos": pos, "neg": neg,
+                          "approval": round(pos / (pos + neg) * 100) if (pos + neg) else None})
+        for p in posts:
+            p["_page"] = pname
+        all_posts += posts
+
+    tot_pos = sum(r["pos"] for r in page_rows)
+    tot_neg = sum(r["neg"] for r in page_rows)
+    approval = round(tot_pos / (tot_pos + tot_neg) * 100) if (tot_pos + tot_neg) else None
+    most_rejected = sorted([p for p in all_posts if p["approval"] is not None],
+                           key=lambda p: (-(p["rejection"] or 0), -p["neg"]))[:6]
+    page_rows.sort(key=lambda r: -r["engagement"])
+
+    summary = await _nat_summary(approval, len(page_rows), tot_pos, tot_neg, most_rejected) if page_rows else ""
+    snap = {
+        "approval": approval, "rejection": (100 - approval) if approval is not None else None,
+        "pages_ok": len(page_rows), "pages_failed": failed,
+        "total_positive": tot_pos, "total_negative": tot_neg,
+        "total_engagement": sum(r["engagement"] for r in page_rows),
+        "pages": page_rows,
+        "most_rejected": [{"page": p.get("_page"), "text": p["text"], "rejection": p["rejection"],
+                           "neg": p["neg"], "comments": p["comments"]} for p in most_rejected],
+        "summary": summary,
+        "note": "نبض فيسبوك الوطني — تجميع التفاعلات عبر الصفحات المختارة (قابلة للتعديل). الصفحات الفاشلة = رابط/slug غير صحيح.",
+        "disclaimer": "تحليل احتمالي آلي لمحتوى عام — مؤشرات لا أحكام قاطعة.",
+    }
+    try:                                  # publish a light snapshot for the national picture
+        await redis_client.set("intel:fb_snapshot",
+                               json.dumps({"approval": approval, "pages_ok": len(page_rows),
+                                           "total_engagement": snap["total_engagement"]}, ensure_ascii=False),
+                               ex=86400)
+    except Exception:
+        pass
+    return snap
+
+
+async def _nat_summary(approval, npages, pos, neg, worst):
+    from app.services.media_battlefield import battlefield_summary
+    w = "؛ ".join(f"«{p['text'][:60]}» ({p['rejection']}% رفض)" for p in worst[:3]) or "—"
+    facts = (
+        f"نبض فيسبوك الوطني العراقي عبر {npages} صفحة. نسبة التأييد العامة {approval}% "
+        f"(تفاعلات إيجابية {pos} مقابل سلبية {neg}). أبرز المنشورات إثارةً للرفض: {w}. "
+        f"اكتب موجزاً عن المزاج العام للجمهور العراقي على فيسبوك وأبرز ما يثير الغضب."
     )
     out = await battlefield_summary.summarize(facts)
     return out.get("summary", "")
