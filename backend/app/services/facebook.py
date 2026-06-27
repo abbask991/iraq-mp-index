@@ -17,10 +17,7 @@ from app.services import redis_client
 
 # Starter list — EDIT from the UI with the real Iraqi page slugs you care about.
 # (Use the exact facebook.com/<slug> from the page's address bar.)
-_DEFAULT_PAGES = [
-    "aljazeera", "alsumaria.tv", "alsharqiyatv", "AfaqTV", "rudawarabia",
-    "dijlahtv", "almasalah", "almaalomah", "INANEWS.IQ", "ultrairaqofficial",
-]
+_DEFAULT_PAGES = ["alsumaria.tv", "dijlahtv", "aljazeera"]  # confirmed-valid starters; user curates the rest
 _PAGES_KEY = "fb:pages"
 
 _API = "https://api.apify.com/v2"
