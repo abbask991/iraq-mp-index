@@ -694,15 +694,7 @@ h3 { letter-spacing: -.2px; }
 .wr-velo { text-align: center; }
 .wr-velo-name { font-size: 12px; font-weight: 600; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ===== War Room — UNIFORM panel heights (block context = SVG-safe; the flex
-   approach collapses SVGs to 0). Every panel in a row is the same fixed height. */
-.wr-main3, .wr-tri, .wr-viz, .wr-bottom { align-items: stretch; }
-.wr-main3 > div { height: 440px; overflow: hidden; }
-.wr-main3 .warg-svg, .wr-main3 .wr-graph svg { max-height: 392px; }
-.wr-side .wr-alerts { max-height: 384px; overflow-y: auto; }
-.wr-viz > .wr-panel { height: 300px; overflow: hidden; }
-.wr-viz svg { max-height: 248px; }
-.wr-tri > .wr-panel { min-height: 220px; }
+/* (War-Room consistency tweaks removed — restored to the original layout.) */
 
 /* ===== Conversational analyst ===== */
 .analyst { max-width: 860px; margin: 0 auto; }
