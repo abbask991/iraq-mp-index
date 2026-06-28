@@ -694,6 +694,28 @@ h3 { letter-spacing: -.2px; }
 .wr-velo { text-align: center; }
 .wr-velo-name { font-size: 12px; font-weight: 600; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ===== War Room — visual consistency pass (equal heights + uniform graphics) ===== */
+.wr-main3, .wr-tri, .wr-viz, .wr-bottom { align-items: stretch; }
+.wr-graph, .wr-side, .wr-panel { display: flex; flex-direction: column; min-width: 0; }
+.wr-graph > .wr-cap, .wr-side > .wr-cap, .wr-panel > .wr-cap { flex: none; }
+
+/* main row: three panels of equal height; cap the graphics so they align */
+.wr-main3 > div { max-height: 480px; overflow: hidden; }
+.wr-main3 svg { width: 100%; height: auto; max-height: 400px; display: block; margin-inline: auto; }
+.wr-main3 .warg-svg { max-height: 400px !important; }
+.wr-side .wr-alerts { flex: 1 1 auto; max-height: none; overflow-y: auto; }
+/* IraqMap inside the war room: stack the legend under the map, keep it compact */
+.wr-main3 .wr-graph > div { gap: 8px !important; }
+
+/* viz rows: both panels equal, content centered, graphics same height */
+.wr-viz .wr-panel { justify-content: flex-start; }
+.wr-viz svg { width: 100%; height: auto; max-height: 230px; display: block; margin: 4px auto 0; }
+.wr-velos { flex: 1; align-content: center; }
+.emo-tbl { width: 100%; }
+
+/* let list panels fill remaining height evenly */
+.wr-tri .wr-panel, .wr-bottom .wr-panel { overflow: hidden; }
+
 /* ===== Conversational analyst ===== */
 .analyst { max-width: 860px; margin: 0 auto; }
 .an-chat { min-height: 300px; max-height: 60vh; overflow-y: auto; padding: 12px 4px; display: flex; flex-direction: column; gap: 12px; }
