@@ -18,15 +18,27 @@ DIGEST_KEY = "intel:digest"
 _TTL = 86400          # survive a day; refreshed every ~3h by the cron
 
 
+_SB_KEY = "intel.digest_snapshot"
+
+
 async def get_digest():
-    """Return the cached digest (or None). Instant — no compute."""
+    """Return the latest digest. Redis first (fast); on miss/outage fall back to the
+    DURABLE copy in Supabase so the national picture survives a Redis limit/outage."""
     raw = await redis_client.get(DIGEST_KEY)
-    if not raw:
-        return None
+    if raw:
+        try:
+            return json.loads(raw)
+        except Exception:
+            pass
     try:
-        return json.loads(raw)
+        from app.services import db
+        if db.enabled():
+            rows = await db.select("system_settings", f"select=value_json&key=eq.{_SB_KEY}&limit=1")
+            if rows:
+                return (rows[0].get("value_json") or {}).get("v")
     except Exception:
-        return None
+        pass
+    return None
 
 
 async def build_digest(now_ts: float | None = None):
@@ -152,4 +164,13 @@ async def build_digest(now_ts: float | None = None):
         "count": len(entities),
     }
     await redis_client.set(DIGEST_KEY, json.dumps(digest, ensure_ascii=False), ex=_TTL)
+    # durable copy → national picture survives Redis outages/limits (reuses system_settings)
+    try:
+        from app.services import db
+        if db.enabled():
+            await db.insert("system_settings",
+                            {"key": _SB_KEY, "value_json": {"v": digest}, "category": "internal"},
+                            upsert=True, on_conflict="key")
+    except Exception:
+        pass
     return digest
