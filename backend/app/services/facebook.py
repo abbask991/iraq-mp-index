@@ -24,9 +24,19 @@ _API = "https://api.apify.com/v2"
 _ACTOR = "apify~facebook-posts-scraper"
 _COMMENTS_ACTOR = "apify~facebook-comments-scraper"
 
-_POS = ["reactionLikeCount", "reactionLoveCount", "reactionCareCount"]
-_NEG = ["reactionAngryCount", "reactionSadCount"]
-_AMB = ["reactionHahaCount", "reactionWowCount"]
+# (key, emoji, arabic, polarity, scraper field)
+REACTIONS = [
+    ("like", "👍", "إعجاب", "pos", "reactionLikeCount"),
+    ("love", "❤️", "حب", "pos", "reactionLoveCount"),
+    ("care", "🤗", "يهمّني", "pos", "reactionCareCount"),
+    ("haha", "😂", "هاها", "amb", "reactionHahaCount"),
+    ("wow", "😮", "واو", "amb", "reactionWowCount"),
+    ("sad", "😢", "حزين", "neg", "reactionSadCount"),
+    ("angry", "😠", "غاضب", "neg", "reactionAngryCount"),
+]
+_POS = [f for k, _e, _a, p, f in REACTIONS if p == "pos"]
+_NEG = [f for k, _e, _a, p, f in REACTIONS if p == "neg"]
+_AMB = [f for k, _e, _a, p, f in REACTIONS if p == "amb"]
 
 
 def enabled() -> bool:
@@ -67,13 +77,25 @@ async def _scrape(url: str, limit: int) -> dict:
     return {"error": None, "items": items}
 
 
+def _comment_texts(it: dict) -> list:
+    """Comment text already included in the post payload (free — no extra scrape)."""
+    out = []
+    for c in (it.get("topComments") or []):
+        t = (c.get("text") if isinstance(c, dict) else c) or ""
+        if t.strip():
+            out.append(t.strip())
+    return out
+
+
 def _metrics(it: dict) -> dict:
+    rx = {k: int(it.get(f) or 0) for k, _e, _a, _p, f in REACTIONS}
     pos = sum(int(it.get(k) or 0) for k in _POS)
     neg = sum(int(it.get(k) or 0) for k in _NEG)
     amb = sum(int(it.get(k) or 0) for k in _AMB)
     likes = int(it.get("likes") or 0)
     if pos == 0 and neg == 0 and amb == 0:        # breakdown unavailable → total likes as positive
         pos = likes
+        rx["like"] = likes
     denom = pos + neg
     approval = round(pos / denom * 100) if denom else None
     return {
@@ -81,9 +103,9 @@ def _metrics(it: dict) -> dict:
         "url": it.get("url") or it.get("facebookUrl"),
         "time": it.get("time") or it.get("timestamp"),
         "likes": likes, "comments": int(it.get("comments") or 0), "shares": int(it.get("shares") or 0),
-        "pos": pos, "neg": neg, "amb": amb,
+        "pos": pos, "neg": neg, "amb": amb, "reactions": rx,
         "approval": approval, "rejection": (100 - approval) if approval is not None else None,
-        "angry": int(it.get("reactionAngryCount") or 0), "sad": int(it.get("reactionSadCount") or 0),
+        "angry": rx["angry"], "sad": rx["sad"], "_comments": _comment_texts(it),
     }
 
 
@@ -112,21 +134,43 @@ async def analyze_page(target: str, limit: int = 20, comments: bool = True) -> d
     most_rejected = max(scored, key=lambda p: (p["rejection"] or 0, p["neg"]), default=None)
     most_approved = max(scored, key=lambda p: (p["approval"] or 0, p["pos"]), default=None)
 
-    # comment sentiment — the REAL opinion (read the text, not just the reaction click)
+    # full reaction mix across all posts (7 types)
+    reaction_mix = {k: sum(p["reactions"].get(k, 0) for p in posts) for k, *_ in REACTIONS}
+    rtot = sum(reaction_mix.values()) or 1
+    reactions_pct = [{"key": k, "emoji": e, "label": a, "polarity": pol,
+                      "count": reaction_mix[k], "pct": round(reaction_mix[k] / rtot * 100)}
+                     for k, e, a, pol, _f in REACTIONS]
+
+    # comment sentiment — FREE in-payload comments + a deeper scrape, classified with a
+    # sarcasm/dialect-aware model (the REAL opinion, not just the reaction click).
     comment_sent, sample_comments = None, []
     if comments:
+        texts = [t for p in posts for t in p.get("_comments", [])]
         top_urls = [p["url"] for p in sorted(posts, key=lambda p: -p["comments"])[:5] if p.get("url")]
-        texts = await _scrape_comments(top_urls, per_post=25)
-        if len(texts) >= 5:
-            from app.services import ai
-            cls = await ai.classify_all(texts[:160])
-            pos = sum(1 for c in cls if c.get("sentiment") == "إيجابي")
-            neg = sum(1 for c in cls if c.get("sentiment") == "سلبي")
+        texts += await _scrape_comments(top_urls, per_post=30)
+        seen, uniq = set(), []
+        for t in texts:
+            kk = t[:80]
+            if kk not in seen:
+                seen.add(kk)
+                uniq.append(t)
+        if len(uniq) >= 5:
+            labels = await _classify_comments(uniq[:200])
+            pos = labels.count("إيجابي")
+            neg = labels.count("سلبي")
             capproval = round(pos / (pos + neg) * 100) if (pos + neg) else None
-            comment_sent = {"analyzed": len(cls), "pos": pos, "neg": neg, "neu": len(cls) - pos - neg,
-                            "approval": capproval}
-            sample_comments = [{"text": texts[i][:160], "sentiment": cls[i].get("sentiment")}
-                               for i in range(min(len(texts), len(cls)))][:8]
+            comment_sent = {"analyzed": len(labels), "pos": pos, "neg": neg,
+                            "neu": len(labels) - pos - neg, "approval": capproval}
+            sample_comments = [{"text": uniq[i][:160], "sentiment": labels[i]}
+                               for i in range(min(len(uniq), len(labels)))][:10]
+
+    n = len(posts)
+    stats = {
+        "avg_reactions": round(sum(p["pos"] + p["neg"] + p["amb"] for p in posts) / n) if n else 0,
+        "avg_comments": round(sum(p["comments"] for p in posts) / n) if n else 0,
+        "avg_shares": round(sum(p["shares"] for p in posts) / n) if n else 0,
+        "total_reactions": rtot,
+    }
 
     # combined: comments weighted higher (real opinion) than reaction clicks (reach)
     if comment_sent and comment_sent["approval"] is not None and react_approval is not None:
@@ -141,6 +185,7 @@ async def analyze_page(target: str, limit: int = 20, comments: bool = True) -> d
         "approval": approval, "rejection": (100 - approval) if approval is not None else None,
         "reaction_approval": react_approval, "comment_sentiment": comment_sent,
         "sample_comments": sample_comments,
+        "reactions": reactions_pct, "stats": stats,
         "total_positive": tot_pos, "total_negative": tot_neg,
         "total_comments": sum(p["comments"] for p in posts),
         "total_shares": sum(p["shares"] for p in posts),
@@ -150,6 +195,41 @@ async def analyze_page(target: str, limit: int = 20, comments: bool = True) -> d
         "note": "التأييد المدمَج = تفاعلات (👍😠😢) + مشاعر التعليقات (الأدقّ). الأرقام مؤشّرات لا أحكام قاطعة.",
         "disclaimer": "تحليل احتمالي آلي لمحتوى عام على فيسبوك — مؤشرات لا أحكام قاطعة.",
     }
+
+
+async def _classify_comments(texts: list) -> list:
+    """Sarcasm + Iraqi-dialect aware sentiment for FB comments. Returns a per-comment
+    list of إيجابي/سلبي/محايد. Falls back to the generic classifier on failure."""
+    from app.config import ANTHROPIC_API_KEY, CLASSIFY_MODEL
+    if not ANTHROPIC_API_KEY or not texts:
+        from app.services import ai
+        cls = await ai.classify_all(texts)
+        return [c.get("sentiment", "محايد") for c in cls]
+    out: list = []
+    for i in range(0, len(texts), 40):
+        batch = texts[i:i + 40]
+        numbered = "\n".join(f"{j}. {t[:200]}" for j, t in enumerate(batch))
+        prompt = (
+            "صنّف موقف كل تعليق فيسبوك (إيجابي/سلبي/محايد) تجاه موضوع المنشور. "
+            "انتبه جيداً: السخرية واللهجة العراقية — التعليق الساخر ظاهره مدح وباطنه ذمّ = سلبي؛ "
+            "الشتيمة والغضب والتهكّم = سلبي؛ الدعاء الإيجابي والثناء = إيجابي؛ السؤال/الخبر المجرّد = محايد. "
+            "أعد JSON array فقط بنفس الترتيب والعدد، بالقيم (إيجابي|سلبي|محايد):\n" + numbered
+        )
+        try:
+            async with httpx.AsyncClient() as c:
+                r = await c.post("https://api.anthropic.com/v1/messages",
+                                 headers={"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01",
+                                          "content-type": "application/json"},
+                                 json={"model": CLASSIFY_MODEL, "max_tokens": 1500,
+                                       "messages": [{"role": "user", "content": prompt}]}, timeout=50)
+                txt = r.json()["content"][0]["text"]
+                arr = json.loads(txt[txt.find("["):txt.rfind("]") + 1])
+                vals = [str(x) for x in arr][:len(batch)]
+        except Exception:
+            vals = []
+        vals += ["محايد"] * (len(batch) - len(vals))
+        out += vals
+    return out[:len(texts)]
 
 
 async def _scrape_comments(post_urls: list, per_post: int = 25) -> list:

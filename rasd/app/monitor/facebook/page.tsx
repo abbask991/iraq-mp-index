@@ -164,6 +164,37 @@ function PageView({ Bar }: { Bar: any }) {
               </div>
             </div>
           </div>
+
+          {/* reaction mix + stats */}
+          {d.reactions?.length > 0 && (
+            <div className="grid" style={{ marginBottom: 14 }}>
+              <div className="cbox">
+                <h4>😊 توزيع التفاعلات</h4>
+                {d.reactions.filter((r: any) => r.count > 0).map((r: any) => (
+                  <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
+                    <span style={{ width: 70, fontSize: 13 }}>{r.emoji} {r.label}</span>
+                    <span style={{ flex: 1, height: 8, borderRadius: 999, background: "var(--input)", overflow: "hidden" }}>
+                      <span style={{ display: "block", height: "100%", width: `${r.pct}%`, background: r.polarity === "neg" ? "#f43f5e" : r.polarity === "amb" ? "#8a97ad" : "#22c55e" }} />
+                    </span>
+                    <span style={{ minWidth: 64, textAlign: "left", fontSize: 12 }}><b>{r.pct}%</b> <span className="muted">{fmt(r.count)}</span></span>
+                  </div>
+                ))}
+              </div>
+              <div className="cbox">
+                <h4>📊 إحصاءات</h4>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {[["متوسط التفاعلات/منشور", d.stats?.avg_reactions], ["متوسط التعليقات", d.stats?.avg_comments],
+                    ["متوسط المشاركات", d.stats?.avg_shares], ["إجمالي التفاعلات", d.stats?.total_reactions]].map(([l, v]: any) => (
+                    <div key={l} style={{ textAlign: "center", padding: "8px 4px", border: "1px solid var(--line)", borderRadius: 10, background: "var(--input)" }}>
+                      <div style={{ fontSize: 20, fontWeight: 900 }}>{fmt(v)}</div>
+                      <div className="muted" style={{ fontSize: 11 }}>{l}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {d.comment_sentiment && (
             <div className="cbox" style={{ marginBottom: 14 }}>
               <h4>💬 مشاعر التعليقات ({d.comment_sentiment.analyzed} تعليق)</h4>
