@@ -143,7 +143,7 @@ async def analyze_page(target: str, limit: int = 20, comments: bool = True) -> d
 
     # comment sentiment — FREE in-payload comments + a deeper scrape, classified with a
     # sarcasm/dialect-aware model (the REAL opinion, not just the reaction click).
-    comment_sent, sample_comments = None, []
+    comment_sent, sample_comments, insights = None, [], None
     if comments:
         texts = [t for p in posts for t in p.get("_comments", [])]
         top_urls = [p["url"] for p in sorted(posts, key=lambda p: -p["comments"])[:5] if p.get("url")]
@@ -163,6 +163,10 @@ async def analyze_page(target: str, limit: int = 20, comments: bool = True) -> d
                             "neu": len(labels) - pos - neg, "approval": capproval}
             sample_comments = [{"text": uniq[i][:160], "sentiment": labels[i]}
                                for i in range(min(len(uniq), len(labels)))][:10]
+        # deep mining: topics, entities, grievances, demands, talking points, takeaways
+        if len(uniq) >= 8:
+            from app.services import facebook_insights
+            insights = await facebook_insights.deep_insights(page_name, uniq)
 
     n = len(posts)
     stats = {
@@ -184,7 +188,7 @@ async def analyze_page(target: str, limit: int = 20, comments: bool = True) -> d
         "target": target, "page_name": page_name, "posts_analyzed": len(posts),
         "approval": approval, "rejection": (100 - approval) if approval is not None else None,
         "reaction_approval": react_approval, "comment_sentiment": comment_sent,
-        "sample_comments": sample_comments,
+        "sample_comments": sample_comments, "insights": insights,
         "reactions": reactions_pct, "stats": stats,
         "total_positive": tot_pos, "total_negative": tot_neg,
         "total_comments": sum(p["comments"] for p in posts),
@@ -334,6 +338,7 @@ async def national(per_page: int = 8) -> dict:
     results = await asyncio.gather(*(_one(p) for p in pages))
     page_rows, all_posts, failed = [], [], []
     tot_cpos = tot_cneg = 0
+    nat_comments = []   # pooled across pages → one national deep-insight pass
     for name, res in results:
         items = [it for it in res.get("items", []) if isinstance(it, dict) and not it.get("error") and it.get("text") is not None]
         if not items:
@@ -372,6 +377,7 @@ async def national(per_page: int = 8) -> dict:
             comment_app = round(cpos / (cpos + cneg) * 100) if (cpos + cneg) else None
             tot_cpos += cpos
             tot_cneg += cneg
+            nat_comments += uniq[:120]
 
         if comment_app is not None and react_app is not None:
             blended = round(0.45 * react_app + 0.55 * comment_app)  # comments weighted higher
@@ -402,6 +408,12 @@ async def national(per_page: int = 8) -> dict:
     page_rows.sort(key=lambda r: -r["engagement"])
 
     summary = await _nat_summary(approval, len(page_rows), tot_pos, tot_neg, most_rejected) if page_rows else ""
+    # national deep mining — what is the Iraqi public talking about across all pages
+    insights = None
+    if len(nat_comments) >= 8:
+        from app.services import facebook_insights
+        insights = await facebook_insights.deep_insights("الجمهور العراقي عبر صفحات متعددة", nat_comments,
+                                                         context="نبض وطني")
     snap = {
         "approval": approval, "rejection": (100 - approval) if approval is not None else None,
         "reaction_approval": react_app_nat, "comment_approval": comment_app_nat,
@@ -409,7 +421,7 @@ async def national(per_page: int = 8) -> dict:
         "pages_ok": len(page_rows), "pages_failed": failed,
         "total_positive": tot_pos, "total_negative": tot_neg,
         "total_engagement": sum(r["engagement"] for r in page_rows),
-        "pages": page_rows,
+        "pages": page_rows, "insights": insights,
         "most_rejected": [{"page": p.get("_page"), "text": p["text"], "rejection": p["rejection"],
                            "neg": p["neg"], "comments": p["comments"]} for p in most_rejected],
         "summary": summary,

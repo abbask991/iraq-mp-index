@@ -59,6 +59,115 @@ function Bar({ p }: { p: any }) {
   );
 }
 
+const sentColor = (s: string) => (/إيجاب/.test(s || "") ? "#22c55e" : /سلب|رفض/.test(s || "") ? "#f43f5e" : "#f59e0b");
+
+// the real product: what the public is actually saying, about whom, and what they want
+function Insights({ ins }: { ins: any }) {
+  if (!ins || ins.insufficient) return null;
+  const has = (k: string) => Array.isArray(ins[k]) && ins[k].length > 0;
+  if (!has("topics") && !has("entities") && !has("grievances") && !has("takeaways")) return null;
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}>🔬 تحليل عميق — ماذا يقول الجمهور فعلاً <span className="muted" style={{ fontSize: 11, fontWeight: 400 }}>({ins.analyzed_comments} تعليق)</span></h3>
+
+      {has("takeaways") && (
+        <div className="cbox" style={{ marginBottom: 12, borderInlineStart: "4px solid #6366f1", background: "color-mix(in srgb, #6366f1 7%, var(--card))" }}>
+          <h4 style={{ margin: "0 0 6px" }}>🎯 خلاصات قابلة للتنفيذ</h4>
+          {ins.takeaways.map((t: string, i: number) => (
+            <div key={i} style={{ fontSize: 13.5, lineHeight: 1.85, padding: "4px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>▸ {t}</div>
+          ))}
+        </div>
+      )}
+
+      {has("topics") && (
+        <div className="cbox" style={{ marginBottom: 12 }}>
+          <h4>📌 القضايا التي تشغل الجمهور</h4>
+          {ins.topics.map((t: any, i: number) => (
+            <div key={i} style={{ padding: "8px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <b style={{ fontSize: 14 }}>{t.name}</b>
+                {t.share != null && <span className="chip" style={{ fontSize: 11 }}>{typeof t.share === "number" ? t.share + "%" : t.share}</span>}
+                <span className="chip" style={{ fontSize: 11, color: sentColor(t.sentiment) }}>● {t.sentiment}</span>
+              </div>
+              {t.summary && <div style={{ fontSize: 13, marginTop: 4, lineHeight: 1.8 }}>{t.summary}</div>}
+              {t.sample && <div className="muted" style={{ fontSize: 11.5, marginTop: 3, fontStyle: "italic" }}>«{t.sample}»</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {has("entities") && (
+        <div className="cbox" style={{ marginBottom: 12 }}>
+          <h4>👥 الشخصيات والجهات في حديث الناس</h4>
+          {ins.entities.map((e: any, i: number) => (
+            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "7px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+              <span className="chip" style={{ fontSize: 11, color: sentColor(e.stance), minWidth: 52, textAlign: "center" }}>{e.stance}</span>
+              <div style={{ flex: 1 }}>
+                <b style={{ fontSize: 13.5 }}>{e.name}</b> <span className="muted" style={{ fontSize: 11 }}>· {e.type}{e.mentions ? ` · ${e.mentions} ذكر` : ""}</span>
+                {e.note && <div className="muted" style={{ fontSize: 12, marginTop: 2, lineHeight: 1.7 }}>{e.note}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(has("grievances") || has("demands")) && (
+        <div className="grid" style={{ marginBottom: 12 }}>
+          {has("grievances") && (
+            <div className="cbox">
+              <h4 style={{ color: "#f43f5e" }}>😡 أبرز الشكاوى</h4>
+              {ins.grievances.map((g: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "4px 0", lineHeight: 1.7 }}>• {g}</div>)}
+            </div>
+          )}
+          {has("demands") && (
+            <div className="cbox">
+              <h4 style={{ color: "#22c55e" }}>✊ أبرز المطالب</h4>
+              {ins.demands.map((g: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "4px 0", lineHeight: 1.7 }}>• {g}</div>)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {has("talking_points") && (
+        <div className="cbox" style={{ marginBottom: 12 }}>
+          <h4>🔁 رسائل متكررة <span className="muted" style={{ fontSize: 11, fontWeight: 400 }}>(قد تدل على تنسيق — مراجعة بشرية)</span></h4>
+          {ins.talking_points.map((t: any, i: number) => (
+            <div key={i} style={{ fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+              <b>{t.point}</b> {t.repetition && <span className="chip" style={{ fontSize: 10.5 }}>تكرار {t.repetition}</span>}
+              {t.note && <div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>{t.note}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {has("notable_quotes") && (
+        <div className="cbox" style={{ marginBottom: 12 }}>
+          <h4>💬 اقتباسات بارزة</h4>
+          {ins.notable_quotes.map((q: any, i: number) => (
+            <div key={i} style={{ fontSize: 13, padding: "6px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+              <span style={{ color: sentColor(q.sentiment), fontWeight: 700 }}>● </span>«{q.text}»
+              {q.why && <div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>{q.why}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {ins.audience && (ins.audience.supporters_care_about?.length > 0 || ins.audience.critics_care_about?.length > 0) && (
+        <div className="grid" style={{ marginBottom: 12 }}>
+          {ins.audience.supporters_care_about?.length > 0 && (
+            <div className="cbox"><h4 style={{ color: "#22c55e" }}>🟢 ما يهمّ المؤيدين</h4>
+              {ins.audience.supporters_care_about.map((x: string, i: number) => <div key={i} style={{ fontSize: 12.5, padding: "3px 0" }}>• {x}</div>)}</div>
+          )}
+          {ins.audience.critics_care_about?.length > 0 && (
+            <div className="cbox"><h4 style={{ color: "#f43f5e" }}>🔴 ما يهمّ المنتقدين</h4>
+              {ins.audience.critics_care_about.map((x: string, i: number) => <div key={i} style={{ fontSize: 12.5, padding: "3px 0" }}>• {x}</div>)}</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Facebook() {
   const [tab, setTab] = useState<"page" | "national">("national");
   return (
@@ -137,6 +246,9 @@ function NationalView({ Bar }: { Bar: any }) {
 
           {/* signature: likes vs comments gap (national) */}
           <GapCard d={d} />
+
+          {/* national deep mining — the real product */}
+          <Insights ins={d.insights} />
 
           {/* per-page table */}
           {d.pages?.length > 0 && (
@@ -278,6 +390,9 @@ function PageView({ Bar }: { Bar: any }) {
               <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>السخرية قد تُقرأ حرفياً أحياناً — مراجعة بشرية مستحسنة.</p>
             </div>
           )}
+
+          <Insights ins={d.insights} />
+
           {d.posts?.length > 0 && (
             <div className="cbox" style={{ marginBottom: 14 }}>
               <h4>📋 المنشورات</h4>
