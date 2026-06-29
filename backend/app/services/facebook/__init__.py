@@ -339,11 +339,23 @@ async def national(per_page: int = 8) -> dict:
     page_rows, all_posts, failed = [], [], []
     tot_cpos = tot_cneg = 0
     nat_comments = []   # pooled across pages → one national deep-insight pass
+    store_posts, store_comments = [], []   # persist from the SAME raw items (no extra Apify cost)
     for name, res in results:
         items = [it for it in res.get("items", []) if isinstance(it, dict) and not it.get("error") and it.get("text") is not None]
         if not items:
             failed.append(name)
             continue
+        # normalize + annotate the raw items for durable storage (history → trends/DNA/journey)
+        try:
+            from app.services.facebook import normalizer, reaction_analyzer as _rx
+            for it in items:
+                row = normalizer.normalize_post(it, name)
+                if row:
+                    _rx.annotate_post(row)
+                    store_posts.append(row)
+                    store_comments += normalizer.normalize_comments(it, row["post_id"], row.get("page_name"))
+        except Exception:
+            pass
         posts = [_metrics(it) for it in items]
         posts = [p for p in posts if (p["pos"] + p["neg"]) > 0]
         if not posts:
@@ -445,6 +457,14 @@ async def national(per_page: int = 8) -> dict:
             await db.insert("system_settings",
                             {"key": "intel.fb_snapshot", "value_json": {"v": light}, "category": "internal"},
                             upsert=True, on_conflict="key")
+    except Exception:
+        pass
+    # durable post/comment storage (best-effort) → accumulates history for the
+    # Facebook Intelligence dashboard, page ranking, DNA, and cross-platform journey
+    try:
+        from app.services.facebook import storage
+        await storage.save_posts(store_posts)
+        await storage.save_comments(store_comments)
     except Exception:
         pass
     return snap

@@ -6,12 +6,25 @@ from pydantic import BaseModel
 
 from app.services import cache
 from app.services import facebook as fb
+from app.services.facebook import collector, summary
 
 router = APIRouter(prefix="/api/facebook", tags=["facebook"])
 
 
 class PagesReq(BaseModel):
     pages: list[str] = []
+
+
+@router.get("/dashboard")
+async def dashboard():
+    """Facebook Intelligence Dashboard — what's happening on Facebook right now."""
+    return await cache.swr("fb:dashboard", 3600, lambda: summary.dashboard())
+
+
+@router.post("/collect")
+async def collect(limit: int = 12):
+    """Trigger a collection run (scrape monitored pages → persist). Admin/cron use."""
+    return await collector.collect_all(limit)
 
 
 @router.get("/page")

@@ -169,17 +169,133 @@ function Insights({ ins }: { ins: any }) {
 }
 
 export default function Facebook() {
-  const [tab, setTab] = useState<"page" | "national">("national");
+  const [tab, setTab] = useState<"dashboard" | "national" | "page">("dashboard");
   return (
     <div>
-      <h2>👍 رصد فيسبوك — التأييد والرفض</h2>
-      <p className="muted">فيسبوك مكان الجمهور العراقي الحقيقي. نقيس الاستقبال من التفاعلات (👍❤️🤗 تأييد · 😠😢 رفض) + مشاعر التعليقات.</p>
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+      <h2>🧠 استخبارات فيسبوك</h2>
+      <p className="muted">فيسبوك مكان الجمهور العراقي الحقيقي — مو مجرّد منشورات، بل طبقة استخبارات: مين يهمّ، شنو يصير، شنو يقول الناس.</p>
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+        <button className={`btn ${tab === "dashboard" ? "" : "ghost"}`} onClick={() => setTab("dashboard")}>🧠 اللوحة</button>
         <button className={`btn ${tab === "national" ? "" : "ghost"}`} onClick={() => setTab("national")}>🇮🇶 النبض الوطني</button>
         <button className={`btn ${tab === "page" ? "" : "ghost"}`} onClick={() => setTab("page")}>🔎 صفحة محدّدة</button>
       </div>
-      {tab === "page" ? <PageView Bar={Bar} /> : <NationalView Bar={Bar} />}
+      {tab === "dashboard" ? <DashboardView /> : tab === "page" ? <PageView Bar={Bar} /> : <NationalView Bar={Bar} />}
     </div>
+  );
+}
+
+function DashboardView() {
+  const [d, setD] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const load = () => { setLoading(true); apiGet("/api/facebook/dashboard").then(setD).finally(() => setLoading(false)); };
+  useEffect(() => { load(); }, []);
+
+  if (loading) return <SkelCards count={4} />;
+  if (!d || d.error) return <EmptyState tone="error" title="تعذّر" subtitle={d?.message} action={{ label: "إعادة", onClick: load }} />;
+  const t = d.totals || {};
+  return (
+    <>
+      {d.stored === false && <p className="muted" style={{ fontSize: 11.5, marginBottom: 10 }}>⏳ {d.note}</p>}
+
+      {/* KPI cards — what's happening on Facebook right now */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+        <Kpi label="صفحات مرصودة" value={fmt(t.pages)} color="#3b82f6" />
+        <Kpi label="منشورات مجموعة" value={fmt(t.posts)} />
+        <Kpi label="تعليقات محلّلة" value={fmt(t.comments)} color="#6366f1" />
+        <Kpi label="إجمالي التفاعلات" value={fmt(t.reactions)} />
+        {d.national_approval != null && <Kpi label="التأييد الوطني" value={`${d.national_approval}%`} color={appColor(d.national_approval)} />}
+      </div>
+
+      {/* reaction breakdown across all collected posts */}
+      {d.reaction_breakdown?.mix && (
+        <div className="grid" style={{ marginBottom: 14 }}>
+          <div className="cbox">
+            <h4>😊 توزيع التفاعلات (كل المنشورات)</h4>
+            {d.reaction_breakdown.mix.filter((r: any) => r.count > 0).map((r: any) => (
+              <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
+                <span style={{ width: 70, fontSize: 13 }}>{r.emoji} {r.label}</span>
+                <span style={{ flex: 1, height: 8, borderRadius: 999, background: "var(--input)", overflow: "hidden" }}>
+                  <span style={{ display: "block", height: "100%", width: `${r.pct}%`, background: r.polarity === "neg" ? "#f43f5e" : r.polarity === "amb" ? "#8a97ad" : "#22c55e" }} />
+                </span>
+                <span style={{ minWidth: 64, textAlign: "left", fontSize: 12 }}><b>{r.pct}%</b> <span className="muted">{fmt(r.count)}</span></span>
+              </div>
+            ))}
+          </div>
+          <div className="cbox" style={{ textAlign: "center" }}>
+            <h4>🎭 مزاج التفاعلات</h4>
+            {d.reaction_breakdown.mood_score != null
+              ? <><div style={{ fontSize: 44, fontWeight: 900, color: appColor(d.reaction_breakdown.mood_score) }}>{d.reaction_breakdown.mood_score}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>0–100 (إيجابي مقابل سلبي)</div>
+                  {d.reaction_breakdown.dominant_signal && <div style={{ marginTop: 8, fontSize: 13 }}>الغالب: <b>{d.reaction_breakdown.dominant_signal}</b></div>}</>
+              : <p className="muted">—</p>}
+          </div>
+        </div>
+      )}
+
+      {/* most influential + most active pages */}
+      {(d.most_influential_pages?.length > 0 || d.most_active_pages?.length > 0) && (
+        <div className="grid" style={{ marginBottom: 14 }}>
+          {d.most_influential_pages?.length > 0 && (
+            <div className="cbox"><h4>🏆 الأكثر تأثيراً (بالتفاعل)</h4>
+              {d.most_influential_pages.map((p: any, i: number) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+                  <span>{i + 1}. {p.page}</span><span className="muted">{fmt(p.engagement)} تفاعل · {p.posts} منشور</span>
+                </div>
+              ))}</div>
+          )}
+          {d.most_active_pages?.length > 0 && (
+            <div className="cbox"><h4>⚡ الأكثر نشاطاً (بالمنشورات)</h4>
+              {d.most_active_pages.map((p: any, i: number) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+                  <span>{i + 1}. {p.page}</span><span className="muted">{p.posts} منشور · {fmt(p.engagement)}</span>
+                </div>
+              ))}</div>
+          )}
+        </div>
+      )}
+
+      {/* most viral posts */}
+      {d.viral_posts?.length > 0 && (
+        <div className="cbox" style={{ marginBottom: 14 }}>
+          <h4>🔥 الأكثر انتشاراً</h4>
+          {d.viral_posts.slice(0, 8).map((p: any, i: number) => (
+            <div key={i} style={{ padding: "8px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+              <div style={{ fontSize: 13, marginBottom: 4 }}>{p.text || "—"}</div>
+              <div className="muted" style={{ fontSize: 11.5, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <span>{p.page}</span><span>👍 {fmt(p.reactions)}</span><span>💬 {fmt(p.comments)}</span><span>🔁 {fmt(p.shares)}</span>
+                {p.mood_score != null && <span style={{ color: appColor(p.mood_score) }}>مزاج {p.mood_score}</span>}
+                {p.url && <a href={p.url} target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>↗ المصدر</a>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* top topics + entities (reused from national insight) */}
+      {(d.top_topics?.length > 0 || d.top_entities?.length > 0) && (
+        <div className="grid" style={{ marginBottom: 14 }}>
+          {d.top_topics?.length > 0 && (
+            <div className="cbox"><h4>📌 أبرز القضايا على فيسبوك</h4>
+              {d.top_topics.map((x: any, i: number) => (
+                <div key={i} style={{ fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+                  <b>{x.name}</b> {x.share != null && <span className="chip" style={{ fontSize: 10.5 }}>{typeof x.share === "number" ? x.share + "%" : x.share}</span>}
+                  {x.sentiment && <span className="chip" style={{ fontSize: 10.5, color: sentColor(x.sentiment) }}>● {x.sentiment}</span>}
+                </div>
+              ))}</div>
+          )}
+          {d.top_entities?.length > 0 && (
+            <div className="cbox"><h4>👥 أبرز الشخصيات المذكورة</h4>
+              {d.top_entities.map((e: any, i: number) => (
+                <div key={i} style={{ fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0, display: "flex", justifyContent: "space-between" }}>
+                  <span>{e.name} <span className="muted" style={{ fontSize: 11 }}>· {e.type}</span></span>
+                  {e.stance && <span className="chip" style={{ fontSize: 10.5, color: sentColor(e.stance) }}>{e.stance}</span>}
+                </div>
+              ))}</div>
+          )}
+        </div>
+      )}
+      <p className="muted" style={{ fontSize: 11 }}>{d.disclaimer}</p>
+    </>
   );
 }
 
