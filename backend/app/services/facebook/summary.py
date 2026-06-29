@@ -57,16 +57,22 @@ async def dashboard() -> dict:
         snap = {}
 
     if not posts:
-        # storage empty (migration not applied / first run) → use the durable snapshot
+        # storage empty (migration not applied / first run) → use the durable snapshot,
+        # which now carries reaction breakdown + viral posts + page ranking (all NO-AI).
         ins = snap.get("insights") or {}
+        rollup = snap.get("page_rollup") or []
+        active = sorted(rollup, key=lambda r: -(r.get("posts") or 0))[:8]
+        infl = sorted(rollup, key=lambda r: -(r.get("engagement") or 0))[:8]
         return {
             "stored": False,
-            "note": "لا تخزين بعد — لقطة حيّة من النبض الوطني. طبّق ترحيل 011 ليبدأ تراكم التاريخ (ترند/DNA/journey).",
-            "totals": {"pages": snap.get("pages_ok", 0), "posts": 0, "comments": snap.get("comments_analyzed", 0),
+            "note": "لقطة حيّة من النبض الوطني (تفاعلات + انتشار + ترتيب الصفحات تشتغل بدون تخزين). طبّق ترحيل 011 ليبدأ تراكم التاريخ (ترند/DNA/journey)، واشحن رصيد Anthropic للمواضيع/الشخصيات.",
+            "totals": {"pages": snap.get("pages_ok", 0), "posts": len(snap.get("viral_posts") or []),
+                       "comments": snap.get("comments_analyzed", 0),
                        "reactions": (snap.get("total_positive") or 0) + (snap.get("total_negative") or 0) or snap.get("total_engagement", 0)},
-            "most_active_pages": [], "most_influential_pages": [],
-            "viral_posts": [],
-            "reaction_breakdown": None,
+            "most_active_pages": [{"page": r["page"], "posts": r.get("posts"), "engagement": r.get("engagement")} for r in active],
+            "most_influential_pages": [{"page": r["page"], "posts": r.get("posts"), "engagement": r.get("engagement")} for r in infl],
+            "viral_posts": snap.get("viral_posts") or [],
+            "reaction_breakdown": snap.get("reaction_breakdown"),
             "most_positive": [], "most_negative": [],
             "top_topics": ins.get("topics", [])[:7],
             "top_entities": ins.get("entities", [])[:8],

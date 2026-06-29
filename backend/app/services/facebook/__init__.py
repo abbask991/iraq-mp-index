@@ -419,6 +419,24 @@ async def national(per_page: int = 8) -> dict:
                            key=lambda p: (-(p["rejection"] or 0), -p["neg"]))[:6]
     page_rows.sort(key=lambda r: -r["engagement"])
 
+    page_rows.sort(key=lambda r: -r["engagement"])
+
+    # reaction intelligence + viral posts — computed from the SAME scrape, NO AI / NO DB
+    # (so the dashboard is rich even before migration 011 / Anthropic credits).
+    from app.services.facebook import reaction_analyzer as _rx
+    fb_breakdown = _rx.breakdown(all_posts) if all_posts else None
+
+    def _eng(p):
+        return p["pos"] + p["neg"] + p["amb"] + p["comments"] + p["shares"]
+    viral_cards = [{
+        "page": p.get("_page"), "text": p["text"], "url": p.get("url"), "time": p.get("time"),
+        "reactions": p["pos"] + p["neg"] + p["amb"], "comments": p["comments"], "shares": p["shares"],
+        "engagement": _eng(p), "mood_score": _rx.mood_score(p["reactions"]),
+        "approval": p.get("approval"), "rejection": p.get("rejection"),
+    } for p in sorted(all_posts, key=lambda p: -_eng(p))[:10]]
+    page_rollup = [{"page": r["page"], "posts": r["posts"], "engagement": r["engagement"],
+                    "approval": r.get("approval")} for r in page_rows]
+
     summary = await _nat_summary(approval, len(page_rows), tot_pos, tot_neg, most_rejected) if page_rows else ""
     # national deep mining — what is the Iraqi public talking about across all pages
     insights = None
@@ -447,6 +465,10 @@ async def national(per_page: int = 8) -> dict:
              "total_positive": tot_pos, "total_negative": tot_neg,
              "total_engagement": snap["total_engagement"],
              "insights": insights,        # full mined topics/entities → read by the dashboard
+             "reaction_breakdown": fb_breakdown,   # 7-reaction mix + mood (no AI)
+             "viral_posts": viral_cards,           # top posts by engagement (no AI)
+             "page_rollup": page_rollup,           # ranking by engagement / activity (no AI)
+             "most_rejected": snap["most_rejected"],
              "top_rejected": (snap["most_rejected"][0] if snap["most_rejected"] else None),
              "updated_at": _now_ts()}
     try:
