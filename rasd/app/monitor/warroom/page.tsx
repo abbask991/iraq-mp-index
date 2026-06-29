@@ -4,7 +4,7 @@ import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import Gauge from "@/components/Gauge";
 import CountUp from "@/components/CountUp";
-import BattlefieldGraph from "@/components/BattlefieldGraph";
+import WarGraph from "@/components/WarGraph";
 import RadarChart from "@/components/RadarChart";
 import EmotionHeatmap from "@/components/EmotionHeatmap";
 import IraqMap from "@/components/IraqMap";
@@ -175,9 +175,7 @@ export default function WarRoom() {
             </div>
             <div className="wr-graph">
               <div className="wr-cap">🕸️ خريطة التهديد الحيّة — كيانات · سرديات · حملات</div>
-              {d.nodes?.length
-                ? <BattlefieldGraph data={{ nodes: d.nodes, edges: d.edges }} onSelect={() => {}} />
-                : <div className="muted" style={{ padding: 30, textAlign: "center" }}>لا بيانات شبكة بعد.</div>}
+              <WarGraph data={{ nodes: d.nodes, edges: d.edges }} />
             </div>
             <div className="wr-side">
               <div className="wr-cap" style={{ color: "#f43f5e" }}>● بثّ التنبيهات الحيّ</div>

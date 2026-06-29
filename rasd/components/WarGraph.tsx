@@ -28,10 +28,25 @@ export default function WarGraph({ data }: { data: any }) {
   if (!nodes.length)
     return <div className="muted" style={{ padding: 30, textAlign: "center" }}>لا بيانات شبكة بعد.</div>;
 
-  // inset nodes inside a padded frame so orbs + their labels never bleed off the edges
-  const PADX = 80, PADY = 70;
-  const px = (n: any) => PADX + Math.max(0, Math.min(1, n.x ?? 0.5)) * (W - 2 * PADX);
-  const py = (n: any) => PADY + Math.max(0, Math.min(1, n.y ?? 0.5)) * (H - 2 * PADY);
+  // Radar-blip layout: distribute nodes on concentric rings INSIDE the radar
+  // (centered), so they sit within the circles instead of scattering to corners.
+  const ringR = [0.17, 0.29, 0.40].map((f) => f * H);
+  const _pos = new Map<string, [number, number]>();
+  const ringed: any[][] = [[], [], []];
+  let ri = 0;
+  nodes.forEach((n) => {
+    if (n.is_center) { _pos.set(n.id, [cx, cy]); return; }
+    ringed[ri % 3].push(n); ri++;
+  });
+  ringed.forEach((ring, idx) => {
+    const r = ringR[idx];
+    ring.forEach((n, k) => {
+      const ang = -Math.PI / 2 + (k / Math.max(1, ring.length)) * 2 * Math.PI + idx * 0.6;
+      _pos.set(n.id, [cx + r * Math.cos(ang), cy + r * Math.sin(ang)]);
+    });
+  });
+  const px = (n: any) => (_pos.get(n.id) || [cx, cy])[0];
+  const py = (n: any) => (_pos.get(n.id) || [cx, cy])[1];
   const hot = (n: any) => (n.risk_score || 0) >= 60 || n.type === "campaign";
 
   return (
