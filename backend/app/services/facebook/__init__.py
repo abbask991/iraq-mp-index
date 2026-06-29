@@ -143,30 +143,38 @@ async def analyze_page(target: str, limit: int = 20, comments: bool = True) -> d
 
     # comment sentiment — FREE in-payload comments + a deeper scrape, classified with a
     # sarcasm/dialect-aware model (the REAL opinion, not just the reaction click).
-    comment_sent, sample_comments, insights = None, [], None
+    comment_sent, sample_comments, insights, comment_intel = None, [], None, None
     if comments:
         texts = [t for p in posts for t in p.get("_comments", [])]
         top_urls = [p["url"] for p in sorted(posts, key=lambda p: -p["comments"])[:5] if p.get("url")]
         texts += await _scrape_comments(top_urls, per_post=30)
-        seen, uniq = set(), []
-        for t in texts:
-            kk = t[:80]
-            if kk not in seen:
-                seen.add(kk)
-                uniq.append(t)
-        if len(uniq) >= 5:
-            labels = await _classify_comments(uniq[:200])
-            pos = labels.count("إيجابي")
-            neg = labels.count("سلبي")
+        # §19 pipeline: dedupe → cluster → representatives (NO AI) BEFORE any model call
+        from app.services.facebook import comment_analyzer as ca
+        clusters = ca.cluster(texts)
+        comment_intel = {
+            "total_comments": len([t for t in texts if t and len(t.strip()) > 1]),
+            "clusters": len(clusters),
+            "repeated_phrases": ca.repeated_phrases(clusters),
+            "keyword_phrases": ca.keyword_phrases(texts),
+            "pressure": ca.pressure_level(texts, clusters),
+        }
+        reps = ca.representatives(clusters, cap=60)          # ~the opinion space, deduped
+        sizes = [c["size"] for c in clusters[:60]]
+        if len(reps) >= 5:
+            labels = await _classify_comments(reps)
+            # weight each representative's sentiment by its cluster size (how many said it)
+            pos = sum(w for lab, w in zip(labels, sizes) if lab == "إيجابي")
+            neg = sum(w for lab, w in zip(labels, sizes) if lab == "سلبي")
+            tot = sum(sizes[:len(labels)])
             capproval = round(pos / (pos + neg) * 100) if (pos + neg) else None
-            comment_sent = {"analyzed": len(labels), "pos": pos, "neg": neg,
-                            "neu": len(labels) - pos - neg, "approval": capproval}
-            sample_comments = [{"text": uniq[i][:160], "sentiment": labels[i]}
-                               for i in range(min(len(uniq), len(labels)))][:10]
-        # deep mining: topics, entities, grievances, demands, talking points, takeaways
-        if len(uniq) >= 8:
+            comment_sent = {"analyzed": tot, "representatives": len(labels),
+                            "pos": pos, "neg": neg, "neu": tot - pos - neg, "approval": capproval}
+            sample_comments = [{"text": reps[i][:160], "sentiment": labels[i], "weight": sizes[i]}
+                               for i in range(min(len(reps), len(labels)))][:10]
+        # deep mining runs on representatives only (cost ~scales with cluster ratio)
+        if len(reps) >= 8:
             from app.services import facebook_insights
-            insights = await facebook_insights.deep_insights(page_name, uniq)
+            insights = await facebook_insights.deep_insights(page_name, reps)
 
     n = len(posts)
     stats = {
@@ -184,10 +192,14 @@ async def analyze_page(target: str, limit: int = 20, comments: bool = True) -> d
 
     summary = await _summarize(page_name, approval, len(posts), tot_pos, tot_neg, most_rejected, comment_sent)
 
+    # Comment-Reaction Gap (§2): reactions can look positive while comments are hostile.
+    cr_gap = _comment_reaction_gap(react_approval, comment_sent, comment_intel, sample_comments)
+
     return {
         "target": target, "page_name": page_name, "posts_analyzed": len(posts),
         "approval": approval, "rejection": (100 - approval) if approval is not None else None,
         "reaction_approval": react_approval, "comment_sentiment": comment_sent,
+        "comment_intel": comment_intel, "comment_reaction_gap": cr_gap,
         "sample_comments": sample_comments, "insights": insights,
         "reactions": reactions_pct, "stats": stats,
         "total_positive": tot_pos, "total_negative": tot_neg,
@@ -199,6 +211,32 @@ async def analyze_page(target: str, limit: int = 20, comments: bool = True) -> d
         "note": "التأييد المدمَج = تفاعلات (👍😠😢) + مشاعر التعليقات (الأدقّ). الأرقام مؤشّرات لا أحكام قاطعة.",
         "disclaimer": "تحليل احتمالي آلي لمحتوى عام على فيسبوك — مؤشرات لا أحكام قاطعة.",
     }
+
+
+def _comment_reaction_gap(react_approval, comment_sent, comment_intel, sample_comments):
+    """Comment-Reaction Gap (§2). Quantifies how much the reactions OVERSTATE approval
+    versus what people actually write. gap_score 0–100 (reaction mood minus comment mood,
+    floored at 0). Needs the comment classifier (AI) for the comment-mood half."""
+    cm = (comment_sent or {}).get("approval")
+    pressure = (comment_intel or {}).get("pressure", {}).get("score")
+    if react_approval is None or cm is None:
+        return {"available": False, "reaction_mood": react_approval, "comment_mood": cm,
+                "public_pressure": pressure,
+                "note": "حساب مزاج التعليقات يحتاج المصنّف (ذكاء اصطناعي) — الفجوة تظهر عند توفّر الرصيد."}
+    gap = max(0, react_approval - cm)
+    level = "حرج" if gap >= 50 else "مرتفع" if gap >= 30 else "متوسط" if gap >= 15 else "منخفض"
+    misleading = gap >= 30
+    evidence = [c for c in (sample_comments or []) if c.get("sentiment") == "سلبي"][:4]
+    if misleading:
+        expl = (f"التفاعلات توحي بتأييد {react_approval}% بينما التعليقات تكشف {cm}% فقط — "
+                f"تأييد ظاهري مضلّل بفارق {gap} نقطة. اللايكات تخفي رفضاً حقيقياً في التعليقات.")
+    elif gap <= 10:
+        expl = f"التفاعلات والتعليقات متقاربة ({react_approval}% مقابل {cm}%) — الاستقبال صادق."
+    else:
+        expl = f"فجوة طفيفة ({gap} نقطة) بين التفاعلات {react_approval}% والتعليقات {cm}%."
+    return {"available": True, "reaction_mood": react_approval, "comment_mood": cm,
+            "gap_score": gap, "level": level, "misleading": misleading,
+            "public_pressure": pressure, "explanation": expl, "evidence_comments": evidence}
 
 
 async def _classify_comments(texts: list) -> list:

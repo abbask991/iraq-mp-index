@@ -128,6 +128,19 @@ function Insights({ ins }: { ins: any }) {
         </div>
       )}
 
+      {(has("accusations") || has("praise")) && (
+        <div className="grid" style={{ marginBottom: 12 }}>
+          {has("accusations") && (
+            <div className="cbox"><h4 style={{ color: "#f43f5e" }}>⚠️ أبرز الاتهامات</h4>
+              {ins.accusations.map((g: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "4px 0", lineHeight: 1.7 }}>• {g}</div>)}</div>
+          )}
+          {has("praise") && (
+            <div className="cbox"><h4 style={{ color: "#22c55e" }}>👍 أبرز المديح</h4>
+              {ins.praise.map((g: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "4px 0", lineHeight: 1.7 }}>• {g}</div>)}</div>
+          )}
+        </div>
+      )}
+
       {has("talking_points") && (
         <div className="cbox" style={{ marginBottom: 12 }}>
           <h4>🔁 رسائل متكررة <span className="muted" style={{ fontSize: 11, fontWeight: 400 }}>(قد تدل على تنسيق — مراجعة بشرية)</span></h4>
@@ -164,6 +177,100 @@ function Insights({ ins }: { ins: any }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// §1 Comment Intelligence (the no-AI signals always render; semantic parts via Insights)
+function CommentIntel({ ci }: { ci: any }) {
+  if (!ci) return null;
+  const p = ci.pressure || {};
+  return (
+    <div className="cbox" style={{ marginBottom: 14 }}>
+      <h4>🧩 ذكاء التعليقات <span className="muted" style={{ fontSize: 11, fontWeight: 400 }}>({fmt(ci.total_comments)} تعليق · {fmt(ci.clusters)} مجموعة بعد إزالة التكرار)</span></h4>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+        <Kpi label="ضغط الجمهور" value={p.score ?? "—"} color={p.score >= 60 ? "#f43f5e" : p.score >= 35 ? "#f59e0b" : "#22c55e"} sub="حجم + تكرار + غضب" />
+        <Kpi label="نسبة التكرار" value={p.repetition_ratio != null ? Math.round(p.repetition_ratio * 100) + "%" : "—"} sub="تعليقات مكرّرة" />
+        <Kpi label="إشارات غضب" value={fmt(p.anger_hits)} color="#f43f5e" sub="بمعجم لغوي (تقريبي)" />
+      </div>
+      {ci.repeated_phrases?.length > 0 && (
+        <div style={{ marginTop: 6 }}>
+          <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>🔁 عبارات متكرّرة (قد تدل على تنسيق — مراجعة بشرية):</div>
+          {ci.repeated_phrases.map((r: any, i: number) => (
+            <div key={i} style={{ fontSize: 12.5, padding: "3px 0" }}><span className="chip" style={{ fontSize: 10.5 }}>×{r.count}</span> {r.phrase}</div>
+          ))}
+        </div>
+      )}
+      {ci.keyword_phrases?.length > 0 && (
+        <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {ci.keyword_phrases.map((k: any, i: number) => (
+            <span key={i} className="chip" style={{ fontSize: 11 }}>{k.phrase} <span className="muted">{k.count}</span></span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// §2 Comment-Reaction Gap — the signature "are the reactions misleading?" card
+function GapV2({ g }: { g: any }) {
+  if (!g) return null;
+  if (!g.available) {
+    return (
+      <div className="cbox" style={{ marginBottom: 14, borderInlineStart: "4px solid #8a97ad" }}>
+        <h4 style={{ margin: "0 0 4px" }}>🎭 فجوة التفاعل/التعليق</h4>
+        <div style={{ fontSize: 13 }}>التفاعلات: <b style={{ color: appColor(g.reaction_mood ?? 0) }}>{g.reaction_mood ?? "—"}%</b></div>
+        <p className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>{g.note}</p>
+      </div>
+    );
+  }
+  const danger = g.misleading;
+  return (
+    <div className="cbox" style={{ marginBottom: 14, borderInlineStart: `4px solid ${danger ? "#f43f5e" : "#22c55e"}` }}>
+      <h4 style={{ margin: "0 0 8px" }}>🎭 فجوة التفاعل/التعليق — هل التفاعلات مضلّلة؟ <span className="chip" style={{ fontSize: 10.5 }}>{g.level}</span></h4>
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ flex: "1 1 220px" }}>
+          {[["👍 مزاج التفاعلات", g.reaction_mood, "#22c55e"], ["💬 مزاج التعليقات", g.comment_mood, "#3b82f6"]].map(([l, v, c]: any) => (
+            <div key={l} style={{ marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 3 }}><span>{l}</span><b>{v}%</b></div>
+              <span style={{ display: "block", height: 10, borderRadius: 999, background: "var(--input)", overflow: "hidden" }}>
+                <span style={{ display: "block", height: "100%", width: `${v}%`, background: c }} /></span>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", minWidth: 120 }}>
+          <div style={{ fontSize: 36, fontWeight: 900, color: danger ? "#f43f5e" : "#f59e0b" }}>{g.gap_score}<span style={{ fontSize: 16 }}>pts</span></div>
+          <div className="muted" style={{ fontSize: 11 }}>درجة الفجوة</div>
+        </div>
+      </div>
+      <p style={{ fontSize: 13, lineHeight: 1.8, marginTop: 8 }}>{g.explanation}</p>
+      {g.evidence_comments?.length > 0 && (
+        <div style={{ marginTop: 6 }}>
+          <div className="muted" style={{ fontSize: 11.5, marginBottom: 3 }}>أدلّة (تعليقات سلبية):</div>
+          {g.evidence_comments.map((c: any, i: number) => <div key={i} style={{ fontSize: 12.5, padding: "2px 0", color: "#f43f5e" }}>● {c.text}</div>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// §3 Facebook Audience Mood Index (AI — populates when credits available)
+function AudienceMood({ ins }: { ins: any }) {
+  const am = ins?.audience_mood;
+  if (!am || Object.keys(am).length === 0) return null;
+  const dims: [string, string][] = [["anger", "غضب"], ["sarcasm", "سخرية"], ["frustration", "إحباط"], ["support", "تأييد"], ["fear", "خوف"], ["sympathy", "تعاطف"], ["trust", "ثقة"]];
+  const colorOf = (k: string) => (["anger", "frustration", "fear"].includes(k) ? "#f43f5e" : ["support", "trust"].includes(k) ? "#22c55e" : "#f59e0b");
+  return (
+    <div className="cbox" style={{ marginBottom: 14 }}>
+      <h4>🌡️ مؤشّر مزاج الجمهور {ins.mood_index != null && <span style={{ color: appColor(ins.mood_index) }}>· {ins.mood_index}/100</span>}</h4>
+      {dims.filter(([k]) => am[k] != null).map(([k, label]) => (
+        <div key={k} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+          <span style={{ width: 56, fontSize: 12.5 }}>{label}</span>
+          <span style={{ flex: 1, height: 8, borderRadius: 999, background: "var(--input)", overflow: "hidden" }}>
+            <span style={{ display: "block", height: "100%", width: `${am[k]}%`, background: colorOf(k) }} /></span>
+          <span style={{ minWidth: 34, textAlign: "left", fontSize: 12 }}>{am[k]}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -456,8 +563,8 @@ function PageView({ Bar }: { Bar: any }) {
             <Kpi label="متوسط مشاركات" value={fmt(d.stats?.avg_shares)} />
           </div>
 
-          {/* signature: likes vs comments gap */}
-          <GapCard d={d} />
+          {/* §2 signature: are reactions misleading? */}
+          <GapV2 g={d.comment_reaction_gap} />
 
           {/* reaction mix + stats */}
           {d.reactions?.length > 0 && (
@@ -507,6 +614,8 @@ function PageView({ Bar }: { Bar: any }) {
             </div>
           )}
 
+          <CommentIntel ci={d.comment_intel} />
+          <AudienceMood ins={d.insights} />
           <Insights ins={d.insights} />
 
           {d.posts?.length > 0 && (

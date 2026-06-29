@@ -18,7 +18,9 @@ from app.services import ai_cache
 from app.services.media_battlefield.battlefield_summary import _extract_json
 
 EMPTY = {"topics": [], "entities": [], "grievances": [], "demands": [],
-         "talking_points": [], "notable_quotes": [], "audience": {}, "takeaways": []}
+         "accusations": [], "praise": [], "talking_points": [], "notable_quotes": [],
+         "audience": {}, "audience_mood": {}, "mood_index": None,
+         "sarcasm_level": None, "anger_level": None, "takeaways": []}
 
 
 async def deep_insights(subject: str, comments: list, context: str = "") -> dict:
@@ -28,8 +30,14 @@ async def deep_insights(subject: str, comments: list, context: str = "") -> dict
     if not ANTHROPIC_API_KEY or len(comments) < 8:
         return {**EMPTY, "insufficient": True}
 
-    # bound input: a representative sample, longest-first (richer signal), truncated
-    sample = sorted(set(c.strip() for c in comments), key=len, reverse=True)[:120]
+    # §19: cluster near-duplicates and analyze REPRESENTATIVES only (cuts tokens ~70%).
+    try:
+        from app.services.facebook import comment_analyzer as ca
+        sample = ca.representatives(ca.cluster(comments), cap=90)
+    except Exception:
+        sample = []
+    if not sample:
+        sample = sorted(set(c.strip() for c in comments), key=len, reverse=True)[:120]
     numbered = "\n".join(f"- {c[:220]}" for c in sample)
 
     prompt = (
@@ -47,11 +55,18 @@ async def deep_insights(subject: str, comments: list, context: str = "") -> dict
         "4. demands: ماذا يطالب الناس به صراحةً (قائمة جُمل قصيرة).\n"
         "5. talking_points: عبارات/نقاط تتكرر بصياغات متشابهة (قد تدل على تنسيق) — لكلٍّ: point، "
         "repetition (عالٍ|متوسط)، note.\n"
-        "6. notable_quotes: 3-5 اقتباسات حقيقية بارزة — لكلٍّ: text، sentiment، why (لماذا مهمّة).\n"
-        "7. audience: {supporters_care_about:[...], critics_care_about:[...]} — ما يهمّ كل فريق.\n"
-        "8. takeaways: 3-4 خلاصات عملية لصانع القرار (ماذا يعني هذا وماذا يفعل).\n\n"
+        "6. accusations: أبرز الاتهامات الصريحة التي يطلقها الناس (فساد، سرقة، عمالة... إلخ) — قائمة جُمل قصيرة.\n"
+        "7. praise: أبرز نقاط المدح/الثناء الصادق (وليس الساخر) — قائمة جُمل قصيرة.\n"
+        "8. notable_quotes: 3-5 اقتباسات حقيقية بارزة — لكلٍّ: text، sentiment، why (لماذا مهمّة).\n"
+        "9. audience: {supporters_care_about:[...], critics_care_about:[...]} — ما يهمّ كل فريق.\n"
+        "10. audience_mood: مؤشّر مزاج الجمهور — قيّم كل بُعد 0..100 حسب حضوره في التعليقات: "
+        "{anger, sarcasm, frustration, support, fear, sympathy, trust}.\n"
+        "11. mood_index: مؤشّر مزاج إجمالي 0..100 (0=غضب/رفض شديد، 100=تأييد/ثقة عالية).\n"
+        "12. sarcasm_level و anger_level: 0..100 لكلٍّ (نسبة التعليقات الساخرة / الغاضبة).\n"
+        "13. takeaways: 3-4 خلاصات عملية لصانع القرار (ماذا يعني هذا وماذا يفعل).\n\n"
         "أعد كائن JSON واحداً فقط بالعربية، دون أي نص أو أسوار شيفرة خارج JSON، بالمفاتيح: "
-        "topics, entities, grievances, demands, talking_points, notable_quotes, audience, takeaways.\n\n"
+        "topics, entities, grievances, demands, accusations, praise, talking_points, notable_quotes, "
+        "audience, audience_mood, mood_index, sarcasm_level, anger_level, takeaways.\n\n"
         f"التعليقات:\n{numbered}"
     )
 
