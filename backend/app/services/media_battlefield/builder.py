@@ -118,6 +118,14 @@ async def build_entity(name, rng="week", limit=300):
     }
 
 
+async def _fb_snapshot():
+    try:
+        from app.services import facebook
+        return await facebook.get_snapshot()
+    except Exception:
+        return None
+
+
 async def build_national():
     """National battlefield from the precomputed digest (fast, no new X cost)."""
     from app.services import intel_digest
@@ -174,6 +182,7 @@ async def build_national():
         "top_campaigns": dg.get("active_campaigns", [])[:5],
         "platform_distribution": dg.get("platform_activity", []),
         "geo": dg.get("geo"),
+        "facebook": await _fb_snapshot(),
         "national_sentiment": dg.get("national_sentiment", {}),
         "emotion_heatmap": dg.get("emotion_heatmap", []),
         "momentum": [{"name": e["name"],

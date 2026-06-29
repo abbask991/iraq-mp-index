@@ -270,14 +270,48 @@ async def national(per_page: int = 8) -> dict:
         "note": "نبض فيسبوك الوطني — تجميع التفاعلات عبر الصفحات المختارة (قابلة للتعديل). الصفحات الفاشلة = رابط/slug غير صحيح.",
         "disclaimer": "تحليل احتمالي آلي لمحتوى عام — مؤشرات لا أحكام قاطعة.",
     }
-    try:                                  # publish a light snapshot for the national picture
-        await redis_client.set("intel:fb_snapshot",
-                               json.dumps({"approval": approval, "pages_ok": len(page_rows),
-                                           "total_engagement": snap["total_engagement"]}, ensure_ascii=False),
-                               ex=86400)
+    # publish a light snapshot for the national picture — Redis (fast) + Supabase (durable)
+    light = {"approval": approval, "rejection": snap["rejection"], "pages_ok": len(page_rows),
+             "total_engagement": snap["total_engagement"],
+             "top_rejected": (snap["most_rejected"][0] if snap["most_rejected"] else None),
+             "updated_at": _now_ts()}
+    try:
+        await redis_client.set("intel:fb_snapshot", json.dumps(light, ensure_ascii=False), ex=86400 * 3)
+    except Exception:
+        pass
+    try:
+        from app.services import db
+        if db.enabled():
+            await db.insert("system_settings",
+                            {"key": "intel.fb_snapshot", "value_json": {"v": light}, "category": "internal"},
+                            upsert=True, on_conflict="key")
     except Exception:
         pass
     return snap
+
+
+def _now_ts():
+    import time as _t
+    return _t.time()
+
+
+async def get_snapshot():
+    """Light national FB pulse — Redis first, Supabase fallback (durable)."""
+    try:
+        raw = await redis_client.get("intel:fb_snapshot")
+        if raw:
+            return json.loads(raw)
+    except Exception:
+        pass
+    try:
+        from app.services import db
+        if db.enabled():
+            rows = await db.select("system_settings", "select=value_json&key=eq.intel.fb_snapshot&limit=1")
+            if rows:
+                return (rows[0].get("value_json") or {}).get("v")
+    except Exception:
+        pass
+    return None
 
 
 async def _nat_summary(approval, npages, pos, neg, worst):

@@ -152,6 +152,7 @@ export default function WarRoom() {
             <div className="wr-posture-r">
               {reds > 0 && <span className="wr-badge" style={{ background: "#f43f5e" }}>{reds} تهديد حرج</span>}
               {camps.length > 0 && <span className="wr-badge" style={{ background: "#fb923c" }}>{camps.length} حملة منسّقة</span>}
+              {d.facebook?.approval != null && <span className="wr-badge" style={{ background: d.facebook.approval >= 55 ? "#22c55e" : d.facebook.approval >= 40 ? "#f59e0b" : "#f43f5e" }}>👍 فيسبوك {d.facebook.approval}% تأييد</span>}
               <span className="wr-badge" style={{ background: pos.color }}>الخطر {risk}/100</span>
             </div>
           </div>
