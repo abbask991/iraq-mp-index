@@ -277,25 +277,32 @@ function AudienceMood({ ins }: { ins: any }) {
 
 export default function Facebook() {
   const [tab, setTab] = useState<"dashboard" | "national" | "page">("dashboard");
+  const [demo, setDemo] = useState(false);
   return (
     <div>
-      <h2>🧠 استخبارات فيسبوك</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+        <h2 style={{ margin: 0 }}>🧠 استخبارات فيسبوك</h2>
+        <button className={`btn ${demo ? "" : "ghost"}`} onClick={() => setDemo(!demo)} style={demo ? { background: "#6366f1" } : {}}>
+          🧪 وضع العرض {demo ? "(مفعّل)" : ""}
+        </button>
+      </div>
       <p className="muted">فيسبوك مكان الجمهور العراقي الحقيقي — مو مجرّد منشورات، بل طبقة استخبارات: مين يهمّ، شنو يصير، شنو يقول الناس.</p>
+      {demo && <p className="muted" style={{ fontSize: 11.5, color: "#6366f1" }}>🧪 وضع العرض مفعّل — بيانات تجريبية واقعية عبر المحرّك الحقيقي (للتطوير/العرض بدون استهلاك الخدمات الخارجية).</p>}
       <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
         <button className={`btn ${tab === "dashboard" ? "" : "ghost"}`} onClick={() => setTab("dashboard")}>🧠 اللوحة</button>
         <button className={`btn ${tab === "national" ? "" : "ghost"}`} onClick={() => setTab("national")}>🇮🇶 النبض الوطني</button>
         <button className={`btn ${tab === "page" ? "" : "ghost"}`} onClick={() => setTab("page")}>🔎 صفحة محدّدة</button>
       </div>
-      {tab === "dashboard" ? <DashboardView /> : tab === "page" ? <PageView Bar={Bar} /> : <NationalView Bar={Bar} />}
+      {tab === "dashboard" ? <DashboardView demo={demo} /> : tab === "page" ? <PageView Bar={Bar} demo={demo} /> : <NationalView Bar={Bar} demo={demo} />}
     </div>
   );
 }
 
-function DashboardView() {
+function DashboardView({ demo }: { demo: boolean }) {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const load = () => { setLoading(true); apiGet("/api/facebook/dashboard").then(setD).finally(() => setLoading(false)); };
-  useEffect(() => { load(); }, []);
+  const load = () => { setLoading(true); apiGet("/api/facebook/dashboard" + (demo ? "?demo=1" : "")).then(setD).finally(() => setLoading(false)); };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [demo]);
 
   if (loading) return <SkelCards count={4} />;
   if (!d || d.error) return <EmptyState tone="error" title="تعذّر" subtitle={d?.message} action={{ label: "إعادة", onClick: load }} />;
@@ -406,14 +413,14 @@ function DashboardView() {
   );
 }
 
-function NationalView({ Bar }: { Bar: any }) {
+function NationalView({ Bar, demo }: { Bar: any; demo: boolean }) {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [pages, setPages] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
-  const load = () => { setLoading(true); apiGet("/api/facebook/national").then(setD).finally(() => setLoading(false)); };
-  useEffect(() => { load(); apiGet("/api/facebook/pages").then((r) => setPages((r?.pages || []).join("\n"))); }, []);
+  const load = () => { setLoading(true); apiGet("/api/facebook/national" + (demo ? "?demo=1" : "")).then(setD).finally(() => setLoading(false)); };
+  useEffect(() => { load(); apiGet("/api/facebook/pages").then((r) => setPages((r?.pages || []).join("\n"))); /* eslint-disable-next-line */ }, [demo]);
 
   const save = async () => {
     setSaving(true);
@@ -509,14 +516,15 @@ function NationalView({ Bar }: { Bar: any }) {
   );
 }
 
-function PageView({ Bar }: { Bar: any }) {
+function PageView({ Bar, demo }: { Bar: any; demo: boolean }) {
   const [t, setT] = useState("");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const run = async () => {
-    if (!t.trim() || loading) return;
+  const run = async (override?: string) => {
+    const q = (override ?? t).trim();
+    if (!q || loading) return;
     setLoading(true); setD(null);
-    const r = await apiGet(`/api/facebook/page?target=${encodeURIComponent(t.trim())}&limit=20`).catch(() => null);
+    const r = await apiGet(`/api/facebook/page?target=${encodeURIComponent(q)}&limit=20${demo ? "&demo=1" : ""}`).catch(() => null);
     setD(r); setLoading(false);
   };
 
@@ -525,9 +533,17 @@ function PageView({ Bar }: { Bar: any }) {
       <div className="card" style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", gap: 8 }}>
           <input placeholder="اسم الصفحة أو رابطها (مثال: aljazeera)" value={t} onChange={(e) => setT(e.target.value)} onKeyDown={(e) => e.key === "Enter" && run()} />
-          <button className="btn" onClick={run} disabled={loading}>{loading ? "…يجلب" : "حلّل الصفحة"}</button>
+          <button className="btn" onClick={() => run()} disabled={loading}>{loading ? "…يجلب" : "حلّل الصفحة"}</button>
         </div>
         <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>Apify (فاتورة منفصلة) — أبطأ شوي (~دقيقة لأنه يسحب منشورات + تعليقات).</p>
+        {demo && (
+          <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <span className="muted" style={{ fontSize: 11 }}>صفحات تجريبية:</span>
+            {["BrothersIraqDemo", "SetAshwaqDemo", "RuslDemo"].map((s) => (
+              <button key={s} className="btn ghost" style={{ fontSize: 11, padding: "3px 8px" }} onClick={() => { setT(s); run(s); }}>{s}</button>
+            ))}
+          </div>
+        )}
       </div>
       {loading && <SkelCards count={3} />}
       {d?.error && <EmptyState tone="error" title="تعذّر" subtitle={d.message} action={{ label: "إعادة", onClick: run }} />}

@@ -16,8 +16,10 @@ class PagesReq(BaseModel):
 
 
 @router.get("/dashboard")
-async def dashboard():
+async def dashboard(demo: int = 0):
     """Facebook Intelligence Dashboard — what's happening on Facebook right now."""
+    if demo:
+        return await cache.swr("fb:dashboard:demo", 86400, lambda: summary.dashboard(demo=True))
     return await cache.swr("fb:dashboard", 3600, lambda: summary.dashboard())
 
 
@@ -28,13 +30,15 @@ async def collect(limit: int = 12):
 
 
 @router.get("/page")
-async def page(target: str, limit: int = 20, comments: int = 1):
-    return await cache.swr(f"fb:page:{limit}:{comments}:{target}", 3600,
-                           lambda: fb.analyze_page(target, limit, comments=bool(comments)))
+async def page(target: str, limit: int = 20, comments: int = 1, demo: int = 0):
+    return await cache.swr(f"fb:page:{limit}:{comments}:{demo}:{target}", 3600,
+                           lambda: fb.analyze_page(target, limit, comments=bool(comments), demo=bool(demo)))
 
 
 @router.get("/national")
-async def national():
+async def national(demo: int = 0):
+    if demo:
+        return await cache.swr("fb:national:demo", 86400, lambda: fb.national(demo=True))
     return await cache.swr("fb:national", 21600, lambda: fb.national())
 
 

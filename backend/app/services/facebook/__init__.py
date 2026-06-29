@@ -54,7 +54,11 @@ def normalize_target(s: str) -> str:
     return f"https://www.facebook.com/{s}"
 
 
-async def _scrape(url: str, limit: int) -> dict:
+async def _scrape(url: str, limit: int, demo: bool = False) -> dict:
+    if demo:                                    # synthetic data through the real pipeline
+        from app.services.facebook import demo as _demo
+        slug = (url or "").rstrip("/").split("/")[-1]
+        return {"error": None, "items": _demo.items(slug, limit)}
     tok = os.getenv("APIFY_TOKEN")
     if not tok:
         return {"error": "APIFY_TOKEN_MISSING", "items": []}
@@ -109,11 +113,11 @@ def _metrics(it: dict) -> dict:
     }
 
 
-async def analyze_page(target: str, limit: int = 20, comments: bool = True) -> dict:
-    if not enabled():
+async def analyze_page(target: str, limit: int = 20, comments: bool = True, demo: bool = False) -> dict:
+    if not demo and not enabled():
         return {"error": "APIFY_TOKEN_MISSING", "message": "أضِف APIFY_TOKEN لتفعيل رصد فيسبوك."}
     url = normalize_target(target)
-    res = await _scrape(url, limit)
+    res = await _scrape(url, limit, demo=demo)
     if res["error"]:
         return {"error": res["error"], "target": target, "message": "تعذّر الجلب من Apify."}
     items = [it for it in res["items"] if isinstance(it, dict) and not it.get("error") and it.get("text") is not None]
@@ -146,8 +150,9 @@ async def analyze_page(target: str, limit: int = 20, comments: bool = True) -> d
     comment_sent, sample_comments, insights, comment_intel = None, [], None, None
     if comments:
         texts = [t for p in posts for t in p.get("_comments", [])]
-        top_urls = [p["url"] for p in sorted(posts, key=lambda p: -p["comments"])[:5] if p.get("url")]
-        texts += await _scrape_comments(top_urls, per_post=30)
+        if not demo:                            # demo uses only inline comments (no extra scrape)
+            top_urls = [p["url"] for p in sorted(posts, key=lambda p: -p["comments"])[:5] if p.get("url")]
+            texts += await _scrape_comments(top_urls, per_post=30)
         # §19 pipeline: dedupe → cluster → representatives (NO AI) BEFORE any model call
         from app.services.facebook import comment_analyzer as ca
         clusters = ca.cluster(texts)
@@ -196,7 +201,7 @@ async def analyze_page(target: str, limit: int = 20, comments: bool = True) -> d
     cr_gap = _comment_reaction_gap(react_approval, comment_sent, comment_intel, sample_comments)
 
     return {
-        "target": target, "page_name": page_name, "posts_analyzed": len(posts),
+        "target": target, "page_name": page_name, "posts_analyzed": len(posts), "demo": demo,
         "approval": approval, "rejection": (100 - approval) if approval is not None else None,
         "reaction_approval": react_approval, "comment_sentiment": comment_sent,
         "comment_intel": comment_intel, "comment_reaction_gap": cr_gap,
@@ -243,10 +248,9 @@ async def _classify_comments(texts: list) -> list:
     """Sarcasm + Iraqi-dialect aware sentiment for FB comments. Returns a per-comment
     list of إيجابي/سلبي/محايد. Falls back to the generic classifier on failure."""
     from app.config import ANTHROPIC_API_KEY, CLASSIFY_MODEL
+    from app.services.facebook import comment_analyzer as _ca
     if not ANTHROPIC_API_KEY or not texts:
-        from app.services import ai
-        cls = await ai.classify_all(texts)
-        return [c.get("sentiment", "محايد") for c in cls]
+        return _ca.lexicon_classify(texts)     # offline fallback (no credits)
     out: list = []
     for i in range(0, len(texts), 40):
         batch = texts[i:i + 40]
@@ -268,7 +272,7 @@ async def _classify_comments(texts: list) -> list:
                 arr = json.loads(txt[txt.find("["):txt.rfind("]") + 1])
                 vals = [str(x) for x in arr][:len(batch)]
         except Exception:
-            vals = []
+            vals = _ca.lexicon_classify(batch)     # API down (e.g. no credits) → lexicon
         vals += ["محايد"] * (len(batch) - len(vals))
         out += vals
     return out[:len(texts)]
@@ -361,17 +365,21 @@ async def set_pages(pages: list) -> list:
     return clean
 
 
-async def national(per_page: int = 8) -> dict:
+async def national(per_page: int = 8, demo: bool = False) -> dict:
     """Aggregate Facebook reception across the seed pages → a national pulse.
     Posts only (no per-comment scrape) to bound Apify cost. SWR-cached at router."""
-    if not enabled():
+    if not demo and not enabled():
         return {"error": "APIFY_TOKEN_MISSING", "message": "أضِف APIFY_TOKEN لتفعيل رصد فيسبوك."}
-    pages = await get_pages()
+    if demo:
+        from app.services.facebook import demo as _demo
+        pages = _demo.pages()
+    else:
+        pages = await get_pages()
     sem = asyncio.Semaphore(4)
 
     async def _one(p):
         async with sem:
-            return p, await _scrape(normalize_target(p), per_page)
+            return p, await _scrape(normalize_target(p), per_page, demo=demo)
 
     results = await asyncio.gather(*(_one(p) for p in pages))
     page_rows, all_posts, failed = [], [], []
@@ -412,7 +420,7 @@ async def national(per_page: int = 8) -> dict:
         # light deep-scrape of the top-3 most-commented posts → a real sample, not just
         # the ~3 free topComments. national() runs ~daily (cached), so this cost is bounded.
         top_urls = [p["url"] for p in sorted(posts, key=lambda p: -p["comments"])[:3] if p.get("url")]
-        if top_urls:
+        if top_urls and not demo:
             ctexts += await _scrape_comments(top_urls, per_post=20)
         seen, uniq = set(), []
         for t in ctexts:
@@ -490,12 +498,16 @@ async def national(per_page: int = 8) -> dict:
         "total_positive": tot_pos, "total_negative": tot_neg,
         "total_engagement": sum(r["engagement"] for r in page_rows),
         "pages": page_rows, "insights": insights,
+        "reaction_breakdown": fb_breakdown, "viral_posts": viral_cards, "page_rollup": page_rollup,
+        "demo": demo,
         "most_rejected": [{"page": p.get("_page"), "text": p["text"], "rejection": p["rejection"],
                            "neg": p["neg"], "comments": p["comments"]} for p in most_rejected],
         "summary": summary,
         "note": "نبض فيسبوك الوطني — تأييد مدمَج (تفاعلات + مشاعر التعليقات). الصفحات الفاشلة = رابط/slug غير صحيح.",
         "disclaimer": "تحليل احتمالي آلي لمحتوى عام — مؤشرات لا أحكام قاطعة.",
     }
+    if demo:
+        return snap          # never persist synthetic data or overwrite the real snapshot
     # publish a light snapshot for the national picture — Redis (fast) + Supabase (durable)
     light = {"approval": approval, "rejection": snap["rejection"], "pages_ok": len(page_rows),
              "reaction_approval": react_app_nat, "comment_approval": comment_app_nat,

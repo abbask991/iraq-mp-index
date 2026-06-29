@@ -45,16 +45,23 @@ def _viral_card(p: dict) -> dict:
     }
 
 
-async def dashboard() -> dict:
-    posts = await storage.recent_posts(limit=2000)
-    cnt = await storage.counts()
-    # the precomputed national snapshot (durable, fast) carries topics/entities + totals.
-    # NEVER recompute national() here — it scrapes live and can take >2min.
-    snap = {}
-    try:
-        snap = await fb.get_snapshot() or {}
-    except Exception:
-        snap = {}
+async def dashboard(demo: bool = False) -> dict:
+    if demo:
+        # synthetic data through the real engine — no storage, no live scrape cost
+        posts, cnt = [], {"posts": 0, "comments": 0, "pages": 0}
+        try:
+            snap = await fb.national(demo=True)
+        except Exception:
+            snap = {}
+    else:
+        posts = await storage.recent_posts(limit=2000)
+        cnt = await storage.counts()
+        # the precomputed national snapshot (durable, fast) carries topics/entities + totals.
+        # NEVER recompute national() here — it scrapes live and can take >2min.
+        try:
+            snap = await fb.get_snapshot() or {}
+        except Exception:
+            snap = {}
 
     if not posts:
         # storage empty (migration not applied / first run) → use the durable snapshot,
@@ -64,8 +71,10 @@ async def dashboard() -> dict:
         active = sorted(rollup, key=lambda r: -(r.get("posts") or 0))[:8]
         infl = sorted(rollup, key=lambda r: -(r.get("engagement") or 0))[:8]
         return {
-            "stored": False,
-            "note": "لقطة حيّة من النبض الوطني (تفاعلات + انتشار + ترتيب الصفحات تشتغل بدون تخزين). طبّق ترحيل 011 ليبدأ تراكم التاريخ (ترند/DNA/journey)، واشحن رصيد Anthropic للمواضيع/الشخصيات.",
+            "stored": False, "demo": demo,
+            "note": ("🧪 وضع العرض — بيانات تجريبية واقعية تمرّ عبر المحرّك الحقيقي (تصنيف لغوي بدون ذكاء اصطناعي)."
+                     if demo else
+                     "لقطة حيّة من النبض الوطني (تفاعلات + انتشار + ترتيب الصفحات تشتغل بدون تخزين). طبّق ترحيل 011 ليبدأ تراكم التاريخ (ترند/DNA/journey)، واشحن رصيد Anthropic للمواضيع/الشخصيات."),
             "totals": {"pages": snap.get("pages_ok", 0), "posts": len(snap.get("viral_posts") or []),
                        "comments": snap.get("comments_analyzed", 0),
                        "reactions": (snap.get("total_positive") or 0) + (snap.get("total_negative") or 0) or snap.get("total_engagement", 0)},

@@ -27,10 +27,11 @@ async def deep_insights(subject: str, comments: list, context: str = "") -> dict
     """Mine a comment corpus for actionable intelligence. `subject` is the page/topic
     the comments are reacting to; `context` is an optional one-line note (e.g. national)."""
     comments = [c for c in (comments or []) if c and len(c.strip()) > 1]
-    if not ANTHROPIC_API_KEY or len(comments) < 8:
+    if len(comments) < 8:
         return {**EMPTY, "insufficient": True}
 
     # §19: cluster near-duplicates and analyze REPRESENTATIVES only (cuts tokens ~70%).
+    ca = None
     try:
         from app.services.facebook import comment_analyzer as ca
         sample = ca.representatives(ca.cluster(comments), cap=90)
@@ -38,6 +39,11 @@ async def deep_insights(subject: str, comments: list, context: str = "") -> dict
         sample = []
     if not sample:
         sample = sorted(set(c.strip() for c in comments), key=len, reverse=True)[:120]
+
+    # no API key → straight to the offline lexicon engine (so cards still populate)
+    if not ANTHROPIC_API_KEY and ca is not None:
+        off = ca.offline_insights(sample, subject)
+        return {**EMPTY, **off, "analyzed_comments": len(sample)}
     numbered = "\n".join(f"- {c[:220]}" for c in sample)
 
     prompt = (
@@ -81,6 +87,7 @@ async def deep_insights(subject: str, comments: list, context: str = "") -> dict
         cached = None
     if _has_content(cached):
         return cached
+    out = None
     try:
         async with httpx.AsyncClient() as c:
             r = await c.post("https://api.anthropic.com/v1/messages",
@@ -91,6 +98,17 @@ async def deep_insights(subject: str, comments: list, context: str = "") -> dict
             txt = r.json()["content"][0]["text"]
         out = _extract_json(txt) or {}
     except Exception:
+        out = None
+    # AI unavailable (no credits / error) or empty extraction → OFFLINE lexicon insights,
+    # so the cards still populate (clearly flagged engine='offline-lexicon'). Not cached.
+    if not out or not any(out.get(k) for k in ("topics", "grievances", "takeaways")):
+        try:
+            from app.services.facebook import comment_analyzer as ca
+            off = ca.offline_insights(sample, subject)
+            if off.get("topics") or off.get("accusations") or off.get("demands"):
+                return {**EMPTY, **off, "analyzed_comments": len(sample)}
+        except Exception:
+            pass
         return {**EMPTY, "error": True}
     # normalize: ensure all keys exist and are the right shape
     result = {**EMPTY, **{k: out.get(k, EMPTY[k]) for k in EMPTY}}
