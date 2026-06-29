@@ -444,7 +444,9 @@ async def national(per_page: int = 8) -> dict:
     light = {"approval": approval, "rejection": snap["rejection"], "pages_ok": len(page_rows),
              "reaction_approval": react_app_nat, "comment_approval": comment_app_nat,
              "comments_analyzed": tot_cpos + tot_cneg,
+             "total_positive": tot_pos, "total_negative": tot_neg,
              "total_engagement": snap["total_engagement"],
+             "insights": insights,        # full mined topics/entities → read by the dashboard
              "top_rejected": (snap["most_rejected"][0] if snap["most_rejected"] else None),
              "updated_at": _now_ts()}
     try:

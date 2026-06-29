@@ -48,31 +48,31 @@ def _viral_card(p: dict) -> dict:
 async def dashboard() -> dict:
     posts = await storage.recent_posts(limit=2000)
     cnt = await storage.counts()
-    # topics / entities / narratives from the national insight (already computed)
-    snap_full = None
+    # the precomputed national snapshot (durable, fast) carries topics/entities + totals.
+    # NEVER recompute national() here — it scrapes live and can take >2min.
+    snap = {}
     try:
-        snap_full = await fb.national() if not posts else None
+        snap = await fb.get_snapshot() or {}
     except Exception:
-        snap_full = None
+        snap = {}
 
     if not posts:
-        # storage empty (migration not applied / first run) → live fallback
-        nat = snap_full or {}
-        ins = nat.get("insights") or {}
+        # storage empty (migration not applied / first run) → use the durable snapshot
+        ins = snap.get("insights") or {}
         return {
             "stored": False,
-            "note": "لا تخزين بعد — لقطة حيّة. طبّق ترحيل 011 ليبدأ تراكم التاريخ (ترند/DNA/journey).",
-            "totals": {"pages": nat.get("pages_ok", 0), "posts": 0, "comments": nat.get("comments_analyzed", 0),
-                       "reactions": nat.get("total_positive", 0) + nat.get("total_negative", 0)},
+            "note": "لا تخزين بعد — لقطة حيّة من النبض الوطني. طبّق ترحيل 011 ليبدأ تراكم التاريخ (ترند/DNA/journey).",
+            "totals": {"pages": snap.get("pages_ok", 0), "posts": 0, "comments": snap.get("comments_analyzed", 0),
+                       "reactions": (snap.get("total_positive") or 0) + (snap.get("total_negative") or 0) or snap.get("total_engagement", 0)},
             "most_active_pages": [], "most_influential_pages": [],
             "viral_posts": [],
             "reaction_breakdown": None,
             "most_positive": [], "most_negative": [],
             "top_topics": ins.get("topics", [])[:7],
             "top_entities": ins.get("entities", [])[:8],
-            "top_narratives": [],
-            "fb_contribution": _contribution(nat),
-            "national_approval": nat.get("approval"),
+            "top_narratives": (ins.get("talking_points") or [])[:6],
+            "fb_contribution": _contribution(snap),
+            "national_approval": snap.get("approval"),
         }
 
     pages = sorted(_page_rollup(posts), key=lambda r: -r["engagement"])
@@ -81,15 +81,8 @@ async def dashboard() -> dict:
     most_pos = sorted(scored, key=lambda p: (-(p["reaction_mood"]), -_eng(p)))[:6]
     most_neg = sorted(scored, key=lambda p: ((p["reaction_mood"]), -_eng(p)))[:6]
 
-    # reuse national insight for topics/entities (cheap; cached)
-    ins = {}
-    try:
-        snap = await fb.get_snapshot() or {}
-        ins = snap.get("insights") or {}
-        if not ins:
-            ins = ((await fb.national()) or {}).get("insights") or {}
-    except Exception:
-        pass
+    # reuse the precomputed national insight for topics/entities (fast; never recompute live)
+    ins = snap.get("insights") or {}
 
     return {
         "stored": True,
