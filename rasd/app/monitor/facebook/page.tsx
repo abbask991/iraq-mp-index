@@ -21,7 +21,7 @@ function Kpi({ label, value, sub, color }: { label: string; value: any; sub?: st
 // the signature insight: likes lie, comments reveal. shows the gap between the two.
 function GapCard({ d }: { d: any }) {
   const ra = d.reaction_approval ?? 0;
-  const ca = d.comment_sentiment?.approval ?? null;
+  const ca = d.comment_approval ?? d.comment_sentiment?.approval ?? null;
   if (ca == null) return null;
   const gap = ra - ca;
   const danger = gap >= 25;
@@ -132,7 +132,11 @@ function NationalView({ Bar }: { Bar: any }) {
             <Kpi label="إجمالي التفاعل" value={fmt(d.total_engagement)} />
             <Kpi label="👍 تأييد" value={fmt(d.total_positive)} color="#22c55e" />
             <Kpi label="😠😢 رفض" value={fmt(d.total_negative)} color="#f43f5e" />
+            {d.comments_analyzed > 0 && <Kpi label="تعليق محلَّل" value={fmt(d.comments_analyzed)} sub="بمصنّف واعٍ للسخرية" color="#3b82f6" />}
           </div>
+
+          {/* signature: likes vs comments gap (national) */}
+          <GapCard d={d} />
 
           {/* per-page table */}
           {d.pages?.length > 0 && (

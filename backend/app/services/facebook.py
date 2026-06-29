@@ -333,6 +333,7 @@ async def national(per_page: int = 8) -> dict:
 
     results = await asyncio.gather(*(_one(p) for p in pages))
     page_rows, all_posts, failed = [], [], []
+    tot_cpos = tot_cneg = 0
     for name, res in results:
         items = [it for it in res.get("items", []) if isinstance(it, dict) and not it.get("error") and it.get("text") is not None]
         if not items:
@@ -346,17 +347,56 @@ async def national(per_page: int = 8) -> dict:
         pos = sum(p["pos"] for p in posts)
         neg = sum(p["neg"] for p in posts)
         eng = sum(p["pos"] + p["neg"] + p["amb"] + p["comments"] + p["shares"] for p in posts)
+        react_app = round(pos / (pos + neg) * 100) if (pos + neg) else None
+
+        # blend the FREE in-payload comments (the REAL opinion). No extra Apify cost —
+        # topComments come bundled with the post scrape; only the cheap classifier runs.
+        cpos = cneg = 0
+        comment_app = None
+        ctexts = [t for p in posts for t in p.get("_comments", [])]
+        # light deep-scrape of the top-3 most-commented posts → a real sample, not just
+        # the ~3 free topComments. national() runs ~daily (cached), so this cost is bounded.
+        top_urls = [p["url"] for p in sorted(posts, key=lambda p: -p["comments"])[:3] if p.get("url")]
+        if top_urls:
+            ctexts += await _scrape_comments(top_urls, per_post=20)
+        seen, uniq = set(), []
+        for t in ctexts:
+            kk = t[:80]
+            if kk not in seen:
+                seen.add(kk)
+                uniq.append(t)
+        if len(uniq) >= 5:
+            labels = await _classify_comments(uniq[:120])
+            cpos = labels.count("إيجابي")
+            cneg = labels.count("سلبي")
+            comment_app = round(cpos / (cpos + cneg) * 100) if (cpos + cneg) else None
+            tot_cpos += cpos
+            tot_cneg += cneg
+
+        if comment_app is not None and react_app is not None:
+            blended = round(0.45 * react_app + 0.55 * comment_app)  # comments weighted higher
+        else:
+            blended = comment_app if comment_app is not None else react_app
+
         pname = items[0].get("pageName") or name
         page_rows.append({"page": pname, "target": name, "posts": len(posts), "engagement": eng,
                           "pos": pos, "neg": neg,
-                          "approval": round(pos / (pos + neg) * 100) if (pos + neg) else None})
+                          "reaction_approval": react_app, "comment_approval": comment_app,
+                          "comments_analyzed": cpos + cneg,
+                          "approval": blended,
+                          "rejection": (100 - blended) if blended is not None else None})
         for p in posts:
             p["_page"] = pname
         all_posts += posts
 
     tot_pos = sum(r["pos"] for r in page_rows)
     tot_neg = sum(r["neg"] for r in page_rows)
-    approval = round(tot_pos / (tot_pos + tot_neg) * 100) if (tot_pos + tot_neg) else None
+    react_app_nat = round(tot_pos / (tot_pos + tot_neg) * 100) if (tot_pos + tot_neg) else None
+    comment_app_nat = round(tot_cpos / (tot_cpos + tot_cneg) * 100) if (tot_cpos + tot_cneg) else None
+    if comment_app_nat is not None and react_app_nat is not None:
+        approval = round(0.45 * react_app_nat + 0.55 * comment_app_nat)
+    else:
+        approval = comment_app_nat if comment_app_nat is not None else react_app_nat
     most_rejected = sorted([p for p in all_posts if p["approval"] is not None],
                            key=lambda p: (-(p["rejection"] or 0), -p["neg"]))[:6]
     page_rows.sort(key=lambda r: -r["engagement"])
@@ -364,6 +404,8 @@ async def national(per_page: int = 8) -> dict:
     summary = await _nat_summary(approval, len(page_rows), tot_pos, tot_neg, most_rejected) if page_rows else ""
     snap = {
         "approval": approval, "rejection": (100 - approval) if approval is not None else None,
+        "reaction_approval": react_app_nat, "comment_approval": comment_app_nat,
+        "comments_analyzed": tot_cpos + tot_cneg,
         "pages_ok": len(page_rows), "pages_failed": failed,
         "total_positive": tot_pos, "total_negative": tot_neg,
         "total_engagement": sum(r["engagement"] for r in page_rows),
@@ -371,11 +413,13 @@ async def national(per_page: int = 8) -> dict:
         "most_rejected": [{"page": p.get("_page"), "text": p["text"], "rejection": p["rejection"],
                            "neg": p["neg"], "comments": p["comments"]} for p in most_rejected],
         "summary": summary,
-        "note": "نبض فيسبوك الوطني — تجميع التفاعلات عبر الصفحات المختارة (قابلة للتعديل). الصفحات الفاشلة = رابط/slug غير صحيح.",
+        "note": "نبض فيسبوك الوطني — تأييد مدمَج (تفاعلات + مشاعر التعليقات). الصفحات الفاشلة = رابط/slug غير صحيح.",
         "disclaimer": "تحليل احتمالي آلي لمحتوى عام — مؤشرات لا أحكام قاطعة.",
     }
     # publish a light snapshot for the national picture — Redis (fast) + Supabase (durable)
     light = {"approval": approval, "rejection": snap["rejection"], "pages_ok": len(page_rows),
+             "reaction_approval": react_app_nat, "comment_approval": comment_app_nat,
+             "comments_analyzed": tot_cpos + tot_cneg,
              "total_engagement": snap["total_engagement"],
              "top_rejected": (snap["most_rejected"][0] if snap["most_rejected"] else None),
              "updated_at": _now_ts()}
