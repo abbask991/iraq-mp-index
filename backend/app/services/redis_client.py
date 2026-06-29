@@ -24,9 +24,29 @@ _client = None
 # in-process fallback KV: key -> (expire_epoch | None, value)
 _local: dict[str, tuple[float | None, str]] = {}
 
+# Circuit breaker: when Redis errors (quota exceeded / connection), stop hitting it
+# for a cooldown and serve from the in-process store — so the app stays FAST and
+# never "freezes" on a dead/limited Redis (and we stop burning the Upstash quota).
+_degraded_until: float = 0.0
+_COOLDOWN = 300
+
 
 def enabled() -> bool:
     return bool(REDIS_URL and _aioredis)
+
+
+def _up() -> bool:
+    """Should we attempt Redis right now? (enabled AND not in a degraded window)."""
+    return enabled() and time.time() > _degraded_until
+
+
+def _trip():
+    global _degraded_until
+    _degraded_until = time.time() + _COOLDOWN
+
+
+def degraded() -> bool:
+    return time.time() <= _degraded_until
 
 
 def client():
@@ -61,37 +81,37 @@ def _local_set(key, val, ex=None):
 
 # ---- generic string KV ----
 async def get(key: str):
-    c = client()
-    if c is None:
+    if not _up():
         return _local_get(key)
     try:
-        return await c.get(key)
+        return await client().get(key)
     except Exception:
+        _trip()
         return _local_get(key)
 
 
 async def set(key: str, val: str, ex: int | None = None):
-    c = client()
-    if c is None:
+    if not _up():
         return _local_set(key, val, ex)
     try:
-        await c.set(key, val, ex=ex)
+        await client().set(key, val, ex=ex)
     except Exception:
+        _trip()
         _local_set(key, val, ex)
 
 
 async def setnx(key: str, val: str, ex: int) -> bool:
     """Atomic SET if-absent with TTL. Returns True if WE set it (lock acquired,
     dedup winner). The fallback emulates it well enough for a single process."""
-    c = client()
-    if c is None:
+    if not _up():
         if _local_get(key) is not None:
             return False
         _local_set(key, val, ex)
         return True
     try:
-        return bool(await c.set(key, val, ex=ex, nx=True))
+        return bool(await client().set(key, val, ex=ex, nx=True))
     except Exception:
+        _trip()
         if _local_get(key) is not None:
             return False
         _local_set(key, val, ex)
@@ -101,30 +121,31 @@ async def setnx(key: str, val: str, ex: int) -> bool:
 async def incrby(key: str, n: int, ex: int | None = None) -> int:
     """Atomic increment by n; sets TTL on first write. Returns the new total.
     Falls back to a best-effort local counter when Redis is down."""
-    c = client()
-    if c is None:
+    if not _up():
         cur = int(_local_get(key) or 0) + n
         _local_set(key, str(cur), ex)
         return cur
     try:
+        c = client()
         total = await c.incrby(key, n)
         if ex and total == n:
             await c.expire(key, ex)
         return int(total)
     except Exception:
+        _trip()
         cur = int(_local_get(key) or 0) + n
         _local_set(key, str(cur), ex)
         return cur
 
 
 async def delete(key: str):
-    c = client()
-    if c is None:
+    if not _up():
         _local.pop(key, None)
         return
     try:
-        await c.delete(key)
+        await client().delete(key)
     except Exception:
+        _trip()
         _local.pop(key, None)
 
 
@@ -132,17 +153,18 @@ async def delete(key: str):
 async def rate_limit(bucket: str, limit: int, window: int) -> tuple[int, bool]:
     """Increment a per-window counter. Returns (count, allowed)."""
     key = f"rl:{bucket}:{int(time.time() // window)}"
-    c = client()
-    if c is None:
+    if not _up():
         cur = int(_local_get(key) or 0) + 1
         _local_set(key, str(cur), window)
         return cur, cur <= limit
     try:
+        c = client()
         cur = await c.incr(key)
         if cur == 1:
             await c.expire(key, window)
         return cur, cur <= limit
     except Exception:
+        _trip()
         return 0, True                  # never block on Redis failure
 
 
@@ -173,28 +195,28 @@ async def bump_trend(target: str, by: int = 1, ttl: int = 7200):
     """Increment the current-minute bucket for a target; buckets self-expire."""
     minute = int(time.time() // 60)
     key = f"trend:{target}:{minute}"
-    c = client()
-    if c is None:
+    if not _up():
         _local_set(key, str(int(_local_get(key) or 0) + by), ttl)
         return
     try:
+        c = client()
         await c.incr(key, by)
         await c.expire(key, ttl)
     except Exception:
-        pass
+        _trip()
 
 
 async def trend_window(target: str, minutes: int = 60) -> list[int]:
     """Return the last `minutes` per-minute counts (oldest→newest)."""
     now = int(time.time() // 60)
     keys = [f"trend:{target}:{now - i}" for i in range(minutes - 1, -1, -1)]
-    c = client()
-    if c is None:
+    if not _up():
         return [int(_local_get(k) or 0) for k in keys]
     try:
-        vals = await c.mget(keys)
+        vals = await client().mget(keys)
         return [int(v or 0) for v in vals]
     except Exception:
+        _trip()
         return [int(_local_get(k) or 0) for k in keys]
 
 
