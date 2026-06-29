@@ -28,12 +28,17 @@ export default function WarGraph({ data }: { data: any }) {
   if (!nodes.length)
     return <div className="muted" style={{ padding: 30, textAlign: "center" }}>لا بيانات شبكة بعد.</div>;
 
-  const px = (n: any) => n.x * W, py = (n: any) => n.y * H;
+  // inset nodes inside a padded frame so orbs + their labels never bleed off the edges
+  const PADX = 80, PADY = 70;
+  const px = (n: any) => PADX + Math.max(0, Math.min(1, n.x ?? 0.5)) * (W - 2 * PADX);
+  const py = (n: any) => PADY + Math.max(0, Math.min(1, n.y ?? 0.5)) * (H - 2 * PADY);
   const hot = (n: any) => (n.risk_score || 0) >= 60 || n.type === "campaign";
 
   return (
     <div className="warg">
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" className="warg-svg">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" className="warg-svg"
+        preserveAspectRatio="xMidYMid meet"
+        style={{ maxWidth: 760, maxHeight: 520, display: "block", margin: "0 auto" }}>
         <defs>
           <radialGradient id="warg-bg" cx="50%" cy="42%" r="70%">
             <stop offset="0%" stopColor="#13203a" /><stop offset="100%" stopColor="#0a0e17" />
