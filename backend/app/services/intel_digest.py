@@ -31,7 +31,6 @@ async def get_digest():
         except Exception:
             pass
     try:
-        from app.services import db
         if db.enabled():
             rows = await db.select("system_settings", f"select=value_json&key=eq.{_SB_KEY}&limit=1")
             if rows:
@@ -166,7 +165,6 @@ async def build_digest(now_ts: float | None = None):
     await redis_client.set(DIGEST_KEY, json.dumps(digest, ensure_ascii=False), ex=_TTL)
     # durable copy → national picture survives Redis outages/limits (reuses system_settings)
     try:
-        from app.services import db
         if db.enabled():
             await db.insert("system_settings",
                             {"key": _SB_KEY, "value_json": {"v": digest}, "category": "internal"},
