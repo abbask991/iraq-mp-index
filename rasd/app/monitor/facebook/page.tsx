@@ -8,6 +8,48 @@ import EmptyState from "@/components/EmptyState";
 const appColor = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 
+function Kpi({ label, value, sub, color }: { label: string; value: any; sub?: string; color?: string }) {
+  return (
+    <div style={{ flex: "1 1 130px", minWidth: 120, textAlign: "center", padding: "14px 8px", border: "1px solid var(--line)", borderRadius: 14, background: "var(--input)" }}>
+      <div style={{ fontSize: 30, fontWeight: 900, color: color || "var(--text)", lineHeight: 1.1 }}>{value}</div>
+      <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>{label}</div>
+      {sub && <div className="muted" style={{ fontSize: 10.5, marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+}
+
+// the signature insight: likes lie, comments reveal. shows the gap between the two.
+function GapCard({ d }: { d: any }) {
+  const ra = d.reaction_approval ?? 0;
+  const ca = d.comment_sentiment?.approval ?? null;
+  if (ca == null) return null;
+  const gap = ra - ca;
+  const danger = gap >= 25;
+  return (
+    <div className="cbox" style={{ marginBottom: 14, borderInlineStart: `4px solid ${danger ? "#f43f5e" : "#22c55e"}` }}>
+      <h4 style={{ margin: "0 0 8px" }}>🎭 فجوة التأييد — اللايكات مقابل التعليقات</h4>
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ flex: "1 1 200px" }}>
+          {[["👍 تأييد التفاعلات (اللايكات)", ra, "#22c55e"], ["💬 تأييد التعليقات (النص الفعلي)", ca, "#3b82f6"]].map(([l, v, c]: any) => (
+            <div key={l} style={{ marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 3 }}><span>{l}</span><b>{v}%</b></div>
+              <span style={{ display: "block", height: 10, borderRadius: 999, background: "var(--input)", overflow: "hidden" }}>
+                <span style={{ display: "block", height: "100%", width: `${v}%`, background: c }} />
+              </span>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", minWidth: 130 }}>
+          <div style={{ fontSize: 34, fontWeight: 900, color: danger ? "#f43f5e" : "#f59e0b" }}>{gap > 0 ? "−" : "+"}{Math.abs(gap)}<span style={{ fontSize: 18 }}>pts</span></div>
+          <div className="muted" style={{ fontSize: 11.5, lineHeight: 1.6 }}>
+            {danger ? "تحذير: تأييد ظاهري مضلّل — اللايكات تخفي رفضاً كبيراً بالتعليقات" : "اللايكات والتعليقات متقاربة — الاستقبال صادق"}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Bar({ p }: { p: any }) {
   return (
     <span style={{ flex: 1, height: 8, borderRadius: 999, background: "var(--input)", overflow: "hidden", display: "flex" }}>
@@ -82,6 +124,14 @@ function NationalView({ Bar }: { Bar: any }) {
                 {d.summary && <p style={{ fontSize: 14, lineHeight: 1.9, marginTop: 8 }}>{d.summary}</p>}
               </div>
             </div>
+          </div>
+
+          {/* big KPI strip */}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+            <Kpi label="صفحة مرصودة" value={fmt(d.pages_ok)} color="#3b82f6" />
+            <Kpi label="إجمالي التفاعل" value={fmt(d.total_engagement)} />
+            <Kpi label="👍 تأييد" value={fmt(d.total_positive)} color="#22c55e" />
+            <Kpi label="😠😢 رفض" value={fmt(d.total_negative)} color="#f43f5e" />
           </div>
 
           {/* per-page table */}
@@ -164,6 +214,18 @@ function PageView({ Bar }: { Bar: any }) {
               </div>
             </div>
           </div>
+
+          {/* big KPI strip */}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+            <Kpi label="منشور محلَّل" value={fmt(d.posts_analyzed ?? d.posts?.length)} color="#3b82f6" />
+            <Kpi label="إجمالي التفاعلات" value={fmt(d.stats?.total_reactions ?? d.total_positive + d.total_negative)} />
+            <Kpi label="تعليق محلَّل" value={fmt(d.comment_sentiment?.analyzed ?? d.total_comments)} sub="بمصنّف واعٍ للسخرية" />
+            <Kpi label="متوسط تفاعل/منشور" value={fmt(d.stats?.avg_reactions)} />
+            <Kpi label="متوسط مشاركات" value={fmt(d.stats?.avg_shares)} />
+          </div>
+
+          {/* signature: likes vs comments gap */}
+          <GapCard d={d} />
 
           {/* reaction mix + stats */}
           {d.reactions?.length > 0 && (

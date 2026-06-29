@@ -274,13 +274,28 @@ async def _summarize(page, approval, n, pos, neg, worst, comment_sent=None):
 
 
 # ---- Iraqi national pulse (aggregate across a curated, editable page list) ----
+_PAGES_SB_KEY = "intel.fb_pages"   # durable copy (survives Redis cap/outage)
+
+
 async def get_pages() -> list:
+    # Redis first (fast)
     try:
         raw = await redis_client.get(_PAGES_KEY)
         if raw:
             v = json.loads(raw)
             if isinstance(v, list) and v:
                 return v
+    except Exception:
+        pass
+    # durable Supabase fallback — the curated list survives a Redis limit/outage
+    try:
+        from app.services import db
+        if db.enabled():
+            rows = await db.select("system_settings", f"select=value_json&key=eq.{_PAGES_SB_KEY}&limit=1")
+            if rows:
+                v = (rows[0].get("value_json") or {}).get("v")
+                if isinstance(v, list) and v:
+                    return v
     except Exception:
         pass
     return list(_DEFAULT_PAGES)
@@ -290,6 +305,15 @@ async def set_pages(pages: list) -> list:
     clean = [str(p).strip() for p in (pages or []) if str(p).strip()][:60]
     try:
         await redis_client.set(_PAGES_KEY, json.dumps(clean, ensure_ascii=False), ex=86400 * 60)
+    except Exception:
+        pass
+    # durable: persist to Supabase so it isn't lost when Redis is capped
+    try:
+        from app.services import db
+        if db.enabled():
+            await db.insert("system_settings",
+                            {"key": _PAGES_SB_KEY, "value_json": {"v": clean}, "category": "internal"},
+                            upsert=True, on_conflict="key")
     except Exception:
         pass
     return clean
