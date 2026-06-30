@@ -14,6 +14,7 @@ const SECTORS: { ar: string; en: string; items: Item[] }[] = [
     ar: "★ مركز القيادة", en: "★ Command Center",
     items: [
       { icon: "🎯", ar: "مركز القيادة (ابدأ هنا)", en: "Command Center (start here)", href: "/monitor/command" },
+      { icon: "🏛️", ar: "مساحة عمل الكيان", en: "Entity Workspace", href: "/monitor/entities/%D9%88%D8%B2%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D9%83%D9%87%D8%B1%D8%A8%D8%A7%D8%A1/workspace" },
     ],
   },
   {

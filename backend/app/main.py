@@ -48,6 +48,8 @@ from app.routers import command_center as command_center_router  # noqa: E402
 app.include_router(command_center_router.router)
 from app.routers import evidence_explorer as evidence_explorer_router  # noqa: E402
 app.include_router(evidence_explorer_router.router)
+from app.routers import entity_workspace as entity_workspace_router  # noqa: E402
+app.include_router(entity_workspace_router.router)
 
 
 @app.on_event("startup")
