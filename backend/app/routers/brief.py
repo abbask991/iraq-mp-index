@@ -16,3 +16,11 @@ async def get_brief():
 @router.get("/recent")
 async def get_recent():
     return {"briefs": await brief_service.recent()}
+
+
+@router.get("/executive")
+async def get_executive(demo: int = 0):
+    """Phase 8 — the 10-section executive morning brief (≤3-minute read)."""
+    if demo:
+        return await cache.swr("brief:exec:demo", 86400, lambda: brief_service.executive_brief(demo=True))
+    return await cache.swr("brief:exec", 900, lambda: brief_service.executive_brief())

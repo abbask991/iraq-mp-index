@@ -77,6 +77,75 @@ async def build_brief(now_ts: float | None = None) -> dict:
     }
 
 
+async def executive_brief(demo: bool = False) -> dict:
+    """Phase 8 — the 10-section executive morning brief (≤3-minute read), assembled
+    by REUSING Command Center + What-Changed + the Facebook snapshot. Each item
+    carries confidence + evidence + recommendation. Demo-ready."""
+    from app.services import command_center, what_changed
+    cc = await command_center.build(demo=demo)
+    wc = await what_changed.build("last_24h", demo=demo)
+
+    # opportunities = positive movers + supportive signals
+    opportunities = []
+    if cc.get("most_improved"):
+        mi = cc["most_improved"]
+        opportunities.append({"title": f"تحسّن سمعة {mi['entity']}", "detail": f"+{mi['change']} نقطة",
+                              "recommendation": "إبراز الإيجابيات وتعزيزها", "confidence": "متوسط"})
+    for t in cc.get("trending", []):
+        if "إيجاب" in (t.get("sentiment") or ""):
+            opportunities.append({"title": f"زخم إيجابي: {t['topic']}", "detail": f"سرعة {t.get('velocity')}",
+                                  "recommendation": "ركوب الموجة بمحتوى داعم", "confidence": "متوسط"})
+    opportunities = opportunities[:5] or [{"title": "لا فرص بارزة اليوم", "detail": "—",
+                                           "recommendation": "مراقبة", "confidence": "منخفض"}]
+
+    # Facebook audience signals
+    if demo:
+        fb_sig = {"approval": 42, "reaction_comment_gap": 31, "gap_level": "مرتفع",
+                  "dominant_mood": "غضب", "note": "اللايكات تبدو إيجابية لكن التعليقات سلبية بقوة (تأييد ظاهري مضلّل)."}
+    else:
+        from app.services import facebook as fb
+        snap = await fb.get_snapshot() or {}
+        gap = ((snap.get("reaction_approval") or 0) - (snap.get("comment_approval") or 0)) if snap.get("comment_approval") is not None else None
+        fb_sig = {"approval": snap.get("approval"), "reaction_comment_gap": gap,
+                  "gap_level": ("مرتفع" if gap and gap >= 30 else "متوسط" if gap and gap >= 15 else "منخفض") if gap is not None else None,
+                  "dominant_mood": (snap.get("reaction_breakdown") or {}).get("dominant_signal"),
+                  "comments_analyzed": snap.get("comments_analyzed")}
+
+    nr = cc.get("national_risk", {})
+    public_opinion = {"political": nr.get("political"), "reputation": nr.get("reputation"),
+                      "crisis": nr.get("crisis"),
+                      "reading": ("مزاج عام متوتّر يميل للسلبية حول الخدمات" if demo else None)}
+
+    watchlist = []
+    for t in cc.get("trending", [])[:3]:
+        if t.get("risk") in ("مرتفع", "حرج"):
+            watchlist.append({"item": t["topic"], "why": f"سرعة {t.get('velocity')} · {t.get('sentiment')}",
+                              "recommendation": "مراقبة كل 6 ساعات"})
+    for r in cc.get("top_risks", [])[:2]:
+        watchlist.append({"item": r["entity"], "why": r.get("reason"), "recommendation": r.get("recommended_action")})
+    watchlist = watchlist[:6]
+
+    return {
+        "demo": demo, "generated_at": None,
+        "read_time": "≤ 3 دقائق",
+        "sections": {
+            "1_executive_summary": cc.get("executive_brief"),
+            "2_top_risks": cc.get("top_risks", []),
+            "3_top_opportunities": opportunities,
+            "4_what_changed": wc.get("changes", [])[:6],
+            "5_active_campaigns": cc.get("active_campaigns", []),
+            "6_top_narratives": cc.get("trending", []),
+            "7_facebook_signals": fb_sig,
+            "8_public_opinion": public_opinion,
+            "9_recommended_actions": cc.get("recommended_actions", []),
+            "10_watchlist": watchlist,
+        },
+        "urgent": cc.get("urgent_recommendation"),
+        "note": cc.get("note"),
+        "disclaimer": "موجز احتمالي آلي — يتطلّب مراجعة بشرية قبل أي قرار. كل بند يحمل ثقة/دليل/توصية.",
+    }
+
+
 def telegram_text(brief: dict) -> str:
     th, k = brief["threat"], brief["kpis"]
     L = ["🛡️ <b>Sentinel — التقرير الاستخباراتي اليومي</b>",

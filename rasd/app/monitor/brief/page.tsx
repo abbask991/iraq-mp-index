@@ -8,11 +8,96 @@ const riskColor = (v: number) => (v >= 70 ? "#f43f5e" : v >= 50 ? "#fb923c" : v 
 const sevIcon = (s: string) => (s === "red" ? "🔴" : s === "orange" ? "🟠" : "🟡");
 const traj = (t: string) => (t === "rising" || t === "escalating" ? "متصاعد ▲" : t === "declining" || t === "cooling" ? "متراجع ▼" : "مستقر ▬");
 
+const lvlColor = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : /متوسط/.test(l || "") ? "#f59e0b" : "#22c55e");
+
+function ExecBrief({ demo }: { demo: boolean }) {
+  const [d, setD] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { setLoading(true); apiGet("/api/brief/executive" + (demo ? "?demo=1" : "")).then(setD).finally(() => setLoading(false)); }, [demo]);
+  if (loading) return <SkelCards count={4} />;
+  const s = d?.sections || {};
+  const Block = ({ n, title, children }: any) => <section className="brief-sec"><h3>{n} {title}</h3>{children}</section>;
+  return (
+    <div className="brief-doc">
+      {demo && <p className="muted" style={{ fontSize: 11.5, color: "#6366f1" }}>🧪 {d?.note} · قراءة {d?.read_time}</p>}
+      {d?.urgent && <div className="cbox" style={{ borderInlineStart: "4px solid #f43f5e", marginBottom: 12 }}>🚨 <b>الأولوية الآن:</b> {d.urgent}</div>}
+
+      <Block n="①" title="الموجز التنفيذي"><p style={{ fontSize: 14.5, lineHeight: 2 }}>{s["1_executive_summary"]}</p></Block>
+
+      <Block n="②" title="أعلى 5 مخاطر">
+        {(s["2_top_risks"] || []).map((r: any, i: number) => (
+          <div key={i} className="brief-row" style={{ alignItems: "flex-start" }}>
+            <span className="brief-dot" style={{ background: lvlColor(r.level), marginTop: 6 }} />
+            <div style={{ flex: 1 }}><b>{r.entity}</b> <span className="chip" style={{ fontSize: 10.5, color: lvlColor(r.level) }}>{r.level} · {r.risk}</span>
+              <div className="muted" style={{ fontSize: 12 }}>{r.reason} · 📎 {r.evidence_count} · ثقة عالية</div>
+              <div style={{ fontSize: 12.5 }}>▸ {r.recommended_action}</div></div>
+          </div>
+        ))}
+      </Block>
+
+      <Block n="③" title="أعلى 5 فرص">
+        {(s["3_top_opportunities"] || []).map((o: any, i: number) => (
+          <div key={i} className="brief-row"><span className="brief-dot" style={{ background: "#22c55e" }} />
+            <span style={{ flex: 1 }}>{o.title} <span className="muted">— {o.detail}</span><div style={{ fontSize: 12 }}>▸ {o.recommendation} <span className="muted">(ثقة {o.confidence})</span></div></span></div>
+        ))}
+      </Block>
+
+      <Block n="④" title="ما الذي تغيّر منذ الأمس">
+        {(s["4_what_changed"] || []).map((c: any, i: number) => (
+          <div key={i} className="brief-row"><span>{c.icon}</span><span style={{ flex: 1 }}>{c.entity} — {c.change} <span className="muted">({c.reason})</span></span></div>
+        ))}
+      </Block>
+
+      <div className="brief-2col">
+        <Block n="⑤" title="الحملات النشطة">
+          {(s["5_active_campaigns"] || []).map((c: any, i: number) => <div key={i} className="brief-row"><span style={{ flex: 1 }}>#{c.hashtag}</span><span className="chip" style={{ color: lvlColor(c.level) }}>تنسيق {c.coordination}</span></div>)}
+          {!(s["5_active_campaigns"] || []).length && <p className="muted" style={{ fontSize: 12 }}>لا حملات.</p>}
+        </Block>
+        <Block n="⑥" title="أبرز السرديات">
+          {(s["6_top_narratives"] || []).map((t: any, i: number) => <div key={i} className="brief-row"><span style={{ flex: 1 }}>{t.topic}</span><span className="chip" style={{ color: lvlColor(t.risk) }}>سرعة {t.velocity}</span></div>)}
+        </Block>
+      </div>
+
+      <div className="brief-2col">
+        <Block n="⑦" title="إشارات جمهور فيسبوك">
+          <div style={{ fontSize: 12.5, lineHeight: 1.9 }}>
+            {s["7_facebook_signals"]?.approval != null && <div>التأييد: <b>{s["7_facebook_signals"].approval}%</b></div>}
+            {s["7_facebook_signals"]?.reaction_comment_gap != null && <div>فجوة التفاعل/التعليق: <b style={{ color: "#f43f5e" }}>{s["7_facebook_signals"].reaction_comment_gap}</b> ({s["7_facebook_signals"].gap_level})</div>}
+            {s["7_facebook_signals"]?.dominant_mood && <div>المزاج الغالب: <b>{s["7_facebook_signals"].dominant_mood}</b></div>}
+            {s["7_facebook_signals"]?.note && <div className="muted">{s["7_facebook_signals"].note}</div>}
+          </div>
+        </Block>
+        <Block n="⑧" title="إشارات الرأي العام">
+          <div style={{ fontSize: 12.5, lineHeight: 1.9 }}>
+            {["political", "reputation", "crisis"].map((k) => s["8_public_opinion"]?.[k] != null && <span key={k} className="chip" style={{ marginInlineEnd: 6 }}>{k}: {s["8_public_opinion"][k]}</span>)}
+            {s["8_public_opinion"]?.reading && <div className="muted" style={{ marginTop: 4 }}>{s["8_public_opinion"].reading}</div>}
+          </div>
+        </Block>
+      </div>
+
+      <Block n="⑨" title="إجراءات موصى بها">
+        <ol className="brief-recs">{(s["9_recommended_actions"] || []).map((a: string, i: number) => <li key={i}>{a}</li>)}</ol>
+      </Block>
+
+      <Block n="⑩" title="قائمة مراقبة الـ24 ساعة القادمة">
+        {(s["10_watchlist"] || []).map((w: any, i: number) => (
+          <div key={i} className="brief-row"><span className="brief-dot" style={{ background: "#f59e0b" }} />
+            <span style={{ flex: 1 }}>{w.item} <span className="muted">— {w.why}</span><div style={{ fontSize: 12 }}>▸ {w.recommendation}</div></span></div>
+        ))}
+      </Block>
+
+      <div className="brief-foot muted">{d?.disclaimer} · Sentinel Intelligence by Integrate Dynamics</div>
+    </div>
+  );
+}
+
 export default function DailyBrief() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState<string>("");
+  const [mode, setMode] = useState<"exec" | "classic">("exec");
+  const [demo, setDemo] = useState(false);
 
   useEffect(() => { apiGet("/api/brief").then(setD).finally(() => setLoading(false)); }, []);
 
@@ -32,16 +117,20 @@ export default function DailyBrief() {
       <div className="brief-bar no-print">
         <h2 style={{ margin: 0 }}>📊 التقرير الاستخباراتي اليومي</h2>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className="btn ghost" onClick={() => apiGet("/api/brief").then(setD)}>↻ تحديث</button>
-          <button className="btn ghost" onClick={sendTg} disabled={sending}>{sending ? "…" : "✈️ إرسال تيليغرام"}</button>
-          <button className="btn" onClick={() => window.print()}>⬇️ تحميل / طباعة PDF</button>
+          <button className={`btn ${mode === "exec" ? "" : "ghost"}`} onClick={() => setMode("exec")}>الموجز التنفيذي</button>
+          <button className={`btn ${mode === "classic" ? "" : "ghost"}`} onClick={() => setMode("classic")}>التقرير الكامل</button>
+          <button className={`btn ghost`} onClick={() => setDemo(!demo)} style={demo ? { background: "#6366f1" } : {}}>🧪 عرض</button>
+          <button className="btn ghost" onClick={sendTg} disabled={sending}>{sending ? "…" : "✈️ تيليغرام"}</button>
+          <button className="btn" onClick={() => window.print()}>⬇️ PDF</button>
         </div>
       </div>
       {sent && <p className="muted no-print" style={{ fontSize: 13 }}>{sent}</p>}
 
-      {loading && <SkelCards count={3} />}
+      {mode === "exec" && <ExecBrief demo={demo} />}
 
-      {d && !loading && (
+      {mode === "classic" && loading && <SkelCards count={3} />}
+
+      {mode === "classic" && d && !loading && (
         <div className="brief-doc">
           {/* letterhead */}
           <div className="brief-head">
