@@ -70,8 +70,43 @@ def _item(slug: str, name: str, idx: int, post) -> dict:
     }
 
 
+# synthetic cross-platform journeys — a narrative moving FB → X → Telegram → news
+_JOURNEYS = [
+    {
+        "title": "سجن مدير عام بتهمة فساد واسترداد 12 مليار دينار",
+        "origin_platform": "facebook", "origin_page": "الإخوة العراقية (تجريبي)",
+        "became_national": True, "leading_source": "facebook", "confidence": "مرتفع",
+        "hops": [
+            {"platform": "facebook", "time": "08:00", "lag_minutes": 0, "similarity": 100,
+             "detail": "المنشور الأصلي على صفحة الإخوة العراقية", "reach": 54000},
+            {"platform": "x", "time": "09:10", "lag_minutes": 70, "similarity": 88,
+             "detail": "حسابات إخبارية تنقل الخبر بهاشتاك #النزاهة", "reach": 12000},
+            {"platform": "telegram", "time": "09:30", "lag_minutes": 90, "similarity": 82,
+             "detail": "قنوات تليجرام إخبارية تعيد النشر", "reach": 30000},
+            {"platform": "news", "time": "10:40", "lag_minutes": 160, "similarity": 76,
+             "detail": "موقع إخباري عراقي ينشر تقريراً", "reach": None},
+        ],
+    },
+    {
+        "title": "أزمة الكهرباء وغياب الحلول الحكومية",
+        "origin_platform": "facebook", "origin_page": "ست اشواق (تجريبي)",
+        "became_national": False, "leading_source": "facebook", "confidence": "متوسط",
+        "hops": [
+            {"platform": "facebook", "time": "12:00", "lag_minutes": 0, "similarity": 100,
+             "detail": "منشور ينتقد استمرار انقطاع الكهرباء", "reach": 31000},
+            {"platform": "x", "time": "14:20", "lag_minutes": 140, "similarity": 79,
+             "detail": "تفاعل محدود على X", "reach": 4000},
+        ],
+    },
+]
+
+
 def pages() -> list:
     return list(_PAGES.keys())
+
+
+def journeys() -> list:
+    return _JOURNEYS
 
 
 def items(slug: str, limit: int = 12) -> list:

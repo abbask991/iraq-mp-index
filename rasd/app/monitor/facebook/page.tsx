@@ -275,8 +275,171 @@ function AudienceMood({ ins }: { ins: any }) {
   );
 }
 
+function useFb(path: string, demo: boolean) {
+  const [d, setD] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const load = () => { setLoading(true); apiGet(path + (path.includes("?") ? "&" : "?") + (demo ? "demo=1" : "")).then(setD).finally(() => setLoading(false)); };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [demo]);
+  return { d, loading, load };
+}
+
+const PLAT_EMOJI: Record<string, string> = { facebook: "📘", x: "✖️", telegram: "✈️", news: "📰", tiktok: "🎵", instagram: "📷" };
+
+function ViralView({ demo }: { demo: boolean }) {
+  const { d, loading, load } = useFb("/api/facebook/viral-posts", demo);
+  if (loading) return <SkelCards count={3} />;
+  const posts = d?.viral_posts || [];
+  if (!posts.length) return <EmptyState title="لا منشورات" subtitle={demo ? "" : "فعّل وضع العرض أو انتظر جمع البيانات"} action={{ label: "إعادة", onClick: load }} />;
+  return (
+    <>
+      <p className="muted" style={{ fontSize: 12, marginBottom: 10 }}>أكثر المنشورات انتشاراً مع تفسير سبب الانتشار + مزاج التعليقات + درجة الخطر.</p>
+      {posts.map((p: any, i: number) => (
+        <div key={i} className="cbox" style={{ marginBottom: 12, borderInlineStart: `4px solid ${p.risk?.score >= 50 ? "#f43f5e" : p.risk?.score >= 30 ? "#f59e0b" : "#22c55e"}` }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{p.text}</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11.5, marginBottom: 6 }}>
+            <span className="chip">{p.page}</span>
+            <span className="chip">👍 {fmt(p.reactions)}</span><span className="chip">💬 {fmt(p.comments)}</span><span className="chip">🔁 {fmt(p.shares)}</span>
+            {p.related_entity && <span className="chip" style={{ background: "color-mix(in srgb,#6366f1 18%,transparent)" }}>🏛️ {p.related_entity}</span>}
+            <span className="chip" style={{ color: p.risk?.score >= 50 ? "#f43f5e" : "#f59e0b" }}>⚠️ خطر {p.risk?.score} ({p.risk?.level})</span>
+          </div>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12 }}>
+            <span>👍 مزاج التفاعل: <b style={{ color: appColor(p.reaction_mood ?? 0) }}>{p.reaction_mood ?? "—"}</b></span>
+            <span>💬 مزاج التعليق: <b style={{ color: appColor(p.comment_mood ?? 0) }}>{p.comment_mood ?? "—"}</b></span>
+            {p.narrative && <span>🧵 السردية: <b>{p.narrative}</b></span>}
+          </div>
+          <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {(p.why_viral || []).map((w: string, j: number) => <span key={j} className="chip" style={{ fontSize: 11 }}>🔥 {w}</span>)}
+          </div>
+          {p.url && <a href={p.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "var(--accent)" }}>↗ المصدر</a>}
+        </div>
+      ))}
+    </>
+  );
+}
+
+function ClustersView({ demo }: { demo: boolean }) {
+  const { d, loading, load } = useFb("/api/facebook/page-clusters", demo);
+  if (loading) return <SkelCards count={2} />;
+  const cl = d?.clusters || [];
+  if (!cl.length) return <EmptyState title="لا عناقيد" subtitle={demo ? "" : "تحتاج صفحات أكثر"} action={{ label: "إعادة", onClick: load }} />;
+  return (
+    <>
+      <p className="muted" style={{ fontSize: 12, marginBottom: 10 }}>تجميع الصفحات حسب السلوك (محتوى/توقيت/نبرة). لغة احتمالية — لا تُثبت تنسيقاً أو انتماءً.</p>
+      {cl.map((c: any, i: number) => (
+        <div key={i} className="cbox" style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+            <h4 style={{ margin: 0 }}>🕸️ {c.label}</h4>
+            <span className="chip" style={{ fontSize: 11 }}>تشابه {c.avg_similarity}% · ثقة {c.confidence}</span>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+            {c.pages.map((p: any, j: number) => (
+              <span key={j} className="chip" style={{ fontSize: 12 }}>{p.page} <span className="muted">({p.tendency})</span></span>
+            ))}
+          </div>
+          {c.shared_topics?.length > 0 && <div className="muted" style={{ fontSize: 11.5, marginTop: 6 }}>مواضيع مشتركة: {c.shared_topics.join("، ")}</div>}
+          <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>{c.note}</p>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function JourneyView({ demo }: { demo: boolean }) {
+  const { d, loading, load } = useFb("/api/facebook/journey", demo);
+  if (loading) return <SkelCards count={2} />;
+  if (!d?.available) return <EmptyState title="تتبّع الرحلة عبر المنصّات" subtitle={d?.note} action={{ label: "إعادة", onClick: load }} />;
+  return (
+    <>
+      <p className="muted" style={{ fontSize: 12, marginBottom: 10 }}>هل بدأت القصة على فيسبوك أم انتقلت إليه؟ ومن ضخّمها أولاً؟</p>
+      {(d.journeys || []).map((j: any, i: number) => (
+        <div key={i} className="cbox" style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+            <h4 style={{ margin: 0 }}>🧵 {j.title}</h4>
+            <span className="chip" style={{ fontSize: 11, color: j.became_national ? "#f43f5e" : "var(--muted)" }}>{j.became_national ? "🇮🇶 قضية وطنية" : "محدودة"}</span>
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 11.5, marginTop: 4 }}>
+            <span>المصدر الرائد: <b>{PLAT_EMOJI[j.leading_source]} {j.leading_source}</b></span>
+            <span>أول مضخّم: <b>{PLAT_EMOJI[j.first_amplifier]} {j.first_amplifier}</b></span>
+            <span>إجمالي الزمن: <b>{j.total_lag_human}</b></span>
+          </div>
+          <div style={{ marginTop: 10 }}>
+            {(j.hops || []).map((h: any, k: number) => (
+              <div key={k} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderTop: k ? "1px dashed var(--line)" : 0 }}>
+                <span style={{ fontSize: 20 }}>{PLAT_EMOJI[h.platform] || "•"}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13 }}><b>{h.platform_ar}</b> · {h.time} <span className="muted">({h.lag_human})</span></div>
+                  <div className="muted" style={{ fontSize: 11.5 }}>{h.detail}</div>
+                </div>
+                <div style={{ textAlign: "left", fontSize: 11 }}>
+                  {h.similarity != null && <div>تشابه {h.similarity}%</div>}
+                  {h.reach != null && <div className="muted">وصول {fmt(h.reach)}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <p className="muted" style={{ fontSize: 11 }}>{d.disclaimer}</p>
+    </>
+  );
+}
+
+function DnaView({ demo }: { demo: boolean }) {
+  const [t, setT] = useState(demo ? "BrothersIraqDemo" : "");
+  const [d, setD] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const run = async (override?: string) => {
+    const q = (override ?? t).trim(); if (!q) return;
+    setLoading(true); setD(null);
+    const r = await apiGet(`/api/facebook/page-dna?target=${encodeURIComponent(q)}${demo ? "&demo=1" : ""}`).catch(() => null);
+    setD(r); setLoading(false);
+  };
+  useEffect(() => { if (demo) run("BrothersIraqDemo"); /* eslint-disable-next-line */ }, [demo]);
+  return (
+    <>
+      <div className="card" style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input placeholder="اسم الصفحة" value={t} onChange={(e) => setT(e.target.value)} onKeyDown={(e) => e.key === "Enter" && run()} />
+          <button className="btn" onClick={() => run()} disabled={loading}>{loading ? "…" : "بصمة الصفحة"}</button>
+        </div>
+        {demo && <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>{["BrothersIraqDemo", "SetAshwaqDemo", "RuslDemo"].map((s) => <button key={s} className="btn ghost" style={{ fontSize: 11, padding: "3px 8px" }} onClick={() => { setT(s); run(s); }}>{s}</button>)}</div>}
+      </div>
+      {loading && <SkelCards count={3} />}
+      {d?.error && <EmptyState tone="error" title="تعذّر" subtitle={d.message || d.error} />}
+      {d && !d.error && (
+        <>
+          <div className="cbox" style={{ marginBottom: 12 }}>
+            <h4 style={{ margin: "0 0 6px" }}>🧬 بصمة: {d.page}</h4>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Kpi label="التأثير" value={d.influence} color="#6366f1" />
+              <Kpi label="النبرة" value={d.sentiment_tendency} />
+              <Kpi label="ذروة النشر" value={d.posting_schedule?.peak_hour != null ? d.posting_schedule.peak_hour + ":00" : "—"} sub={(d.posting_schedule?.active_days || []).join("، ")} />
+              <Kpi label="التفاعل الغالب" value={d.reaction_profile?.dominant || "—"} />
+            </div>
+          </div>
+          {d.dominant_topics?.length > 0 && (
+            <div className="cbox" style={{ marginBottom: 12 }}><h4>📌 المواضيع المهيمنة</h4>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{d.dominant_topics.map((x: string, i: number) => <span key={i} className="chip">{x}</span>)}</div></div>
+          )}
+          <AudienceMood ins={{ audience_mood: d.audience_mood, mood_index: d.comment_profile?.approval }} />
+          {d.similar_pages?.length > 0 && (
+            <div className="cbox" style={{ marginBottom: 12 }}><h4>🔗 صفحات مشابهة سلوكياً</h4>
+              {d.similar_pages.map((s: any, i: number) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "4px 0" }}>
+                  <span>{s.page}</span><span className="muted">تشابه {s.similarity}%</span>
+                </div>
+              ))}
+              <p className="muted" style={{ fontSize: 11, marginTop: 4 }}>يُظهر تقارباً سلوكياً — لا يُثبت انتماءً؛ مراجعة بشرية.</p></div>
+          )}
+          <p className="muted" style={{ fontSize: 11 }}>{d.disclaimer}</p>
+        </>
+      )}
+    </>
+  );
+}
+
 export default function Facebook() {
-  const [tab, setTab] = useState<"dashboard" | "national" | "page">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "national" | "page" | "viral" | "clusters" | "journey" | "dna">("dashboard");
   const [demo, setDemo] = useState(false);
   return (
     <div>
@@ -291,9 +454,19 @@ export default function Facebook() {
       <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
         <button className={`btn ${tab === "dashboard" ? "" : "ghost"}`} onClick={() => setTab("dashboard")}>🧠 اللوحة</button>
         <button className={`btn ${tab === "national" ? "" : "ghost"}`} onClick={() => setTab("national")}>🇮🇶 النبض الوطني</button>
+        <button className={`btn ${tab === "viral" ? "" : "ghost"}`} onClick={() => setTab("viral")}>🔥 الأكثر انتشاراً</button>
+        <button className={`btn ${tab === "clusters" ? "" : "ghost"}`} onClick={() => setTab("clusters")}>🕸️ العناقيد</button>
+        <button className={`btn ${tab === "journey" ? "" : "ghost"}`} onClick={() => setTab("journey")}>🧵 الرحلة</button>
+        <button className={`btn ${tab === "dna" ? "" : "ghost"}`} onClick={() => setTab("dna")}>🧬 بصمة الصفحة</button>
         <button className={`btn ${tab === "page" ? "" : "ghost"}`} onClick={() => setTab("page")}>🔎 صفحة محدّدة</button>
       </div>
-      {tab === "dashboard" ? <DashboardView demo={demo} /> : tab === "page" ? <PageView Bar={Bar} demo={demo} /> : <NationalView Bar={Bar} demo={demo} />}
+      {tab === "dashboard" ? <DashboardView demo={demo} />
+        : tab === "national" ? <NationalView Bar={Bar} demo={demo} />
+        : tab === "viral" ? <ViralView demo={demo} />
+        : tab === "clusters" ? <ClustersView demo={demo} />
+        : tab === "journey" ? <JourneyView demo={demo} />
+        : tab === "dna" ? <DnaView demo={demo} />
+        : <PageView Bar={Bar} demo={demo} />}
     </div>
   );
 }

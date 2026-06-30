@@ -6,9 +6,40 @@ from pydantic import BaseModel
 
 from app.services import cache
 from app.services import facebook as fb
-from app.services.facebook import collector, summary
+from app.services.facebook import (collector, community_detector, cross_platform_journey,
+                                   page_dna, summary, viral)
 
 router = APIRouter(prefix="/api/facebook", tags=["facebook"])
+
+
+@router.get("/page-dna")
+async def page_dna_ep(target: str, demo: int = 0):
+    return await cache.swr(f"fb:dna:{demo}:{target}", 3600,
+                           lambda: page_dna.build(target, demo=bool(demo)))
+
+
+@router.get("/page-clusters")
+async def page_clusters_ep(demo: int = 0):
+    async def _build():
+        if demo:
+            from app.services.facebook import demo as _demo
+            slugs = _demo.pages()
+        else:
+            slugs = await fb.get_pages()
+        dnas = await page_dna.build_all(slugs, demo=bool(demo))
+        return community_detector.detect(dnas)
+    return await cache.swr(f"fb:clusters:{demo}", 21600, _build)
+
+
+@router.get("/viral-posts")
+async def viral_posts_ep(demo: int = 0):
+    return await cache.swr(f"fb:viral:{demo}", 7200, lambda: viral.top_viral(demo=bool(demo)))
+
+
+@router.get("/journey")
+async def journey_ep(demo: int = 0):
+    return await cache.swr(f"fb:journey:{demo}", 21600,
+                           lambda: cross_platform_journey.journeys(demo=bool(demo)))
 
 
 class PagesReq(BaseModel):

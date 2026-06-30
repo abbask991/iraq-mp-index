@@ -105,6 +105,16 @@ def keyword_phrases(texts: list, top: int = 10) -> list[dict]:
     return [{"phrase": g, "count": c} for g, c in grams.most_common(top) if c >= 3]
 
 
+def top_terms(texts: list, top: int = 8, min_count: int = 2) -> list[dict]:
+    """Most frequent meaningful single tokens — robust topic signal for small samples."""
+    cnt = Counter()
+    for t in texts:
+        for w in set(_tokens(t)):
+            if len(w) >= 3:
+                cnt[w] += 1
+    return [{"phrase": w, "count": c} for w, c in cnt.most_common(top) if c >= min_count]
+
+
 def pressure_level(texts: list, clusters: list[dict]) -> dict:
     """Public-pressure estimate (0–100) WITHOUT AI: blends raw comment volume,
     how concentrated/repeated the messaging is, and a crude anger-lexicon hit-rate.
