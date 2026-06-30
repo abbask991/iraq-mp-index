@@ -17,7 +17,7 @@ const NAV_GROUPS: Group[] = [
   {
     key: "ops", icon: "🎯", ar: "مركز العمليات", en: "Operations Center", defaultOpen: true,
     items: [
-      { ar: "🔴 غرفة الحرب (مباشر)", en: "🔴 Live War Room", href: "/monitor/warroom", danger: true },
+      { ar: "غرفة الحرب (مباشر)", en: "Live War Room", href: "/monitor/warroom", danger: true },
       { ar: "مركز القيادة (ابدأ هنا)", en: "Command Center (start here)", href: "/monitor/command" },
       { ar: "لوحة القيادة التنفيذية", en: "Executive Dashboard", href: "/monitor/overview" },
       { ar: "ماذا تغيّر خلال 24 ساعة؟", en: "What Changed in 24h?", href: "/monitor/changes" },
@@ -274,7 +274,6 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
                 style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "transparent",
                          border: "none", color: "var(--muted)", padding: "9px 10px", cursor: "pointer",
                          fontSize: 12, fontWeight: 800, letterSpacing: 0.2 }}>
- <span style={{ fontSize: 14 }}>{g.icon}</span>
  <span style={{ flex: 1, textAlign: "start" }}>{t(g)}</span>
  <span style={{ display: "inline-block", transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", opacity: 0.7 }}>›</span>
  </button>
