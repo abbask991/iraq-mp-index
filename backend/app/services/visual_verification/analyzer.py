@@ -22,14 +22,18 @@ def _vid(seed: str) -> str:
     return "vv_" + hashlib.sha1((seed + str(int(time.time()))).encode("utf-8")).hexdigest()[:16]
 
 
+_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+
+
 async def _fetch(url: str) -> bytes | None:
     try:
-        async with httpx.AsyncClient(follow_redirects=True) as c:
+        async with httpx.AsyncClient(follow_redirects=True, headers={"User-Agent": _UA, "Accept": "image/*,*/*"}) as c:
             r = await c.get(url, timeout=30)
             if r.status_code != 200:
                 return None
-            ct = r.headers.get("content-type", "")
-            if "image" not in ct and not url.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+            ct = r.headers.get("content-type", "").lower()
+            if "image" not in ct and not url.lower().split("?")[0].endswith((".jpg", ".jpeg", ".png", ".webp", ".gif")):
                 return None
             data = r.content
             return data if data and len(data) <= _MAX_BYTES else None
