@@ -69,6 +69,7 @@ const NAV_GROUPS: Group[] = [
       { ar: "كشف التضليل والتزييف", en: "Disinformation", href: "/monitor/disinfo" },
       { ar: "تتبّع المصدر (Patient Zero)", en: "Patient Zero", href: "/monitor/patient-zero" },
       { ar: "رادار الحسابات الجديدة", en: "New Accounts Radar", href: "/monitor/new-accounts" },
+      { ar: "كشف الصور والتزييف", en: "Visual Verification", href: "/monitor/visual-verification" },
     ],
   },
   {
