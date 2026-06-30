@@ -46,6 +46,8 @@ from app.routers import facebook as facebook_router  # noqa: E402
 app.include_router(facebook_router.router)
 from app.routers import command_center as command_center_router  # noqa: E402
 app.include_router(command_center_router.router)
+from app.routers import evidence_explorer as evidence_explorer_router  # noqa: E402
+app.include_router(evidence_explorer_router.router)
 
 
 @app.on_event("startup")

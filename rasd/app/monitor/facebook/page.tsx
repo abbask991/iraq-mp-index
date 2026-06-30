@@ -4,6 +4,7 @@ import { apiGet, apiSend } from "@/lib/api";
 import Gauge from "@/components/Gauge";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
+import EvidenceExplorer from "@/components/EvidenceExplorer";
 
 const appColor = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
@@ -310,7 +311,10 @@ function ViralView({ demo }: { demo: boolean }) {
           <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
             {(p.why_viral || []).map((w: string, j: number) => <span key={j} className="chip" style={{ fontSize: 11 }}>🔥 {w}</span>)}
           </div>
-          {p.url && <a href={p.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "var(--accent)" }}>↗ المصدر</a>}
+          <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center" }}>
+            <EvidenceExplorer subject={p.related_entity || p.narrative || p.page} type="viral_post" score={p.risk?.score} demo={demo} />
+            {p.url && <a href={p.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "var(--accent)" }}>↗ المصدر</a>}
+          </div>
         </div>
       ))}
     </>

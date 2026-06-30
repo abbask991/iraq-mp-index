@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
+import EvidenceExplorer from "@/components/EvidenceExplorer";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 const lvlColor = (l: string) => (/حرج/.test(l) ? "#dc2626" : /مرتفع/.test(l) ? "#f43f5e" : /متوسط/.test(l) ? "#f59e0b" : "#22c55e");
@@ -67,7 +68,10 @@ export default function CommandCenter() {
                       <span className="chip" style={{ color: lvlColor(r.level), fontSize: 11 }}>{r.level} · {r.risk}</span>
                     </div>
                     <div style={{ fontSize: 12.5, marginTop: 5, lineHeight: 1.7 }}>{r.reason}</div>
-                    <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>📎 {fmt(r.evidence_count)} دليل</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                      <span className="muted" style={{ fontSize: 11 }}>📎 {fmt(r.evidence_count)} دليل</span>
+                      <EvidenceExplorer subject={r.entity} type="risk" score={r.risk} demo={demo} />
+                    </div>
                     <div style={{ marginTop: 6, fontSize: 12.5 }}>▸ <b>{r.recommended_action}</b></div>
                   </div>
                 ))}
