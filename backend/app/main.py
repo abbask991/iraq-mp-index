@@ -50,6 +50,8 @@ from app.routers import evidence_explorer as evidence_explorer_router  # noqa: E
 app.include_router(evidence_explorer_router.router)
 from app.routers import entity_workspace as entity_workspace_router  # noqa: E402
 app.include_router(entity_workspace_router.router)
+from app.routers import what_changed as what_changed_router  # noqa: E402
+app.include_router(what_changed_router.router)
 
 
 @app.on_event("startup")
