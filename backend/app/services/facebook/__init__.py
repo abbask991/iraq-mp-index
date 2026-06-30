@@ -59,6 +59,14 @@ async def _scrape(url: str, limit: int, demo: bool = False) -> dict:
         from app.services.facebook import demo as _demo
         slug = (url or "").rstrip("/").split("/")[-1]
         return {"error": None, "items": _demo.items(slug, limit)}
+    # Cost Control Center kill-switches (emergency stop / pause facebook / daily cap)
+    try:
+        from app.services import cost_center
+        blocked, reason = await cost_center.is_blocked("facebook")
+        if blocked:
+            return {"error": "PAUSED", "items": [], "message": reason}
+    except Exception:
+        pass
     tok = os.getenv("APIFY_TOKEN")
     if not tok:
         return {"error": "APIFY_TOKEN_MISSING", "items": []}
