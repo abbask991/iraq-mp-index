@@ -94,7 +94,7 @@ async def build(slug: str, limit: int = 12, demo: bool = False) -> dict:
         "emotional_tone": (react_profile.get("dominant_emotion")),
         "influence": _influence(posts),
         # feature vector for clustering (topics + dominant reaction + peak hour + tendency)
-        "_vector": {"topics": set(topics), "dominant_reaction": react_profile.get("dominant"),
+        "_vector": {"topics": topics, "dominant_reaction": react_profile.get("dominant"),
                     "peak_hour": peak_hour, "tendency": tendency},
         "disclaimer": "بصمة سلوكية احتمالية — لا تُثبت انتماءً سياسياً؛ تتطلّب مراجعة بشرية.",
     }
