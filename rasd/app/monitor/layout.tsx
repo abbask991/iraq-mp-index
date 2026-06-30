@@ -8,76 +8,130 @@ import { getLang, setLang, applyDir, tr, Lang, getTheme, setTheme, applyTheme, T
 import CommandPalette from "@/components/CommandPalette";
 import Logo from "@/components/Logo";
 
-type Item = { icon: string; ar: string; en: string; href?: string };
-const SECTORS: { ar: string; en: string; items: Item[] }[] = [
+type Item = { ar: string; en: string; href?: string; matchPrefix?: string; soon?: boolean; action?: "logout"; plan?: boolean; danger?: boolean };
+type Group = { key: string; icon: string; ar: string; en: string; defaultOpen?: boolean; items: Item[] };
+
+// Data-driven navigation — an intelligence OS, not a flat tool list. Every existing
+// route is preserved; routeless items render as "قريباً". Labels are executive-tuned.
+const NAV_GROUPS: Group[] = [
   {
-    ar: "★ مركز القيادة", en: "★ Command Center",
+    key: "ops", icon: "🎯", ar: "مركز العمليات", en: "Operations Center", defaultOpen: true,
     items: [
-      { icon: "🎯", ar: "مركز القيادة (ابدأ هنا)", en: "Command Center (start here)", href: "/monitor/command" },
-      { icon: "🏛️", ar: "مساحة عمل الكيان", en: "Entity Workspace", href: "/monitor/entities/%D9%88%D8%B2%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D9%83%D9%87%D8%B1%D8%A8%D8%A7%D8%A1/workspace" },
-      { icon: "🔄", ar: "ما الذي تغيّر؟", en: "What Changed?", href: "/monitor/changes" },
-      { icon: "💰", ar: "مركز التحكّم بالتكلفة", en: "Cost Control Center", href: "/monitor/system/cost-center" },
+      { ar: "🔴 غرفة الحرب (مباشر)", en: "🔴 Live War Room", href: "/monitor/warroom", danger: true },
+      { ar: "مركز القيادة (ابدأ هنا)", en: "Command Center (start here)", href: "/monitor/command" },
+      { ar: "لوحة القيادة التنفيذية", en: "Executive Dashboard", href: "/monitor/overview" },
+      { ar: "ماذا تغيّر خلال 24 ساعة؟", en: "What Changed in 24h?", href: "/monitor/changes" },
+      { ar: "التقرير اليومي", en: "Daily Brief", href: "/monitor/brief" },
+      { ar: "التقرير الشامل", en: "Full Dossier", href: "/monitor/dossier" },
+      { ar: "ضابط الاستخبارات", en: "Chief Intelligence", href: "/monitor/chief" },
+      { ar: "المحلّل الذكي (اسأل أي سؤال)", en: "AI Analyst", href: "/monitor/analyst" },
     ],
   },
   {
-    ar: "القطاع الأول · الرصد الإعلامي", en: "Sector 1 · Media Monitoring",
+    key: "media", icon: "📡", ar: "الرصد الإعلامي", en: "Media Monitoring",
     items: [
-      { icon: "", ar: "الإعلام التقليدي", en: "Traditional Media", href: "/monitor" },
-      { icon: "", ar: "الإعلام الرقمي", en: "Digital Media", href: "/monitor/targets" },
-      { icon: "", ar: "الرصد الدولي", en: "International Monitoring" },
+      { ar: "الإعلام التقليدي", en: "Traditional Media", href: "/monitor" },
+      { ar: "الإعلام الرقمي", en: "Digital Media", href: "/monitor/targets" },
+      { ar: "الرصد عبر المنصّات", en: "Cross-Platform", href: "/monitor/cross-platform" },
+      { ar: "الصورة الاستخباراتية الموحّدة", en: "Unified Intelligence Picture", href: "/monitor/fusion" },
+      { ar: "استخبارات فيسبوك", en: "Facebook Intelligence", href: "/monitor/facebook" },
+      { ar: "أرشيف X (يكبر يومياً)", en: "X Archive (grows daily)", href: "/monitor/archive" },
+      { ar: "الإعدادات: قائمة المتابعة", en: "Settings: Watchlist", href: "/monitor/settings" },
     ],
   },
   {
-    ar: "القطاع الثاني · التحليل والبحوث", en: "Sector 2 · Analysis & Research",
+    key: "analysis", icon: "📊", ar: "التحليل والبحوث", en: "Analysis & Research",
     items: [
-      { icon: "", ar: "تحليل المحتوى", en: "Content Analysis", href: "/monitor/content" },
-      { icon: "", ar: "حصة الصوت (SOV)", en: "Share of Voice", href: "/monitor/sov" },
-      { icon: "", ar: "الدراسات والبحوث", en: "Studies & Research" },
-      { icon: "", ar: "استطلاعات الرأي", en: "Opinion Polls" },
+      { ar: "تحليل المحتوى", en: "Content Analysis", href: "/monitor/content" },
+      { ar: "حصة الصوت (SOV)", en: "Share of Voice", href: "/monitor/sov" },
+      { ar: "المؤشرات والـKPIs", en: "Indices & KPIs", href: "/monitor/index-report" },
+      { ar: "التحليلات المتقدمة", en: "Advanced Analytics", href: "/monitor/network" },
+      { ar: "استطلاع الرأي الاجتماعي", en: "Social Opinion Poll", href: "/monitor/polling" },
+      { ar: "الدراسات والبحوث", en: "Studies & Research", soon: true },
+      { ar: "استطلاعات الرأي", en: "Opinion Polls", soon: true },
     ],
   },
   {
-    ar: "القطاع الثالث · البيانات والذكاء", en: "Sector 3 · Data & AI",
+    key: "trends", icon: "📈", ar: "الترندات والإنذار", en: "Trends & Early Warning",
     items: [
-      { icon: "", ar: "البيانات الضخمة والتحليلات", en: "Big Data & Analytics", href: "/monitor/network" },
-      { icon: "", ar: "الحسابات الجديدة", en: "New Accounts", href: "/monitor/new-accounts" },
-      { icon: "", ar: "رادار الحملات", en: "Campaign Radar", href: "/monitor/campaigns" },
-      { icon: "", ar: "فحص حملة محدّدة", en: "Campaign Check", href: "/monitor/campaign" },
-      { icon: "", ar: "ترندات الآن", en: "Trending Now", href: "/monitor/discover" },
-      { icon: "", ar: "تحليل ترند محدّد", en: "Trend Analysis", href: "/monitor/trends" },
-      { icon: "", ar: "المؤشرات والـKPIs", en: "Indices & KPIs", href: "/monitor/index-report" },
-      { icon: "", ar: "الإنذار المبكر", en: "Early Warning", href: "/monitor/alerts" },
+      { ar: "ترندات الآن", en: "Trending Now", href: "/monitor/discover" },
+      { ar: "تحليل ترند محدّد", en: "Trend Analysis", href: "/monitor/trends" },
+      { ar: "الإنذار المبكر", en: "Early Warning", href: "/monitor/alerts" },
+      { ar: "التنبّؤ والإنذار المبكر", en: "Predictive Engine", href: "/monitor/predictive" },
     ],
   },
   {
-    ar: "القطاع الرابع · الاستخبارات السياسية", en: "Sector 4 · Political Intelligence",
+    key: "campaigns", icon: "🛡️", ar: "الحملات والتضليل", en: "Campaigns & Disinformation",
     items: [
-      { icon: "", ar: "المحلّل الذكي (اسأل أي سؤال)", en: "AI Analyst", href: "/monitor/analyst" },
-      { icon: "", ar: "ضابط الاستخبارات", en: "Chief Intelligence", href: "/monitor/chief" },
-      { icon: "", ar: "التقرير اليومي", en: "Daily Brief", href: "/monitor/brief" },
-      { icon: "", ar: "الصورة الموحّدة (كل المنصّات)", en: "Unified Picture", href: "/monitor/fusion" },
-      { icon: "", ar: "ساحة المعركة الإعلامية", en: "Media Battlefield", href: "/monitor/battlefield" },
-      { icon: "", ar: "التنبّؤ والإنذار المبكر", en: "Predictive Engine", href: "/monitor/predictive" },
-      { icon: "", ar: "تتبّع المصدر (Patient Zero)", en: "Patient Zero", href: "/monitor/patient-zero" },
-      { icon: "", ar: "كشف التضليل والتزييف", en: "Disinformation", href: "/monitor/disinfo" },
-      { icon: "", ar: "كشف الشبكات المنسّقة", en: "Coordinated Networks", href: "/monitor/coordination" },
-      { icon: "", ar: "التأثير الإقليمي (العراق↔الجوار)", en: "Regional Influence", href: "/monitor/regional-influence" },
-      { icon: "", ar: "غرفة حرب السرديات", en: "Narrative War Room", href: "/monitor/narratives" },
-      { icon: "", ar: "بروفايلنغ حساب (تحليل عميق)", en: "Account Profiler", href: "/monitor/profiler" },
-      { icon: "", ar: "رادار المؤثّرين", en: "Influencer Radar", href: "/monitor/influencers" },
-      { icon: "", ar: "الرأي العام الرقمي (PPOI)", en: "Public Opinion (PPOI)", href: "/monitor/opinion" },
-      { icon: "", ar: "استطلاع الرأي الاجتماعي", en: "Social Opinion Poll", href: "/monitor/polling" },
-      { icon: "", ar: "رصد فيسبوك (تأييد/رفض)", en: "Facebook Reception", href: "/monitor/facebook" },
-      { icon: "", ar: "الرصد عبر المنصّات", en: "Cross-Platform", href: "/monitor/cross-platform" },
-      { icon: "", ar: "التوأم الرقمي", en: "Digital Twin", href: "/monitor/intelligence" },
-      { icon: "", ar: "المقارنة (كيان مقابل كيان)", en: "Compare Entities", href: "/monitor/compare" },
-      { icon: "", ar: "أرشيف X (يكبر يومياً)", en: "X Archive (grows daily)", href: "/monitor/archive" },
+      { ar: "رادار الحملات", en: "Campaign Radar", href: "/monitor/campaigns" },
+      { ar: "فحص حملة محدّدة", en: "Campaign Check", href: "/monitor/campaign" },
+      { ar: "كشف الشبكات المنسّقة", en: "Coordinated Networks", href: "/monitor/coordination" },
+      { ar: "كشف التضليل والتزييف", en: "Disinformation", href: "/monitor/disinfo" },
+      { ar: "تتبّع المصدر (Patient Zero)", en: "Patient Zero", href: "/monitor/patient-zero" },
+      { ar: "رادار الحسابات الجديدة", en: "New Accounts Radar", href: "/monitor/new-accounts" },
     ],
   },
   {
-    ar: "القطاع الخامس · الاستخبارات المؤسسية", en: "Sector 5 · Corporate Intelligence",
+    key: "narratives", icon: "🧵", ar: "السرديات والمعركة الإعلامية", en: "Narratives & Battlefield",
     items: [
-      { icon: "", ar: "مركز الاستخبارات المؤسسية", en: "Corporate Intelligence", href: "/monitor/corporate" },
+      { ar: "غرفة حرب السرديات", en: "Narrative War Room", href: "/monitor/narratives" },
+      { ar: "ساحة المعركة الإعلامية", en: "Media Battlefield", href: "/monitor/battlefield" },
+      { ar: "التأثير الإقليمي (العراق ← الجوار)", en: "Regional Influence", href: "/monitor/regional-influence" },
+    ],
+  },
+  {
+    key: "entities", icon: "🏛️", ar: "الكيانات والتأثير", en: "Entities & Influence",
+    items: [
+      { ar: "مساحة عمل الكيان", en: "Entity Workspace", href: "/monitor/entities/%D9%88%D8%B2%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D9%83%D9%87%D8%B1%D8%A8%D8%A7%D8%A1/workspace", matchPrefix: "/monitor/entities" },
+      { ar: "التوأم الرقمي", en: "Digital Twin", href: "/monitor/intelligence" },
+      { ar: "المقارنة (كيان مقابل كيان)", en: "Compare Entities", href: "/monitor/compare" },
+      { ar: "تحليل الحسابات والمؤثرين", en: "Account & Influencer Analysis", href: "/monitor/profiler" },
+      { ar: "رادار المؤثّرين", en: "Influencer Radar", href: "/monitor/influencers" },
+      { ar: "مؤشر الرأي العام الرقمي (PPOI)", en: "Public Opinion Index (PPOI)", href: "/monitor/opinion" },
+    ],
+  },
+  {
+    key: "corporate", icon: "🏢", ar: "استخبارات الشركات والمؤسسات", en: "Corporate Intelligence",
+    items: [
+      { ar: "مركز الاستخبارات المؤسسية", en: "Corporate Intelligence Center", href: "/monitor/corporate" },
+      { ar: "سمعة الشركة", en: "Brand Reputation", soon: true },
+      { ar: "شكاوى العملاء", en: "Customer Complaints", soon: true },
+      { ar: "مراقبة المنافسين", en: "Competitor Monitoring", soon: true },
+      { ar: "مراقبة الاحتيال والصفحات المزيفة", en: "Fraud & Fake Pages", soon: true },
+      { ar: "مؤشر المخاطر المؤسسية", en: "Corporate Risk Index", soon: true },
+    ],
+  },
+  {
+    key: "reports", icon: "📄", ar: "التقارير والمخرجات", en: "Reports & Deliverables",
+    items: [
+      { ar: "التقرير اليومي", en: "Daily Brief", href: "/monitor/brief" },
+      { ar: "التقرير الشامل", en: "Full Dossier", href: "/monitor/dossier" },
+      { ar: "تقارير الحملات", en: "Campaign Reports", soon: true },
+      { ar: "تقارير الكيانات", en: "Entity Reports", soon: true },
+      { ar: "تقارير الأزمات", en: "Crisis Reports", soon: true },
+      { ar: "تقارير PDF / PowerPoint", en: "PDF / PowerPoint Reports", soon: true },
+    ],
+  },
+  {
+    key: "system", icon: "⚙️", ar: "النظام والإعدادات", en: "System & Settings",
+    items: [
+      { ar: "الحساب واشتراكي", en: "Account & Subscription", href: "/monitor/account" },
+      { ar: "الباقة الحالية", en: "Current Plan", plan: true },
+      { ar: "الإعدادات: قائمة المتابعة", en: "Settings: Watchlist", href: "/monitor/settings" },
+      { ar: "مركز التحكّم بالتكلفة", en: "Cost Control Center", href: "/monitor/system/cost-center" },
+      { ar: "الاستهلاك والكلفة", en: "Usage & Cost", href: "/monitor/usage" },
+      { ar: "إدارة المستخدمين", en: "User Management", soon: true },
+      { ar: "حالة النظام", en: "System Status", soon: true },
+      { ar: "سجل النشاط", en: "Activity Log", soon: true },
+      { ar: "تسجيل الخروج", en: "Log out", action: "logout" },
+    ],
+  },
+  {
+    key: "soon", icon: "🔜", ar: "قريباً", en: "Coming Soon",
+    items: [
+      { ar: "الرصد الدولي", en: "International Monitoring", soon: true },
+      { ar: "الدراسات والبحوث", en: "Studies & Research", soon: true },
+      { ar: "استطلاعات الرأي", en: "Opinion Polls", soon: true },
     ],
   },
 ];
@@ -127,10 +181,24 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
   const [clock, setClock] = useState("");
   const [navOpen, setNavOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   useEffect(() => {
     const f = () => setClock(new Date().toLocaleTimeString("ar-IQ", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }));
     f(); const id = setInterval(f, 1000); return () => clearInterval(id);
   }, []);
+  const itemActive = (it: Item) => !!it.href && (path === it.href || (!!it.matchPrefix && !!path?.startsWith(it.matchPrefix)));
+  // open the default group on first mount + auto-open whichever group holds the active route
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      const fresh = Object.keys(prev).length === 0;
+      const next = { ...prev };
+      for (const g of NAV_GROUPS) {
+        if (fresh && g.defaultOpen) next[g.key] = true;
+        if (g.items.some(itemActive)) next[g.key] = true;
+      }
+      return next;
+    });
+  }, [path]);
 
   const t = (s: { ar: string; en: string }) => tr(s, lang);
   const toggleTheme = () => { const n: Theme = theme === "dark" ? "light" : "dark"; setTheme(n); setThemeState(n); };
@@ -171,23 +239,10 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   );
 
   const dl = daysLeft(sub);
-  const soon = SECTORS.flatMap((s) => s.items.filter((it) => !it.href));
-  const topItems = [
-    { href: "/monitor/overview", ar: "لوحة القيادة", en: "Command Center" },
-    { href: "/monitor/dossier", ar: "التقرير الشامل", en: "Full Dossier" },
-    { href: "/monitor/usage", ar: "الاستهلاك والكلفة", en: "Usage & Cost" },
-    { href: "/monitor/settings", ar: "الإعدادات", en: "Settings" },
-    ...SECTORS.flatMap((s) => s.items),
-  ];
-  const cur = topItems.find((it) => it.href === path);
-  const sectionTitle = cur ? t(cur as { ar: string; en: string }) : (lang === "ar" ? "مركز العمليات" : "Operations");
-  const paletteItems = [
-    { label: lang === "ar" ? "غرفة الحرب (مباشر)" : "Live War Room", href: "/monitor/warroom", group: lang === "ar" ? "رئيسي" : "Main" },
-    { label: lang === "ar" ? "لوحة القيادة" : "Command Center", href: "/monitor/overview", group: lang === "ar" ? "رئيسي" : "Main" },
-    { label: lang === "ar" ? "التقرير الشامل" : "Full Dossier", href: "/monitor/dossier", group: lang === "ar" ? "رئيسي" : "Main" },
-    { label: lang === "ar" ? "الإعدادات" : "Settings", href: "/monitor/settings", group: lang === "ar" ? "رئيسي" : "Main" },
-    ...SECTORS.flatMap((s) => s.items.filter((it) => it.href).map((it) => ({ label: t(it), href: it.href!, group: t(s) }))),
-  ];
+  const allItems = NAV_GROUPS.flatMap((g) => g.items.filter((it) => it.href));
+  const cur = allItems.find((it) => it.href === path);
+  const sectionTitle = cur ? t(cur) : (lang === "ar" ? "مركز العمليات" : "Operations Center");
+  const paletteItems = NAV_GROUPS.flatMap((g) => g.items.filter((it) => it.href && !it.soon).map((it) => ({ label: t(it), href: it.href!, group: t(g) })));
 
   return (
  <>
@@ -210,48 +265,45 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <div className="admin-shell">
  <aside className={"admin-side" + (navOpen ? " open" : "")} onClick={(e) => { if ((e.target as HTMLElement).closest("a")) setNavOpen(false); }}>
         {LangBtn}
- <Link href="/monitor/warroom" className={path === "/monitor/warroom" ? "active" : ""} style={{ background: path === "/monitor/warroom" ? undefined : "color-mix(in srgb, #f43f5e 12%, transparent)", fontWeight: 800 }}>
-          {lang === "ar" ? "🔴 غرفة الحرب (مباشر)" : "🔴 Live War Room"}
- </Link>
- <Link href="/monitor/overview" className={path === "/monitor/overview" ? "active" : ""}>
-          {lang === "ar" ? "لوحة القيادة" : "Command Center"}
- </Link>
- <Link href="/monitor/dossier" className={path === "/monitor/dossier" ? "active" : ""}>
-          {lang === "ar" ? "التقرير الشامل" : "Full Dossier"}
- </Link>
- <Link href="/monitor/settings" className={path === "/monitor/settings" ? "active" : ""}>
-          {lang === "ar" ? "الإعدادات · قائمة المتابعة" : "Settings · Watchlist"}
- </Link>
-        {SECTORS.map((sec) => {
-          const live = sec.items.filter((it) => it.href);
-          if (!live.length) return null;
+        {NAV_GROUPS.map((g) => {
+          const isOpen = !!openGroups[g.key];
           return (
- <div key={sec.en}>
- <div className="grp">{t(sec)}</div>
-              {live.map((it) => (
- <Link key={it.en + (it.href || "")} href={it.href!} className={path === it.href ? "active" : ""}>
+ <div key={g.key} className="nav-group">
+ <button className="nav-grp-h" onClick={() => setOpenGroups((p) => ({ ...p, [g.key]: !p[g.key] }))}
+                aria-expanded={isOpen}
+                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "transparent",
+                         border: "none", color: "var(--muted)", padding: "9px 10px", cursor: "pointer",
+                         fontSize: 12, fontWeight: 800, letterSpacing: 0.2 }}>
+ <span style={{ fontSize: 14 }}>{g.icon}</span>
+ <span style={{ flex: 1, textAlign: "start" }}>{t(g)}</span>
+ <span style={{ display: "inline-block", transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", opacity: 0.7 }}>›</span>
+ </button>
+              {isOpen && g.items.map((it) => {
+                if (it.plan) return (
+ <div key="plan" style={{ padding: "4px 12px", fontSize: 12 }} className="muted">
+                    {lang === "ar" ? "الباقة" : "Plan"}: <b style={{ color: "var(--accent)" }}>{PLAN_LABEL[sub?.plan || "trial"]}</b>
+ </div>
+                );
+                if (it.action === "logout") return (
+ <a key="logout" href="#" onClick={async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = "/login"; }}>{t(it)}</a>
+                );
+                if (it.soon || !it.href) return (
+ <span key={it.en} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", opacity: 0.4, fontSize: 13 }}>
+ {t(it)}
+ <span style={{ marginInlineStart: "auto", fontSize: 10, background: "#1f2a3d", padding: "1px 6px", borderRadius: 6 }}>{t(T.comingSoon)}</span>
+ </span>
+                );
+                return (
+ <Link key={it.en + it.href} href={it.href} className={itemActive(it) ? "active" : ""}
+                    style={it.danger && !itemActive(it) ? { background: "color-mix(in srgb, #f43f5e 12%, transparent)", fontWeight: 800 } : undefined}>
  {t(it)}
  </Link>
-              ))}
+                );
+              })}
  </div>
           );
         })}
 
- <div className="grp">{t(T.account)}</div>
- <Link href="/monitor/account" className={path === "/monitor/account" ? "active" : ""}>{t(T.mySub)}</Link>
- <div style={{ padding: "4px 10px", fontSize: 12 }} className="muted">
-          {t(T.plan)}: <b style={{ color: "var(--accent)" }}>{PLAN_LABEL[sub?.plan || "trial"]}</b>
- </div>
- <a href="#" onClick={async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = "/login"; }}>{t(T.logout)}</a>
-
-        {/* not-yet-working sections, moved to the bottom */}
- <div className="grp">{t(T.comingSoon)}</div>
-        {soon.map((it) => (
- <span key={it.en} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", opacity: 0.4, fontSize: 13 }}>
- {t(it)}
- <span style={{ marginInlineStart: "auto", fontSize: 10, background: "#1f2a3d", padding: "1px 6px", borderRadius: 6 }}>{t(T.comingSoon)}</span>
- </span>
-        ))}
  <div className="side-brand">
  <Logo size={22} />
  <span className="t"><b>Sentinel Intelligence</b><br />by Integrate Dynamics</span>
