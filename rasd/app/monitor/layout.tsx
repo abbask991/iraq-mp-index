@@ -11,6 +11,12 @@ import Logo from "@/components/Logo";
 type Item = { icon: string; ar: string; en: string; href?: string };
 const SECTORS: { ar: string; en: string; items: Item[] }[] = [
   {
+    ar: "★ مركز القيادة", en: "★ Command Center",
+    items: [
+      { icon: "🎯", ar: "مركز القيادة (ابدأ هنا)", en: "Command Center (start here)", href: "/monitor/command" },
+    ],
+  },
+  {
     ar: "القطاع الأول · الرصد الإعلامي", en: "Sector 1 · Media Monitoring",
     items: [
       { icon: "", ar: "الإعلام التقليدي", en: "Traditional Media", href: "/monitor" },
