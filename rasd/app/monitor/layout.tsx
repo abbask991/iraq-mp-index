@@ -273,8 +273,8 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <button className="nav-grp-h" onClick={() => setOpenGroups((p) => ({ ...p, [g.key]: !p[g.key] }))}
                 aria-expanded={isOpen}
                 style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "transparent",
-                         border: "none", color: "var(--muted)", padding: "9px 10px", cursor: "pointer",
-                         fontSize: 12, fontWeight: 800, letterSpacing: 0.2 }}>
+                         border: "none", color: "var(--text)", padding: "10px 13px", cursor: "pointer",
+                         fontSize: 14, fontWeight: 700, fontFamily: "inherit", marginTop: 2 }}>
  <span style={{ flex: 1, textAlign: "start" }}>{t(g)}</span>
  <span style={{ display: "inline-block", transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", opacity: 0.7 }}>›</span>
  </button>
