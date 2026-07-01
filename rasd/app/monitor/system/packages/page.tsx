@@ -2,11 +2,31 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { apiGet, apiSend } from "@/lib/api";
-import { featureRegistry, PLANS, isAdminEmail } from "@/lib/nav";
+import { featureRegistry, PLANS, isAdminEmail, NAV_GROUPS } from "@/lib/nav";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 
 type UserRow = { user_id: string; email: string | null; plan: string };
+
+// Live preview of the client's menu given the current hidden set (mirrors the sidebar logic).
+function MenuPreview({ hidden }: { hidden: Set<string> }) {
+  const groups = NAV_GROUPS.map((g) => ({
+    g, vis: g.items.filter((it) => it.href && !it.soon && !it.adminOnly && !it.plan && it.action !== "logout" && !hidden.has(it.href)),
+  })).filter((x) => x.vis.length > 0);
+  return (
+    <div className="cbox" style={{ position: "sticky", top: 12 }}>
+      <h4 style={{ marginTop: 0 }}>👁️ معاينة قائمة العميل (حيّة)</h4>
+      <p className="muted" style={{ fontSize: 11, marginBottom: 8 }}>هكذا يرى العميل القائمة على هذه الباقة — تتحدّث فوراً وأنت تشيّك.</p>
+      {groups.length === 0 && <p className="muted" style={{ fontSize: 12 }}>لا شيء ظاهر — كل الميزات مخفيّة.</p>}
+      {groups.map(({ g, vis }) => (
+        <div key={g.key} style={{ marginBottom: 6 }}>
+          <div style={{ color: "var(--accent)", fontWeight: 800, fontSize: 12.5, padding: "3px 0" }}>{g.ar}</div>
+          {vis.map((it) => <div key={it.href} style={{ fontSize: 12, padding: "1px 10px", color: "var(--muted)" }}>{it.ar}</div>)}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function PackagesAdmin() {
   const [gate, setGate] = useState<"loading" | "denied" | "ok">("loading");
@@ -20,6 +40,7 @@ export default function PackagesAdmin() {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState("");
+  const [dirty, setDirty] = useState(false);
   const reg = featureRegistry();
 
   useEffect(() => {
@@ -42,7 +63,7 @@ export default function PackagesAdmin() {
 
   // load hidden set for the current target (plan or user)
   const loadTarget = () => {
-    setLoading(true); setSaved("");
+    setLoading(true); setSaved(""); setDirty(false);
     if (mode === "plan") {
       apiGet(`/api/entitlements?plan=${plan}`).then((r) => setHidden(new Set(r?.hidden || []))).finally(() => setLoading(false));
     } else if (uid) {
@@ -60,11 +81,12 @@ export default function PackagesAdmin() {
   useEffect(() => { if (gate === "ok") loadTarget(); /* eslint-disable-next-line */ }, [gate, mode, plan, uid]);
 
   const toggle = (key: string) => {
-    const n = new Set(hidden); n.has(key) ? n.delete(key) : n.add(key); setHidden(n); setSaved("");
+    const n = new Set(hidden); n.has(key) ? n.delete(key) : n.add(key); setHidden(n); setSaved(""); setDirty(true);
   };
   const bulk = (show: boolean) => {
-    if (show) return setHidden(new Set());
-    const all = new Set<string>(); reg.forEach((g) => g.items.forEach((it) => all.add(it.key))); setHidden(all);
+    if (show) setHidden(new Set());
+    else { const all = new Set<string>(); reg.forEach((g) => g.items.forEach((it) => all.add(it.key))); setHidden(all); }
+    setDirty(true); setSaved("");
   };
   const save = async () => {
     setSaved("…");
@@ -72,6 +94,7 @@ export default function PackagesAdmin() {
       ? await apiSend("/api/entitlements", "POST", { plan, hidden: Array.from(hidden) }).catch(() => null)
       : await apiSend("/api/entitlements/user", "POST", { uid, hidden: Array.from(hidden) }).catch(() => null);
     if (mode === "user" && r?.saved) setOverride(true);
+    if (r?.saved) setDirty(false);
     setSaved(r?.saved ? "✅ حُفظ" : "⚠️ تعذّر الحفظ");
   };
   const clearUser = async () => {
@@ -125,31 +148,39 @@ export default function PackagesAdmin() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
         <span className="muted" style={{ fontSize: 12.5 }}>ظاهرة <b style={{ color: "#22c55e" }}>{visibleCount}</b> / {total} — {targetLabel}</span>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {dirty && <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700 }}>● تغييرات غير محفوظة</span>}
           {saved && <span className="muted" style={{ fontSize: 12 }}>{saved}</span>}
           <button className="btn ghost" onClick={previewOnMe} title="طبّق هذا الإخفاء على حسابك مؤقتاً لتشاهد النتيجة">👁️ معاينة على حسابي</button>
-          <button className="btn" onClick={save} disabled={mode === "user" && !uid}>حفظ</button>
+          <button className="btn" onClick={save} disabled={mode === "user" && !uid} style={dirty ? { boxShadow: "0 0 0 2px #f59e0b" } : {}}>حفظ التغييرات</button>
         </div>
       </div>
 
       {loading && <SkelCards count={4} />}
-      {!loading && (mode === "plan" || uid) && reg.map((g) => (
-        <div key={g.group} className="cbox" style={{ marginBottom: 12 }}>
-          <h4 style={{ marginTop: 0 }}>{g.group}</h4>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-            {g.items.map((it) => {
-              const on = !hidden.has(it.key);
-              return (
-                <label key={it.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "6px 8px", borderRadius: 8, cursor: "pointer",
-                  border: "1px solid var(--line)", background: on ? "color-mix(in srgb,#22c55e 8%,transparent)" : "color-mix(in srgb,#f43f5e 8%,transparent)" }}>
-                  <input type="checkbox" checked={on} onChange={() => toggle(it.key)} />
-                  <span style={{ flex: 1 }}>{it.ar}</span>
-                  <span className="chip" style={{ fontSize: 10, color: on ? "#22c55e" : "#f43f5e" }}>{on ? "ظاهرة" : "مخفيّة"}</span>
-                </label>
-              );
-            })}
+      {!loading && (mode === "plan" || uid) && (
+        <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 420px", minWidth: 300 }}>
+            {reg.map((g) => (
+              <div key={g.group} className="cbox" style={{ marginBottom: 12 }}>
+                <h4 style={{ marginTop: 0 }}>{g.group}</h4>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                  {g.items.map((it) => {
+                    const on = !hidden.has(it.key);
+                    return (
+                      <label key={it.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "6px 8px", borderRadius: 8, cursor: "pointer",
+                        border: "1px solid var(--line)", background: on ? "color-mix(in srgb,#22c55e 8%,transparent)" : "color-mix(in srgb,#f43f5e 8%,transparent)" }}>
+                        <input type="checkbox" checked={on} onChange={() => toggle(it.key)} />
+                        <span style={{ flex: 1 }}>{it.ar}</span>
+                        <span className="chip" style={{ fontSize: 10, color: on ? "#22c55e" : "#f43f5e" }}>{on ? "ظاهرة" : "مخفيّة"}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
+          <div style={{ flex: "1 1 240px", minWidth: 220 }}><MenuPreview hidden={hidden} /></div>
         </div>
-      ))}
+      )}
       {!loading && mode === "user" && !uid && <EmptyState title="اختر مستخدماً" subtitle="اختر مستخدماً من القائمة لتحديد صلاحياته." />}
       <p className="muted" style={{ fontSize: 11 }}>ملاحظة: التطبيق على مستوى الواجهة (إخفاء من القائمة). لحماية كاملة على مستوى المسارات لاحقاً يُنصح بتحقّق في الخادم.</p>
     </div>
