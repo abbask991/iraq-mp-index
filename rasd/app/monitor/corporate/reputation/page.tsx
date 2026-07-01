@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
+import { Donut, Spark } from "@/components/MiniCharts";
 
 const col = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
@@ -9,14 +10,14 @@ const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 export default function BrandReputation() {
   const [brand, setBrand] = useState("");
   const [d, setD] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [demo, setDemo] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [demo, setDemo] = useState(true);
   const run = async (dm = demo) => {
     setLoading(true); setD(null);
     const r = await apiGet(`/api/corporate/reputation?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);
     setD(r); setLoading(false);
   };
-  useEffect(() => { if (demo) run(true); /* eslint-disable-next-line */ }, [demo]);
+  useEffect(() => { run(true); /* auto-load sample immediately */ /* eslint-disable-next-line */ }, []);
   const s = d?.sentiment || {};
 
   return (
@@ -43,16 +44,23 @@ export default function BrandReputation() {
               </div>
             ))}
           </div>
-          {(s.positive != null) && (
-            <div className="cbox" style={{ marginBottom: 14 }}>
-              <h4>مشاعر الجمهور</h4>
-              <div style={{ display: "flex", height: 14, borderRadius: 999, overflow: "hidden", marginBottom: 6 }}>
-                <span style={{ width: `${s.positive}%`, background: "#22c55e" }} /><span style={{ width: `${s.neutral}%`, background: "#8a97ad" }} /><span style={{ width: `${s.negative}%`, background: "#f43f5e" }} />
+          <div className="grid" style={{ marginBottom: 14 }}>
+            {(s.positive != null) && (
+              <div className="cbox" style={{ textAlign: "center" }}>
+                <h4 style={{ marginTop: 0 }}>مشاعر الجمهور</h4>
+                <Donut size={120} segments={[{ value: s.positive, color: "#22c55e" }, { value: s.neutral, color: "#8a97ad" }, { value: s.negative, color: "#f43f5e" }]} label={`${s.negative}%-`} />
+                <div style={{ fontSize: 12 }}><span style={{ color: "#22c55e" }}>إيجابي {s.positive}%</span> · <span style={{ color: "#f43f5e" }}>سلبي {s.negative}%</span></div>
+                {d.gap_note && <p className="muted" style={{ fontSize: 11.5, marginTop: 6 }}>🎭 {d.gap_note}</p>}
               </div>
-              <div style={{ fontSize: 12.5 }}><span style={{ color: "#22c55e" }}>إيجابي {s.positive}%</span> · <span className="muted">محايد {s.neutral}%</span> · <span style={{ color: "#f43f5e" }}>سلبي {s.negative}%</span></div>
-              {d.gap_note && <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>🎭 {d.gap_note}</p>}
-            </div>
-          )}
+            )}
+            {d.trend?.length > 0 && (
+              <div className="cbox">
+                <h4 style={{ marginTop: 0 }}>اتجاه السمعة</h4>
+                <Spark data={d.trend} color={col(d.reputation_score || 0)} height={70} />
+                {d.trend_note && <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>{d.trend_note}</div>}
+              </div>
+            )}
+          </div>
           <div className="grid" style={{ marginBottom: 14 }}>
             {d.drivers_negative?.length > 0 && <div className="cbox"><h4 style={{ color: "#f43f5e" }}>محرّكات السلبية</h4>{d.drivers_negative.map((x: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "3px 0" }}>• {x}</div>)}</div>}
             {d.drivers_positive?.length > 0 && <div className="cbox"><h4 style={{ color: "#22c55e" }}>محرّكات الإيجابية</h4>{d.drivers_positive.map((x: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "3px 0" }}>• {x}</div>)}</div>}

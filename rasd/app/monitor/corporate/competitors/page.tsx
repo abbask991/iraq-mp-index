@@ -2,20 +2,21 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
+import { Bars } from "@/components/MiniCharts";
 
 const col = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
 
 export default function Competitors() {
   const [brand, setBrand] = useState("");
   const [d, setD] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [demo, setDemo] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [demo, setDemo] = useState(true);
   const run = async (dm = demo) => {
     setLoading(true); setD(null);
     const r = await apiGet(`/api/corporate/competitors?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);
     setD(r); setLoading(false);
   };
-  useEffect(() => { if (demo) run(true); /* eslint-disable-next-line */ }, [demo]);
+  useEffect(() => { run(true); /* eslint-disable-next-line */ }, []);
 
   return (
     <div>
@@ -49,6 +50,11 @@ export default function Competitors() {
             </table>
             <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>الأعلى حضوراً: <b>{d.leader_sov}</b> · الأفضل مشاعر: <b>{d.leader_sentiment}</b></div>
           </div>
+          {d.competitors?.length > 0 && (
+            <div className="cbox" style={{ marginBottom: 14 }}><h4>حصة الصوت</h4>
+              <Bars data={d.competitors.map((c: any) => ({ label: c.name.slice(0, 8), value: c.share_of_voice, color: c.self ? "#6366f1" : "#4f9dff" }))} height={130} />
+            </div>
+          )}
           {d.insights?.length > 0 && <div className="cbox" style={{ marginBottom: 14 }}><h4>قراءات</h4>{d.insights.map((x: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "3px 0" }}>• {x}</div>)}</div>}
           {d.recommended_action && <div className="cbox" style={{ marginBottom: 14, borderInlineStart: "4px solid #22c55e" }}>▸ <b>التوصية:</b> {d.recommended_action}</div>}
           <p className="muted" style={{ fontSize: 11 }}>{d.disclaimer}</p>

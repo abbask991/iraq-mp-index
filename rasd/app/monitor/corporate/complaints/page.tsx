@@ -2,20 +2,21 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
+import { Bars } from "@/components/MiniCharts";
 
 const sev = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : "#f59e0b");
 
 export default function Complaints() {
   const [brand, setBrand] = useState("");
   const [d, setD] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [demo, setDemo] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [demo, setDemo] = useState(true);
   const run = async (dm = demo) => {
     setLoading(true); setD(null);
     const r = await apiGet(`/api/corporate/complaints?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);
     setD(r); setLoading(false);
   };
-  useEffect(() => { if (demo) run(true); /* eslint-disable-next-line */ }, [demo]);
+  useEffect(() => { run(true); /* eslint-disable-next-line */ }, []);
 
   return (
     <div>
@@ -39,6 +40,11 @@ export default function Complaints() {
               </div>
             ))}
           </div>
+          {d.top_complaints?.length > 0 && d.top_complaints.some((c: any) => c.count != null) && (
+            <div className="cbox" style={{ marginBottom: 14 }}><h4>الشكاوى حسب التكرار</h4>
+              <Bars data={d.top_complaints.filter((c: any) => c.count != null).map((c: any) => ({ label: c.theme.slice(0, 8), value: c.count, color: sev(c.severity) }))} height={130} />
+            </div>
+          )}
           {d.top_complaints?.length > 0 && (
             <div className="cbox" style={{ marginBottom: 14 }}><h4>أبرز الشكاوى</h4>
               {d.top_complaints.map((c: any, i: number) => (

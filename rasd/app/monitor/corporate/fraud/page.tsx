@@ -8,14 +8,14 @@ const risk = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.t
 export default function FraudPages() {
   const [brand, setBrand] = useState("");
   const [d, setD] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [demo, setDemo] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [demo, setDemo] = useState(true);
   const run = async (dm = demo) => {
     setLoading(true); setD(null);
     const r = await apiGet(`/api/corporate/fraud?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);
     setD(r); setLoading(false);
   };
-  useEffect(() => { if (demo) run(true); /* eslint-disable-next-line */ }, [demo]);
+  useEffect(() => { run(true); /* eslint-disable-next-line */ }, []);
 
   return (
     <div>

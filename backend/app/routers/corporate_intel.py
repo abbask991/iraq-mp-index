@@ -1,9 +1,16 @@
 """Corporate Intelligence suite API."""
 from fastapi import APIRouter
 
-from app.services import cache, corporate_intel
+from app.services import cache, corporate_intel, google_reviews
 
 router = APIRouter(prefix="/api/corporate", tags=["corporate"])
+
+
+@router.get("/reviews")
+async def reviews(place: str = "", demo: int = 0):
+    if demo:
+        return await cache.swr("corp:rev:demo", 86400, lambda: google_reviews.fetch(place, demo=True))
+    return await cache.swr(f"corp:rev:{place}", 3600, lambda: google_reviews.fetch(place))
 
 
 @router.get("/reputation")

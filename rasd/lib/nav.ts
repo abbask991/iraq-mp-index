@@ -100,6 +100,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { ar: "مركز الاستخبارات المؤسسية", en: "Corporate Intelligence Center", href: "/monitor/corporate" },
       { ar: "سمعة الشركة", en: "Brand Reputation", href: "/monitor/corporate/reputation" },
+      { ar: "ريفيوات Google", en: "Google Reviews", href: "/monitor/corporate/reviews" },
       { ar: "شكاوى العملاء", en: "Customer Complaints", href: "/monitor/corporate/complaints" },
       { ar: "مراقبة المنافسين", en: "Competitor Monitoring", href: "/monitor/corporate/competitors" },
       { ar: "مراقبة الاحتيال والصفحات المزيفة", en: "Fraud & Fake Pages", href: "/monitor/corporate/fraud" },
