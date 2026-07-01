@@ -272,13 +272,15 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <div key={g.key} className="nav-group">
  <button className="nav-grp-h" onClick={() => setOpenGroups((p) => ({ ...p, [g.key]: !p[g.key] }))}
                 aria-expanded={isOpen}
-                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "transparent",
-                         border: "none", color: "var(--text)", padding: "10px 13px", cursor: "pointer",
-                         fontSize: 14, fontWeight: 700, fontFamily: "inherit", marginTop: 2 }}>
+                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%",
+                         background: g.items.some(itemActive) ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "transparent",
+                         border: "none", color: "var(--accent)", padding: "11px 13px", cursor: "pointer",
+                         fontSize: 14.5, fontWeight: 800, fontFamily: "inherit", marginTop: 4, borderRadius: 10 }}>
  <span style={{ flex: 1, textAlign: "start" }}>{t(g)}</span>
  <span style={{ display: "inline-block", transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", opacity: 0.7 }}>›</span>
  </button>
-              {isOpen && g.items.map((it) => {
+              {isOpen && <div style={{ borderInlineStart: "2px solid var(--line)", marginInlineStart: 16, paddingInlineStart: 2, marginBottom: 6 }}>
+              {g.items.map((it) => {
                 if (it.plan) return (
  <div key="plan" style={{ padding: "4px 12px", fontSize: 12 }} className="muted">
                     {lang === "ar" ? "الباقة" : "Plan"}: <b style={{ color: "var(--accent)" }}>{PLAN_LABEL[sub?.plan || "trial"]}</b>
@@ -300,6 +302,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  </Link>
                 );
               })}
+ </div>}
  </div>
           );
         })}
