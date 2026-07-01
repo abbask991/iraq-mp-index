@@ -14,6 +14,20 @@ async def products(brand: str = "", items: str = "", demo: int = 0):
     return await cache.swr(f"corp:prod:{brand}:{items}", 3600, lambda: product_intel.survey(brand, plist))
 
 
+@router.get("/dashboard")
+async def dashboard(brand: str = "", demo: int = 0):
+    if demo:
+        return await cache.swr("corp:dash:demo", 86400, lambda: corporate_intel.company_dashboard(brand, demo=True))
+    return await cache.swr(f"corp:dash:{brand}", 3600, lambda: corporate_intel.company_dashboard(brand))
+
+
+@router.get("/crisis")
+async def crisis(brand: str = "", demo: int = 0):
+    if demo:
+        return await cache.swr("corp:crisis:demo", 86400, lambda: corporate_intel.crisis_radar(brand, demo=True))
+    return await corporate_intel.crisis_radar(brand)
+
+
 @router.get("/reviews")
 async def reviews(place: str = "", demo: int = 0):
     if demo:

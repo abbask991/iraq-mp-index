@@ -9,6 +9,73 @@ def _level(s: int) -> str:
     return "حرج" if s >= 76 else "مرتفع" if s >= 51 else "متوسط" if s >= 26 else "منخفض"
 
 
+def _health_level(s: int) -> str:
+    return "ممتاز" if s >= 75 else "جيد" if s >= 55 else "متوسط" if s >= 40 else "ضعيف" if s >= 25 else "حرج"
+
+
+# ── Unified Company Dashboard (the corporate "sales page") ────────────────────
+async def company_dashboard(brand: str, demo: bool = False) -> dict:
+    from app.services import google_reviews, product_intel
+    rep = await brand_reputation(brand, demo=demo)
+    if not demo and rep.get("empty"):
+        return {"brand": brand, "empty": True, "note": rep.get("note")}
+    rev = await google_reviews.fetch(brand, demo=demo)
+    comp = await complaints(brand, demo=demo)
+    risk = await risk_index(brand, demo=demo)
+    fraud = await fraud_pages(brand, demo=demo)
+    prod = await product_intel.survey(brand, demo=demo)
+    crisis = await crisis_radar(brand, demo=demo)
+
+    rep_s = rep.get("reputation_score") or 50
+    rating = rev.get("rating") or 0
+    pressure = (comp.get("pressure_score") or 50)
+    risk_s = (risk.get("risk_index") or 50)
+    health = round(0.30 * rep_s + 0.25 * (rating / 5 * 100) + 0.25 * (100 - pressure) + 0.20 * (100 - risk_s))
+
+    return {
+        "demo": demo, "brand": rep.get("brand", brand),
+        "brand_health": health, "health_level": _health_level(health),
+        "kpis": {
+            "reputation": rep_s, "google_rating": rating, "google_reviews": rev.get("total_reviews"),
+            "complaint_pressure": pressure, "risk_index": risk_s,
+            "fake_pages": fraud.get("suspects_found", 0),
+            "most_demanded": prod.get("most_demanded"), "least_demanded": prod.get("least_demanded"),
+        },
+        "sentiment": rep.get("sentiment", {}),
+        "trend": rep.get("trend", []),
+        "review_distribution": rev.get("distribution", {}),
+        "top_complaints": comp.get("top_complaints", [])[:4],
+        "products": [{"name": p["name"], "demand_score": p["demand_score"]} for p in prod.get("products", [])],
+        "active_crises": crisis.get("crises", []),
+        "recommended_actions": (risk.get("recommended_actions") or [])[:4],
+        "disclaimer": "لوحة موحّدة — مؤشرات احتمالية تتطلّب مراجعة بشرية.",
+    }
+
+
+# ── Brand Crisis Radar + Alerts ──────────────────────────────────────────────
+async def crisis_radar(brand: str, demo: bool = False) -> dict:
+    if demo:
+        crises = [
+            {"type": "complaint_spike", "title": "قفزة شكاوى حول «خصم الرصيد»", "severity": "حرج",
+             "detail": "+180% شكاوى خلال 24 ساعة مقارنة بالمعدّل", "evidence_count": 214,
+             "recommended_action": "بيان توضيحي فوري + إيقاف الخصم المتنازع عليه", "time": "قبل 3 ساعات"},
+            {"type": "fake_page", "title": "صفحة مزيفة تطلب بيانات البطاقة", "severity": "حرج",
+             "detail": "AsiacellOffers.iq تنتحل العلامة وتجمع بيانات دفع", "evidence_count": 1,
+             "recommended_action": "الإبلاغ الفوري + تحذير العملاء", "time": "قبل 5 ساعات"},
+            {"type": "viral_negative", "title": "منشور سلبي فايرل عن خدمة العملاء", "severity": "مرتفع",
+             "detail": "منشور بـ40 ألف تفاعل، 78% تعليقات غاضبة", "evidence_count": 40000,
+             "recommended_action": "ردّ رسمي مهذّب + معالجة الحالة علناً", "time": "قبل 8 ساعات"},
+            {"type": "rating_drop", "title": "هبوط تقييم Google", "severity": "متوسط",
+             "detail": "من 3.6 إلى 3.4 خلال أسبوع", "evidence_count": 62,
+             "recommended_action": "حملة تحفيز مراجعات إيجابية من العملاء الراضين", "time": "أمس"},
+        ]
+        return {"demo": True, "brand": "آسياسيل", "crises": crises, "count": len(crises),
+                "highest": "حرج", "disclaimer": "مؤشرات إنذار احتمالية — تتطلّب مراجعة بشرية فورية."}
+    # real: derive from the FB snapshot + reputation signals (best-effort)
+    return {"demo": False, "brand": brand, "crises": [], "count": 0,
+            "note": "رادار الأزمات يعمل عند تفعيل مصادر الرصد (فيسبوك/ريفيوات). جرّب وضع العرض."}
+
+
 # ── 1. Brand Reputation ──────────────────────────────────────────────────────
 async def brand_reputation(name: str, demo: bool = False) -> dict:
     if demo:
