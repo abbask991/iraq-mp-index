@@ -56,6 +56,8 @@ from app.routers import cost_center as cost_center_router  # noqa: E402
 app.include_router(cost_center_router.router)
 from app.routers import visual_verification as visual_verification_router  # noqa: E402
 app.include_router(visual_verification_router.router)
+from app.routers import entitlements as entitlements_router  # noqa: E402
+app.include_router(entitlements_router.router)
 
 
 @app.on_event("startup")
