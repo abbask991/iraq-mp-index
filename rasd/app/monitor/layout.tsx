@@ -170,13 +170,13 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  <button className="nav-grp-h" onClick={() => setOpenGroups((p) => ({ ...p, [g.key]: !p[g.key] }))}
                 aria-expanded={isOpen}
                 style={{ display: "flex", alignItems: "center", gap: 8, width: "100%",
-                         background: vis.some(itemActive) ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "transparent",
-                         border: "none", color: "var(--accent)", padding: "11px 13px", cursor: "pointer",
-                         fontSize: 14.5, fontWeight: 800, fontFamily: "inherit", marginTop: 4, borderRadius: 10 }}>
+                         background: "transparent", border: "none", color: "var(--muted)",
+                         padding: "10px 12px", cursor: "pointer", fontSize: 12, fontWeight: 700,
+                         fontFamily: "inherit", marginTop: 8, letterSpacing: ".3px", textTransform: "uppercase" }}>
  <span style={{ flex: 1, textAlign: "start" }}>{t(g)}</span>
- <span style={{ display: "inline-block", transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", opacity: 0.7 }}>›</span>
+ <span style={{ display: "inline-block", transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", opacity: 0.6, fontSize: 15 }}>›</span>
  </button>
-              {isOpen && <div style={{ borderInlineStart: "2px solid var(--line)", marginInlineStart: 16, paddingInlineStart: 2, marginBottom: 6 }}>
+              {isOpen && <div style={{ marginBottom: 4 }}>
               {vis.map((it) => {
                 if (it.plan) return (
  <div key="plan" style={{ padding: "4px 12px", fontSize: 12 }} className="muted">
