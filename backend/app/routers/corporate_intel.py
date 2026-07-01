@@ -1,9 +1,17 @@
 """Corporate Intelligence suite API."""
 from fastapi import APIRouter
 
-from app.services import cache, corporate_intel, google_reviews
+from app.services import cache, corporate_intel, google_reviews, product_intel
 
 router = APIRouter(prefix="/api/corporate", tags=["corporate"])
+
+
+@router.get("/products")
+async def products(brand: str = "", items: str = "", demo: int = 0):
+    plist = [x.strip() for x in items.split(",") if x.strip()] or None
+    if demo:
+        return await cache.swr("corp:prod:demo", 86400, lambda: product_intel.survey(brand, plist, demo=True))
+    return await cache.swr(f"corp:prod:{brand}:{items}", 3600, lambda: product_intel.survey(brand, plist))
 
 
 @router.get("/reviews")
