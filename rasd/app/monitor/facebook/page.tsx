@@ -5,6 +5,7 @@ import Gauge from "@/components/Gauge";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
+import { Bars as MBars } from "@/components/MiniCharts";
 
 const appColor = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
@@ -442,8 +443,134 @@ function DnaView({ demo }: { demo: boolean }) {
   );
 }
 
+const sevColor = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : /متوسط/.test(l || "") ? "#f59e0b" : "#22c55e");
+
+function CommentersView({ demo }: { demo: boolean }) {
+  const { d, loading, load } = useFb("/api/facebook/commenters", demo);
+  if (loading) return <SkelCards count={3} />;
+  if (!d || d.empty) return <EmptyState title="المعلّقون المؤثّرون" subtitle={d?.note} action={{ label: "إعادة", onClick: load }} />;
+  const Col = ({ title, list, color, key1 }: any) => (
+    <div className="cbox"><h4 style={{ color }}>{title}</h4>
+      {list.map((p: any, i: number) => (
+        <div key={i} style={{ padding: "7px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><b>{p.name}</b><span className="chip" style={{ fontSize: 10 }}>{p.comments} تعليق · {p[key1]}%</span></div>
+          <div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>«{p.sample}»{p.flag ? ` · ⚠️ ${p.flag}` : ""} · تأثير {p.influence}</div>
+        </div>
+      ))}
+    </div>
+  );
+  return (
+    <>
+      <p className="muted" style={{ fontSize: 12, marginBottom: 10 }}>مين يقود النقاش: المدافعون عن العلامة مقابل المنتقدين المتكرّرين.</p>
+      <div className="grid" style={{ marginBottom: 14 }}>
+        <Col title="🟢 المدافعون" list={d.advocates} color="#22c55e" key1="positivity" />
+        <Col title="🔴 المنتقدون" list={d.detractors} color="#f43f5e" key1="negativity" />
+      </div>
+      {d.most_active?.length > 0 && <div className="cbox"><h4>الأكثر نشاطاً</h4><MBars data={d.most_active.map((x: any) => ({ label: x.name.slice(0, 8), value: x.comments, color: "#4f9dff" }))} height={110} /></div>}
+      <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>{d.disclaimer}</p>
+    </>
+  );
+}
+
+function ContentView({ demo }: { demo: boolean }) {
+  const { d, loading, load } = useFb("/api/facebook/content-performance", demo);
+  if (loading) return <SkelCards count={3} />;
+  if (!d || d.empty) return <EmptyState title="أداء المحتوى" subtitle={d?.note} action={{ label: "إعادة", onClick: load }} />;
+  return (
+    <>
+      <p className="muted" style={{ fontSize: 12, marginBottom: 10 }}>شنو يشتغل: أداء أنواع المحتوى والمواضيع.</p>
+      <div className="cbox" style={{ marginBottom: 14 }}><h4>حسب نوع المحتوى (متوسط التفاعل)</h4>
+        <MBars data={(d.by_type || []).map((t: any) => ({ label: t.type, value: t.avg_engagement, color: "#4f9dff" }))} height={140} />
+        <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>الأفضل: <b style={{ color: "#22c55e" }}>{d.best_type}</b> · أفضل موضوع: <b>{d.best_topic}</b></div>
+      </div>
+      {d.by_topic?.length > 0 && (
+        <div className="cbox" style={{ marginBottom: 14 }}><h4>حسب الموضوع</h4>
+          {d.by_topic.map((t: any, i: number) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+              <span>{t.topic}</span><span className="muted">{fmt(t.avg_engagement)} · <span style={{ color: sentColor(t.sentiment) }}>{t.sentiment}</span></span>
+            </div>
+          ))}
+        </div>
+      )}
+      {d.insights?.length > 0 && <div className="cbox" style={{ marginBottom: 14 }}><h4>قراءات</h4>{d.insights.map((x: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "3px 0" }}>• {x}</div>)}</div>}
+      {d.recommendation && <div className="cbox" style={{ marginBottom: 14, borderInlineStart: "4px solid #22c55e" }}>▸ <b>التوصية:</b> {d.recommendation}</div>}
+    </>
+  );
+}
+
+function CompareView({ demo }: { demo: boolean }) {
+  const { d, loading, load } = useFb("/api/facebook/compare", demo);
+  if (loading) return <SkelCards count={2} />;
+  if (!d || d.empty) return <EmptyState title="مقارنة الصفحات" subtitle={d?.note} action={{ label: "إعادة", onClick: load }} />;
+  return (
+    <>
+      <p className="muted" style={{ fontSize: 12, marginBottom: 10 }}>صفحتك مقابل المنافسين — تأييد، فجوة، تفاعل، مشاعر.</p>
+      <div className="cbox" style={{ marginBottom: 14 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead><tr style={{ color: "var(--muted)", fontSize: 11 }}><th style={{ textAlign: "start", padding: 4 }}>الصفحة</th><th>التأييد</th><th>الفجوة</th><th>المشاعر</th><th>التفاعل</th></tr></thead>
+          <tbody>{(d.pages || []).map((p: any, i: number) => (
+            <tr key={i} style={{ borderTop: "1px solid var(--line)", background: p.self ? "color-mix(in srgb,#6366f1 8%,transparent)" : undefined }}>
+              <td style={{ padding: "6px 4px" }}>{p.page} {p.self && <span className="chip" style={{ fontSize: 9 }}>أنت</span>}</td>
+              <td style={{ textAlign: "center", color: appColor(p.approval) }}>{p.approval}%</td>
+              <td style={{ textAlign: "center", color: p.gap >= 30 ? "#f43f5e" : "#f59e0b" }}>{p.gap}</td>
+              <td style={{ textAlign: "center", color: appColor(p.sentiment) }}>{p.sentiment}</td>
+              <td style={{ textAlign: "center" }}>{fmt(p.engagement)}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+        <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>الأعلى تأييداً: <b>{d.leader_approval}</b> · الأعلى تفاعلاً: <b>{d.leader_engagement}</b></div>
+      </div>
+      {d.insights?.length > 0 && <div className="cbox" style={{ marginBottom: 14 }}><h4>قراءات</h4>{d.insights.map((x: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "3px 0" }}>• {x}</div>)}</div>}
+      {d.recommendation && <div className="cbox" style={{ marginBottom: 14, borderInlineStart: "4px solid #22c55e" }}>▸ <b>التوصية:</b> {d.recommendation}</div>}
+    </>
+  );
+}
+
+function TimingView({ demo }: { demo: boolean }) {
+  const { d, loading, load } = useFb("/api/facebook/posting-analysis", demo);
+  if (loading) return <SkelCards count={3} />;
+  if (!d || d.empty) return <EmptyState title="أفضل وقت للنشر" subtitle={d?.note} action={{ label: "إعادة", onClick: load }} />;
+  return (
+    <>
+      <p className="muted" style={{ fontSize: 12, marginBottom: 10 }}>متى ينشط جمهورك؟ وكيف يتطوّر المزاج؟</p>
+      <div className="grid" style={{ marginBottom: 14 }}>
+        <div className="cbox"><h4>حسب الساعة</h4><MBars data={(d.by_hour || []).map((h: any) => ({ label: `${h.hour}`, value: h.engagement, color: "#4f9dff" }))} height={120} /><div className="muted" style={{ fontSize: 12 }}>أفضل ساعة: <b style={{ color: "#22c55e" }}>{d.best_hour}</b></div></div>
+        <div className="cbox"><h4>حسب اليوم</h4><MBars data={(d.by_day || []).map((x: any) => ({ label: x.day.slice(0, 3), value: x.engagement, color: "#34d6c6" }))} height={120} /><div className="muted" style={{ fontSize: 12 }}>أفضل يوم: <b style={{ color: "#22c55e" }}>{d.best_day}</b></div></div>
+      </div>
+      {d.sentiment_timeline?.length > 0 && (
+        <div className="cbox" style={{ marginBottom: 14 }}><h4>خط زمني للمشاعر (التأييد)</h4>
+          <MBars data={d.sentiment_timeline.map((x: any) => ({ label: x.date.replace("الأسبوع ", "أ"), value: x.approval, color: appColor(x.approval) }))} height={110} />
+        </div>
+      )}
+      {d.recommendation && <div className="cbox" style={{ marginBottom: 14, borderInlineStart: "4px solid #22c55e" }}>▸ <b>التوصية:</b> {d.recommendation}</div>}
+    </>
+  );
+}
+
+function FbAlertsView({ demo }: { demo: boolean }) {
+  const { d, loading, load } = useFb("/api/facebook/alerts", demo);
+  if (loading) return <SkelCards count={2} />;
+  const al = d?.alerts || [];
+  if (!al.length) return <EmptyState title="تنبيهات فيسبوك" subtitle={d?.note || "لا تنبيهات — الوضع مستقر."} action={{ label: "إعادة", onClick: load }} />;
+  return (
+    <>
+      <div className="cbox" style={{ marginBottom: 12, borderInlineStart: `4px solid ${sevColor(d.highest)}` }}>🚨 <b>{d.count}</b> تنبيهات · الأعلى: <b style={{ color: sevColor(d.highest) }}>{d.highest}</b></div>
+      {al.map((a: any, i: number) => (
+        <div key={i} className="cbox" style={{ marginBottom: 10, borderInlineStart: `4px solid ${sevColor(a.severity)}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+            <b style={{ fontSize: 14 }}>{a.title}</b><span style={{ display: "flex", gap: 6 }}><span className="chip" style={{ fontSize: 10, color: sevColor(a.severity) }}>{a.severity}</span><span className="muted" style={{ fontSize: 11 }}>{a.time}</span></span>
+          </div>
+          <div style={{ fontSize: 13, marginTop: 5 }}>{a.detail}</div>
+          <div style={{ fontSize: 12.5, marginTop: 6, padding: "6px 10px", borderRadius: 8, background: "color-mix(in srgb,#22c55e 8%,transparent)" }}>▸ <b>الإجراء:</b> {a.action}</div>
+        </div>
+      ))}
+      <p className="muted" style={{ fontSize: 11 }}>{d.disclaimer}</p>
+    </>
+  );
+}
+
 export default function Facebook() {
-  const [tab, setTab] = useState<"dashboard" | "national" | "page" | "viral" | "clusters" | "journey" | "dna">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "national" | "page" | "viral" | "clusters" | "journey" | "dna" | "commenters" | "content" | "compare" | "timing" | "alerts">("dashboard");
   const [demo, setDemo] = useState(false);
   return (
     <div>
@@ -462,6 +589,11 @@ export default function Facebook() {
         <button className={`btn ${tab === "clusters" ? "" : "ghost"}`} onClick={() => setTab("clusters")}>🕸️ العناقيد</button>
         <button className={`btn ${tab === "journey" ? "" : "ghost"}`} onClick={() => setTab("journey")}>🧵 الرحلة</button>
         <button className={`btn ${tab === "dna" ? "" : "ghost"}`} onClick={() => setTab("dna")}>🧬 بصمة الصفحة</button>
+        <button className={`btn ${tab === "commenters" ? "" : "ghost"}`} onClick={() => setTab("commenters")}>👤 المعلّقون</button>
+        <button className={`btn ${tab === "content" ? "" : "ghost"}`} onClick={() => setTab("content")}>📈 أداء المحتوى</button>
+        <button className={`btn ${tab === "timing" ? "" : "ghost"}`} onClick={() => setTab("timing")}>⏰ التوقيت</button>
+        <button className={`btn ${tab === "compare" ? "" : "ghost"}`} onClick={() => setTab("compare")}>⚖️ المقارنة</button>
+        <button className={`btn ${tab === "alerts" ? "" : "ghost"}`} onClick={() => setTab("alerts")}>🚨 التنبيهات</button>
         <button className={`btn ${tab === "page" ? "" : "ghost"}`} onClick={() => setTab("page")}>🔎 صفحة محدّدة</button>
       </div>
       {tab === "dashboard" ? <DashboardView demo={demo} />
@@ -470,6 +602,11 @@ export default function Facebook() {
         : tab === "clusters" ? <ClustersView demo={demo} />
         : tab === "journey" ? <JourneyView demo={demo} />
         : tab === "dna" ? <DnaView demo={demo} />
+        : tab === "commenters" ? <CommentersView demo={demo} />
+        : tab === "content" ? <ContentView demo={demo} />
+        : tab === "timing" ? <TimingView demo={demo} />
+        : tab === "compare" ? <CompareView demo={demo} />
+        : tab === "alerts" ? <FbAlertsView demo={demo} />
         : <PageView Bar={Bar} demo={demo} />}
     </div>
   );

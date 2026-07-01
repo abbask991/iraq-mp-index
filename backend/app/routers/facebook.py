@@ -47,6 +47,37 @@ class PagesReq(BaseModel):
     pages: list[str] = []
 
 
+@router.get("/commenters")
+async def commenters(target: str = "", demo: int = 0):
+    from app.services.facebook import advanced
+    return await cache.swr(f"fb:commenters:{demo}:{target}", 3600, lambda: advanced.top_commenters(target, demo=bool(demo)))
+
+
+@router.get("/content-performance")
+async def content_performance(target: str = "", demo: int = 0):
+    from app.services.facebook import advanced
+    return await cache.swr(f"fb:content:{demo}:{target}", 3600, lambda: advanced.content_performance(target, demo=bool(demo)))
+
+
+@router.get("/alerts")
+async def fb_alerts(target: str = "", demo: int = 0):
+    from app.services.facebook import advanced
+    return await cache.swr(f"fb:alerts:{demo}:{target}", 1800, lambda: advanced.alerts(target, demo=bool(demo)))
+
+
+@router.get("/compare")
+async def compare(pages: str = "", demo: int = 0):
+    from app.services.facebook import advanced
+    plist = [x.strip() for x in pages.split(",") if x.strip()] or None
+    return await cache.swr(f"fb:compare:{demo}:{pages}", 3600, lambda: advanced.compare(plist, demo=bool(demo)))
+
+
+@router.get("/posting-analysis")
+async def posting_analysis(target: str = "", demo: int = 0):
+    from app.services.facebook import advanced
+    return await cache.swr(f"fb:posting:{demo}:{target}", 3600, lambda: advanced.posting_analysis(target, demo=bool(demo)))
+
+
 @router.get("/dashboard")
 async def dashboard(demo: int = 0):
     """Facebook Intelligence Dashboard — what's happening on Facebook right now."""
