@@ -54,13 +54,6 @@ export default function PackagesAdmin() {
     })();
   }, []);
 
-  const previewOnMe = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("sentinel_preview", JSON.stringify(Array.from(hidden)));
-      window.location.href = "/monitor/command";  // go see the filtered sidebar
-    }
-  };
-
   // load hidden set for the current target (plan or user)
   const loadTarget = () => {
     setLoading(true); setSaved(""); setDirty(false);
@@ -150,7 +143,6 @@ export default function PackagesAdmin() {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {dirty && <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700 }}>● تغييرات غير محفوظة</span>}
           {saved && <span className="muted" style={{ fontSize: 12 }}>{saved}</span>}
-          <button className="btn ghost" onClick={previewOnMe} title="طبّق هذا الإخفاء على حسابك مؤقتاً لتشاهد النتيجة">👁️ معاينة على حسابي</button>
           <button className="btn" onClick={save} disabled={mode === "user" && !uid} style={dirty ? { boxShadow: "0 0 0 2px #f59e0b" } : {}}>حفظ التغييرات</button>
         </div>
       </div>

@@ -41,7 +41,6 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   const [theme, setThemeState] = useState<Theme>("dark");
   const [hidden, setHidden] = useState<Set<string>>(new Set());   // features hidden for this plan
   const [isAdmin, setIsAdmin] = useState(false);
-  const [preview, setPreview] = useState(false);   // admin previewing a client's hidden set
   const path = usePathname();
 
   useEffect(() => {
@@ -56,13 +55,11 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       const s = await getMySub();
       setSub(s);
       setState(isActive(s) ? "ok" : "locked");
-      // feature visibility. Admins see everything UNLESS a preview is active (so they
-      // can verify a client's experience). Non-admins: per-USER override wins, else plan.
+      // feature visibility. The main ADMIN always sees EVERYTHING — never restricted.
+      // Non-admins: per-USER override wins, else the plan's entitlements.
       if (isAdminEmail(user.email)) {
-        try {
-          const pv = window.localStorage.getItem("sentinel_preview");
-          if (pv) { setHidden(new Set(JSON.parse(pv))); setPreview(true); }
-        } catch { /* ignore */ }
+        try { window.localStorage.removeItem("sentinel_preview"); } catch { /* ignore */ }
+        setHidden(new Set());   // admin = full access, always
       } else {
         try {
           const u = await apiGet(`/api/entitlements/user?uid=${user.id}`);
@@ -214,13 +211,6 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  </aside>
 
  <div className="admin-main">
-        {preview && (
- <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: "color-mix(in srgb,#6366f1 16%,transparent)", border: "1px solid #6366f1", borderRadius: 10, padding: "8px 12px", marginBottom: 12, fontSize: 13 }}>
- <span>👁️ <b>وضع المعاينة مفعّل</b> — تشاهد القائمة كما يراها العميل (بعض الميزات مخفيّة).</span>
- <button className="btn ghost" style={{ marginInlineStart: "auto", fontSize: 12 }}
-              onClick={() => { window.localStorage.removeItem("sentinel_preview"); window.location.reload(); }}>إيقاف المعاينة</button>
- </div>
-        )}
         {sub?.plan === "trial" && (
  <div className="trial-banner">
              {t(T.trial)}{dl != null ? (lang === "ar" ? ` — باقٍ ${dl} يوم` : ` — ${dl} days left`) : ""}. {t(T.upgrade)}
