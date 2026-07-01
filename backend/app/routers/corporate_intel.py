@@ -28,6 +28,13 @@ async def crisis(brand: str = "", demo: int = 0):
     return await corporate_intel.crisis_radar(brand)
 
 
+@router.get("/response")
+async def response(brand: str = "", demo: int = 0):
+    if demo:
+        return await cache.swr("corp:resp:demo", 86400, lambda: corporate_intel.response_center(brand, demo=True))
+    return await cache.swr(f"corp:resp:{brand}", 1800, lambda: corporate_intel.response_center(brand))
+
+
 @router.get("/reviews")
 async def reviews(place: str = "", demo: int = 0):
     if demo:

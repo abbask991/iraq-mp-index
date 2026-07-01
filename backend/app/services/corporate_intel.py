@@ -52,6 +52,61 @@ async def company_dashboard(brand: str, demo: bool = False) -> dict:
     }
 
 
+# ── Response Center (complaints → actionable tickets) ────────────────────────
+_REPLY = {
+    "خصم": "نعتذر عن هذا الإزعاج. يُرجى تزويدنا برقمك عبر الخاص وسنراجع عملية الخصم ونعيد المبلغ إن ثبت الخطأ خلال 24 ساعة.",
+    "خدمة": "نأسف لتجربتك مع خدمة العملاء. تواصل معنا عبر الخاص برقمك وسيتابع فريق مختص حالتك فوراً.",
+    "انترنت": "نعتذر عن ضعف الخدمة. شاركنا موقعك بالخاص لفحص التغطية ومعالجة المشكلة تقنياً.",
+    "بطء": "نعتذر عن البطء. زوّدنا بموقعك ونوع الباقة بالخاص لتحسين تجربتك.",
+    "سعر": "نقدّر ملاحظتك حول الأسعار؛ نعمل على عروض أفضل ونسعد بترشيح الباقة الأنسب لك عبر الخاص.",
+    "_default": "شكراً لتواصلك ونعتذر عن أي إزعاج. راسلنا بالخاص بالتفاصيل وسنعالج الأمر بأسرع وقت.",
+}
+
+
+def _suggest_reply(text: str) -> str:
+    for k, v in _REPLY.items():
+        if k != "_default" and k in (text or ""):
+            return v
+    return _REPLY["_default"]
+
+
+async def response_center(brand: str, demo: bool = False) -> dict:
+    if demo:
+        raw = [
+            ("خصمولي 5 آلاف رصيد بلا سبب ومحد يرد عليّ", "facebook", "حرج", "سلبي", "أحمد ك.", "قبل ساعة"),
+            ("خدمة العملاء ما ترد من الصبح، مقصّرين", "google", "مرتفع", "سلبي", "سارة م.", "قبل 3 ساعات"),
+            ("الانترنت بطيء بمنطقتي من يومين", "x", "مرتفع", "سلبي", "مصطفى ع.", "قبل 5 ساعات"),
+            ("الباقات غالية مقارنة بالمنافسين", "facebook", "متوسط", "محايد", "زينب ح.", "أمس"),
+            ("شكراً على العرض الأخير كان ممتاز", "google", "منخفض", "إيجابي", "علي ر.", "أمس"),
+        ]
+        tickets = [{
+            "id": f"T{1000 + i}", "text": t, "channel": ch, "priority": pr, "sentiment": se,
+            "customer": cu, "time": tm, "status": "pending",
+            "suggested_reply": _suggest_reply(t),
+        } for i, (t, ch, pr, se, cu, tm) in enumerate(raw)]
+        counts = {"total": len(tickets), "critical": sum(1 for x in tickets if x["priority"] == "حرج"),
+                  "pending": len(tickets), "handled": 0}
+        return {"demo": True, "brand": "آسياسيل", "tickets": tickets, "counts": counts,
+                "disclaimer": "ردود مقترحة آلية — راجعها بشرياً قبل الإرسال."}
+    try:
+        from app.services import facebook as fb
+        d = await fb.analyze_page(brand, limit=10, comments=True)
+        if d.get("error"):
+            return {"brand": brand, "empty": True, "note": "أضِف صفحة الشركة أو جرّب وضع العرض."}
+        neg = [c for c in (d.get("sample_comments") or []) if c.get("sentiment") == "سلبي"]
+        tickets = [{
+            "id": f"T{1000 + i}", "text": c.get("text"), "channel": "facebook",
+            "priority": "مرتفع", "sentiment": "سلبي", "customer": None, "time": None,
+            "status": "pending", "suggested_reply": _suggest_reply(c.get("text", "")),
+        } for i, c in enumerate(neg[:15])]
+        return {"demo": False, "brand": d.get("page_name", brand), "tickets": tickets,
+                "counts": {"total": len(tickets), "pending": len(tickets), "handled": 0,
+                           "critical": 0},
+                "disclaimer": "ردود مقترحة آلية — راجعها بشرياً قبل الإرسال."}
+    except Exception:
+        return {"brand": brand, "empty": True, "note": "تعذّر — جرّب وضع العرض."}
+
+
 # ── Brand Crisis Radar + Alerts ──────────────────────────────────────────────
 async def crisis_radar(brand: str, demo: bool = False) -> dict:
     if demo:
