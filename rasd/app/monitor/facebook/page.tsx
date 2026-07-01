@@ -569,8 +569,57 @@ function FbAlertsView({ demo }: { demo: boolean }) {
   );
 }
 
+function FbReportView({ demo }: { demo: boolean }) {
+  const { d, loading } = useFb("/api/facebook/national", demo);
+  if (loading) return <SkelCards count={3} />;
+  if (!d || d.error) return <EmptyState title="تقرير فيسبوك" subtitle="فعّل وضع العرض أو انتظر البيانات." />;
+  const ins = d.insights || {};
+  const today = new Date().toLocaleDateString("ar-IQ", { year: "numeric", month: "long", day: "numeric" });
+  return (
+    <div className="brief-wrap">
+      <div className="brief-bar no-print" style={{ marginBottom: 10 }}>
+        <span className="muted" style={{ fontSize: 12 }}>تقرير جاهز للطبع/الإرسال</span>
+        <button className="btn" onClick={() => window.print()}>⬇️ تحميل / طباعة PDF</button>
+      </div>
+      <div className="brief-doc">
+        <div className="brief-head">
+          <div style={{ fontSize: 19, fontWeight: 900 }}>تقرير استخبارات فيسبوك</div>
+          <div className="brief-class">{today}</div>
+        </div>
+        <section className="brief-sec"><h3>① نظرة عامة</h3>
+          <div className="brief-kpis">
+            {[["التأييد المدمَج", d.approval != null ? d.approval + "%" : "—"], ["تأييد التفاعلات", d.reaction_approval != null ? d.reaction_approval + "%" : "—"],
+              ["تأييد التعليقات", d.comment_approval != null ? d.comment_approval + "%" : "—"], ["صفحات مرصودة", d.pages_ok], ["تعليقات محلّلة", fmt(d.comments_analyzed)]].map(([l, v]: any) => (
+              <div className="brief-kpi" key={l}><div style={{ fontSize: 22, fontWeight: 900 }}>{v ?? "—"}</div><div className="muted" style={{ fontSize: 11 }}>{l}</div></div>
+            ))}
+          </div>
+          {d.reaction_approval != null && d.comment_approval != null && (
+            <p style={{ fontSize: 13, marginTop: 8 }}>🎭 فجوة التفاعل/التعليق: <b style={{ color: "#f43f5e" }}>{Math.max(0, d.reaction_approval - d.comment_approval)}</b> نقطة — اللايكات أعلى من المزاج الحقيقي بالتعليقات.</p>
+          )}
+        </section>
+        {ins.topics?.length > 0 && (
+          <section className="brief-sec"><h3>② أبرز القضايا</h3>
+            {ins.topics.slice(0, 6).map((t: any, i: number) => <div key={i} className="brief-row"><span className="brief-dot" style={{ background: sentColor(t.sentiment) }} /><span style={{ flex: 1 }}>{t.name}</span>{t.share && <b>{t.share}{typeof t.share === "number" ? "%" : ""}</b>}</div>)}
+          </section>
+        )}
+        {ins.entities?.length > 0 && (
+          <section className="brief-sec"><h3>③ الشخصيات المذكورة</h3>
+            {ins.entities.slice(0, 6).map((e: any, i: number) => <div key={i} className="brief-row"><span style={{ flex: 1 }}>{e.name}</span><span className="chip" style={{ fontSize: 10 }}>{e.stance}</span></div>)}
+          </section>
+        )}
+        {d.viral_posts?.length > 0 && (
+          <section className="brief-sec"><h3>④ الأكثر انتشاراً</h3>
+            {d.viral_posts.slice(0, 5).map((p: any, i: number) => <div key={i} style={{ fontSize: 12.5, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>{p.text} <span className="muted">— {p.page} · 👍 {fmt(p.reactions)}</span></div>)}
+          </section>
+        )}
+        <div className="brief-foot muted">{d.disclaimer} · Sentinel Intelligence · {today}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function Facebook() {
-  const [tab, setTab] = useState<"dashboard" | "national" | "page" | "viral" | "clusters" | "journey" | "dna" | "commenters" | "content" | "compare" | "timing" | "alerts">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "national" | "page" | "viral" | "clusters" | "journey" | "dna" | "commenters" | "content" | "compare" | "timing" | "alerts" | "report">("dashboard");
   const [demo, setDemo] = useState(false);
   return (
     <div>
@@ -594,6 +643,7 @@ export default function Facebook() {
         <button className={`btn ${tab === "timing" ? "" : "ghost"}`} onClick={() => setTab("timing")}>⏰ التوقيت</button>
         <button className={`btn ${tab === "compare" ? "" : "ghost"}`} onClick={() => setTab("compare")}>⚖️ المقارنة</button>
         <button className={`btn ${tab === "alerts" ? "" : "ghost"}`} onClick={() => setTab("alerts")}>🚨 التنبيهات</button>
+        <button className={`btn ${tab === "report" ? "" : "ghost"}`} onClick={() => setTab("report")}>📄 التقرير</button>
         <button className={`btn ${tab === "page" ? "" : "ghost"}`} onClick={() => setTab("page")}>🔎 صفحة محدّدة</button>
       </div>
       {tab === "dashboard" ? <DashboardView demo={demo} />
@@ -607,6 +657,7 @@ export default function Facebook() {
         : tab === "timing" ? <TimingView demo={demo} />
         : tab === "compare" ? <CompareView demo={demo} />
         : tab === "alerts" ? <FbAlertsView demo={demo} />
+        : tab === "report" ? <FbReportView demo={demo} />
         : <PageView Bar={Bar} demo={demo} />}
     </div>
   );
