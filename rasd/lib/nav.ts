@@ -99,11 +99,11 @@ export const NAV_GROUPS: NavGroup[] = [
     key: "corporate", icon: "🏢", ar: "استخبارات الشركات والمؤسسات", en: "Corporate Intelligence",
     items: [
       { ar: "مركز الاستخبارات المؤسسية", en: "Corporate Intelligence Center", href: "/monitor/corporate" },
-      { ar: "سمعة الشركة", en: "Brand Reputation", soon: true },
-      { ar: "شكاوى العملاء", en: "Customer Complaints", soon: true },
-      { ar: "مراقبة المنافسين", en: "Competitor Monitoring", soon: true },
-      { ar: "مراقبة الاحتيال والصفحات المزيفة", en: "Fraud & Fake Pages", soon: true },
-      { ar: "مؤشر المخاطر المؤسسية", en: "Corporate Risk Index", soon: true },
+      { ar: "سمعة الشركة", en: "Brand Reputation", href: "/monitor/corporate/reputation" },
+      { ar: "شكاوى العملاء", en: "Customer Complaints", href: "/monitor/corporate/complaints" },
+      { ar: "مراقبة المنافسين", en: "Competitor Monitoring", href: "/monitor/corporate/competitors" },
+      { ar: "مراقبة الاحتيال والصفحات المزيفة", en: "Fraud & Fake Pages", href: "/monitor/corporate/fraud" },
+      { ar: "مؤشر المخاطر المؤسسية", en: "Corporate Risk Index", href: "/monitor/corporate/risk-index" },
     ],
   },
   {
