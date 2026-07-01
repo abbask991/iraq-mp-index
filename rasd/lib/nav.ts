@@ -51,8 +51,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { ar: "المؤشرات والـKPIs", en: "Indices & KPIs", href: "/monitor/index-report" },
       { ar: "التحليلات المتقدمة", en: "Advanced Analytics", href: "/monitor/network" },
       { ar: "استطلاع الرأي الاجتماعي", en: "Social Opinion Poll", href: "/monitor/polling" },
-      { ar: "الدراسات والبحوث", en: "Studies & Research", soon: true },
-      { ar: "استطلاعات الرأي", en: "Opinion Polls", soon: true },
+      { ar: "الدراسات والبحوث", en: "Studies & Research", href: "/monitor/research" },
+      { ar: "استطلاعات الرأي", en: "Opinion Polls", href: "/monitor/polls" },
     ],
   },
   {
@@ -141,8 +141,6 @@ export const NAV_GROUPS: NavGroup[] = [
     key: "soon", icon: "🔜", ar: "قريباً", en: "Coming Soon",
     items: [
       { ar: "الرصد الدولي", en: "International Monitoring", soon: true },
-      { ar: "الدراسات والبحوث", en: "Studies & Research", soon: true },
-      { ar: "استطلاعات الرأي", en: "Opinion Polls", soon: true },
     ],
   },
 ];
