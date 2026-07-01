@@ -44,6 +44,19 @@ async def all_ent():
     return {"packages": {p: await _hidden(p) for p in _PLANS}}
 
 
+@router.get("/users")
+async def list_users():
+    """Subscriber list for the admin picker (service key bypasses client RLS)."""
+    try:
+        if db.enabled():
+            rows = await db.select("subscriptions",
+                                   "select=user_id,email,plan,status&order=email&limit=1000")
+            return {"users": rows if isinstance(rows, list) else []}
+    except Exception:
+        pass
+    return {"users": []}
+
+
 @router.post("")
 async def set_ent(req: SetReq):
     if req.plan not in _PLANS:

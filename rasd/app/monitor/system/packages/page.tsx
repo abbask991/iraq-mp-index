@@ -27,10 +27,18 @@ export default function PackagesAdmin() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!isAdminEmail(user?.email)) { setGate("denied"); return; }
       setGate("ok");
-      const { data } = await supabase.from("subscriptions").select("user_id,email,plan").order("email");
-      setUsers((data as UserRow[]) || []);
+      // load users from the backend (service key bypasses client RLS on subscriptions)
+      const r = await apiGet("/api/entitlements/users").catch(() => null);
+      setUsers((r?.users as UserRow[]) || []);
     })();
   }, []);
+
+  const previewOnMe = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("sentinel_preview", JSON.stringify(Array.from(hidden)));
+      window.location.href = "/monitor/command";  // go see the filtered sidebar
+    }
+  };
 
   // load hidden set for the current target (plan or user)
   const loadTarget = () => {
@@ -118,6 +126,7 @@ export default function PackagesAdmin() {
         <span className="muted" style={{ fontSize: 12.5 }}>ظاهرة <b style={{ color: "#22c55e" }}>{visibleCount}</b> / {total} — {targetLabel}</span>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {saved && <span className="muted" style={{ fontSize: 12 }}>{saved}</span>}
+          <button className="btn ghost" onClick={previewOnMe} title="طبّق هذا الإخفاء على حسابك مؤقتاً لتشاهد النتيجة">👁️ معاينة على حسابي</button>
           <button className="btn" onClick={save} disabled={mode === "user" && !uid}>حفظ</button>
         </div>
       </div>
