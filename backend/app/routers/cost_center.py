@@ -1,7 +1,8 @@
 """Cost Control Center API (Phase 9) — usage observability + caps/controls."""
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from app.common_auth import require_admin
 from app.services import cache, cost_center
 
 router = APIRouter(prefix="/api/cost-center", tags=["cost-center"])
@@ -24,5 +25,5 @@ async def controls_ep():
 
 
 @router.post("/controls")
-async def set_controls_ep(req: ControlsReq):
+async def set_controls_ep(req: ControlsReq, _: dict = Depends(require_admin)):
     return await cost_center.set_controls(req.changes)

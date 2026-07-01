@@ -4,9 +4,10 @@ Stores a HIDDEN-feature blocklist per plan in system_settings (default empty →
 everything visible, so new features and existing plans never break). The frontend
 sidebar filters items by the signed-in user's plan; the admin panel edits the lists.
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from app.common_auth import require_admin
 from app.services import db
 
 router = APIRouter(prefix="/api/entitlements", tags=["entitlements"])
@@ -40,12 +41,12 @@ async def get_ent(plan: str):
 
 
 @router.get("/all")
-async def all_ent():
+async def all_ent(_: dict = Depends(require_admin)):
     return {"packages": {p: await _hidden(p) for p in _PLANS}}
 
 
 @router.get("/users")
-async def list_users():
+async def list_users(_: dict = Depends(require_admin)):
     """Subscriber list for the admin picker (service key bypasses client RLS)."""
     try:
         if db.enabled():
@@ -58,7 +59,7 @@ async def list_users():
 
 
 @router.post("")
-async def set_ent(req: SetReq):
+async def set_ent(req: SetReq, _: dict = Depends(require_admin)):
     if req.plan not in _PLANS:
         return {"saved": False, "error": "unknown plan"}
     ok = False
@@ -98,7 +99,7 @@ async def get_user(uid: str):
 
 
 @router.post("/user")
-async def set_user(req: UserReq):
+async def set_user(req: UserReq, _: dict = Depends(require_admin)):
     val = {"override": (not req.clear), "hidden": [] if req.clear else req.hidden}
     ok = False
     try:

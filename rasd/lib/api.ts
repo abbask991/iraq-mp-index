@@ -67,8 +67,21 @@ export async function apiPost(kind: Kind, body: unknown): Promise<any> {
 }
 
 // Generic GET to a backend /monitor/* path (e.g. "/monitor/status").
+// Attach the Supabase session JWT so protected backend routes can verify the user.
+async function authHeaders(): Promise<Record<string, string>> {
+  if (typeof window === "undefined") return {};
+  try {
+    const { supabase } = await import("./supabaseClient");
+    const { data } = await supabase.auth.getSession();
+    const t = data.session?.access_token;
+    return t ? { Authorization: `Bearer ${t}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 export async function apiGet(path: string): Promise<any> {
-  const res = await fetch((BASE || "") + path);
+  const res = await fetch((BASE || "") + path, { headers: { ...(await authHeaders()) } });
   return res.json();
 }
 
@@ -76,7 +89,7 @@ export async function apiGet(path: string): Promise<any> {
 export async function apiSend(path: string, method: "POST" | "PUT" | "DELETE", body?: unknown): Promise<any> {
   const res = await fetch((BASE || "") + path, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   return res.json();

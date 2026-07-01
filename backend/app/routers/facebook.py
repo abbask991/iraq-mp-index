@@ -1,9 +1,10 @@
 """Facebook reception API — per-page approval/rejection (reactions + comment
 sentiment) and a national pulse across an editable seed list. Apify is billed
 separately + slow, so results are SWR-cached."""
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from app.common_auth import require_admin
 from app.services import cache
 from app.services import facebook as fb
 from app.services.facebook import (collector, community_detector, cross_platform_journey,
@@ -55,7 +56,7 @@ async def dashboard(demo: int = 0):
 
 
 @router.post("/collect")
-async def collect(limit: int = 12):
+async def collect(limit: int = 12, _: dict = Depends(require_admin)):
     """Trigger a collection run (scrape monitored pages → persist). Admin/cron use."""
     return await collector.collect_all(limit)
 
@@ -79,5 +80,5 @@ async def get_pages():
 
 
 @router.post("/pages")
-async def set_pages(req: PagesReq):
+async def set_pages(req: PagesReq, _: dict = Depends(require_admin)):
     return {"pages": await fb.set_pages(req.pages)}
