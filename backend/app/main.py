@@ -62,6 +62,8 @@ from app.routers import corporate_intel as corporate_intel_router  # noqa: E402
 app.include_router(corporate_intel_router.router)
 from app.routers import research as research_router  # noqa: E402
 app.include_router(research_router.router)
+from app.routers import workspace as workspace_router  # noqa: E402
+app.include_router(workspace_router.router)
 
 
 @app.on_event("startup")
