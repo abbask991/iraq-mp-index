@@ -55,11 +55,17 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
       const s = await getMySub();
       setSub(s);
       setState(isActive(s) ? "ok" : "locked");
-      // per-package feature visibility (admins always see everything)
-      if (s?.plan && !isAdminEmail(user.email)) {
+      // feature visibility (admins always see everything). Per-USER override wins;
+      // otherwise fall back to the plan's entitlements.
+      if (!isAdminEmail(user.email)) {
         try {
-          const r = await apiGet(`/api/entitlements?plan=${s.plan}`);
-          setHidden(new Set(r?.hidden || []));
+          const u = await apiGet(`/api/entitlements/user?uid=${user.id}`);
+          if (u?.has_override) {
+            setHidden(new Set(u.hidden || []));
+          } else if (s?.plan) {
+            const r = await apiGet(`/api/entitlements?plan=${s.plan}`);
+            setHidden(new Set(r?.hidden || []));
+          }
         } catch { /* default: show all */ }
       }
     })();

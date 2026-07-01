@@ -57,3 +57,42 @@ async def set_ent(req: SetReq):
     except Exception:
         pass
     return {"saved": ok, "plan": req.plan, "hidden": req.hidden}
+
+
+# ── per-USER overrides (take precedence over the package) ────────────────────
+def _ukey(uid: str) -> str:
+    return f"entitlements.user.{uid}"
+
+
+class UserReq(BaseModel):
+    uid: str
+    hidden: list[str] = []
+    clear: bool = False        # clear = revert to package entitlements
+
+
+@router.get("/user")
+async def get_user(uid: str):
+    try:
+        if db.enabled():
+            rows = await db.select("system_settings", f"select=value_json&key=eq.{_ukey(uid)}&limit=1")
+            if rows:
+                v = rows[0].get("value_json") or {}
+                if v.get("override"):
+                    return {"uid": uid, "hidden": v.get("hidden", []) or [], "has_override": True}
+    except Exception:
+        pass
+    return {"uid": uid, "hidden": [], "has_override": False}
+
+
+@router.post("/user")
+async def set_user(req: UserReq):
+    val = {"override": (not req.clear), "hidden": [] if req.clear else req.hidden}
+    ok = False
+    try:
+        if db.enabled():
+            ok = bool(await db.insert("system_settings",
+                                      {"key": _ukey(req.uid), "value_json": val, "category": "internal"},
+                                      upsert=True, on_conflict="key"))
+    except Exception:
+        pass
+    return {"saved": ok, "uid": req.uid, "has_override": val["override"], "hidden": val["hidden"]}
