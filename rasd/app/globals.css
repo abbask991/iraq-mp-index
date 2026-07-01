@@ -760,3 +760,31 @@ h3 { letter-spacing: -.2px; }
     padding: 6px !important; -webkit-overflow-scrolling: touch; }
   .set-rail > button { width: auto !important; white-space: nowrap; flex: none; }
 }
+
+/* ═══ UI polish 2026 — refined hierarchy + softer, more organized components ═══
+   Appended overrides (safe, reversible). Elevates every page at once. */
+h2 { font-size: 22px; margin: 2px 0 10px; }
+h3 { font-size: 16px; font-weight: 800; margin: 20px 0 10px; letter-spacing: -.1px; }
+/* section labels inside cards: clearer & bolder (was faint uppercase) */
+.cbox h4, .card h4 { color: var(--text); opacity: .95; font-size: 13px; font-weight: 800;
+  letter-spacing: 0; text-transform: none; margin: 0 0 11px; }
+/* pill chips with subtle contrast — appear everywhere */
+.chip { padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  background: rgba(255,255,255,.05); border-color: color-mix(in srgb, var(--line) 88%, var(--text)); }
+/* cards: consistent radius + livelier hover */
+.card, .cbox { border-radius: 14px; }
+.card:hover, .cbox:hover { border-color: color-mix(in srgb, var(--accent) 26%, var(--line));
+  box-shadow: 0 14px 32px rgba(0,0,0,.30); }
+/* subtle top highlight on cards for depth */
+.cbox { position: relative; }
+.cbox::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; border-radius: 14px 14px 0 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent); pointer-events: none; }
+/* buttons: a touch more premium */
+.btn { border-radius: 11px; padding: 9px 18px; letter-spacing: .1px; }
+.btn.ghost { border-radius: 11px; }
+.btn.ghost:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+/* inputs: rounder, roomier */
+input, textarea, select { border-radius: 10px; padding: 11px 13px; }
+/* rhythm */
+.grid { gap: 16px; }
+.muted { line-height: 1.7; }
