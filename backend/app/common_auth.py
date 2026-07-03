@@ -41,3 +41,13 @@ async def require_admin(authorization: str | None = Header(None)) -> dict:
     if u["email"] not in ADMIN_EMAILS:
         raise HTTPException(403, "admin only")
     return u
+
+
+async def current_org(authorization: str | None = Header(None)) -> dict:
+    """Tenant-scoped identity: the signed-in user PLUS their resolved org + role.
+    Use on any route whose data/config/billing must be isolated per client.
+    Returns { user, org, org_id, role }."""
+    from app.services import orgs
+    u = await _verify(authorization)
+    r = await orgs.resolve_org(u)
+    return {"user": u, "org": r["org"], "org_id": r["org"]["id"], "role": r["role"]}

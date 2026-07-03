@@ -761,3 +761,14 @@ h3 { letter-spacing: -.2px; }
   .set-rail > button { width: auto !important; white-space: nowrap; flex: none; }
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   SIDEBAR GROUPS — single-open accordion, clear structure & "you are here"
+   ════════════════════════════════════════════════════════════════════ */
+.nav-group { border-radius: 12px; transition: background .18s ease; }
+.nav-group + .nav-group { margin-top: 2px; border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
+.nav-group.on { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.nav-grp-h { border-radius: 10px; transition: color .15s ease, background .15s ease; }
+.nav-grp-h:hover { background: var(--hover); color: var(--text) !important; }
+.nav-grp-h.on { color: var(--text) !important; }
+.nav-grp-h.on > span:last-child { color: var(--accent); opacity: 1 !important; }   /* active group chevron glows */
+

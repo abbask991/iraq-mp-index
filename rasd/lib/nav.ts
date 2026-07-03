@@ -129,6 +129,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { ar: "الحساب واشتراكي", en: "Account & Subscription", href: "/monitor/account" },
       { ar: "الباقة الحالية", en: "Current Plan", plan: true },
       { ar: "الإعدادات: قائمة المتابعة", en: "Settings: Watchlist", href: "/monitor/settings" },
+      { ar: "المؤسسات (العملاء)", en: "Organizations (Clients)", href: "/monitor/system/organizations", adminOnly: true },
       { ar: "إدارة الباقات والصلاحيات", en: "Packages & Entitlements", href: "/monitor/system/packages", adminOnly: true },
       { ar: "مركز التحكّم بالتكلفة", en: "Cost Control Center", href: "/monitor/system/cost-center" },
       { ar: "الاستهلاك والكلفة", en: "Usage & Cost", href: "/monitor/usage" },

@@ -86,7 +86,7 @@ export async function apiGet(path: string): Promise<any> {
 }
 
 // Generic JSON request to any absolute backend path (settings, etc.).
-export async function apiSend(path: string, method: "POST" | "PUT" | "DELETE", body?: unknown): Promise<any> {
+export async function apiSend(path: string, method: "POST" | "PUT" | "PATCH" | "DELETE", body?: unknown): Promise<any> {
   const res = await fetch((BASE || "") + path, {
     method,
     headers: { "Content-Type": "application/json", ...(await authHeaders()) },

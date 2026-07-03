@@ -84,14 +84,16 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   const itemActive = (it: Item) => !!it.href && (path === it.href || (!!it.matchPrefix && !!path?.startsWith(it.matchPrefix)));
   // open the default group on first mount + auto-open whichever group holds the active route
   useEffect(() => {
+    // single-open accordion: keep ONLY the group holding the current route open,
+    // so the sidebar is one clean group + scannable headers — not a wall of 60 links.
+    const active = NAV_GROUPS.find((g) => g.items.some(itemActive));
     setOpenGroups((prev) => {
-      const fresh = Object.keys(prev).length === 0;
-      const next = { ...prev };
-      for (const g of NAV_GROUPS) {
-        if (fresh && g.defaultOpen) next[g.key] = true;
-        if (g.items.some(itemActive)) next[g.key] = true;
+      if (active) return { [active.key]: true };
+      if (Object.keys(prev).length === 0) {
+        const d = NAV_GROUPS.find((g) => g.defaultOpen);
+        return d ? { [d.key]: true } : {};
       }
-      return next;
+      return prev;
     });
   }, [path]);
 
@@ -165,14 +167,16 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
           const vis = g.items.filter((it) => !(it.href && hidden.has(it.href)) && !(it.adminOnly && !isAdmin));
           if (!vis.length) return null;
           const isOpen = !!openGroups[g.key];
+          const grpActive = vis.some(itemActive);
           return (
- <div key={g.key} className="nav-group">
- <button className="nav-grp-h" onClick={() => setOpenGroups((p) => ({ ...p, [g.key]: !p[g.key] }))}
+ <div key={g.key} className={"nav-group" + (grpActive ? " on" : "")}>
+ <button className={"nav-grp-h" + (grpActive ? " on" : "")}
+                onClick={() => setOpenGroups((p) => (p[g.key] ? {} : { [g.key]: true }))}
                 aria-expanded={isOpen}
                 style={{ display: "flex", alignItems: "center", gap: 8, width: "100%",
                          background: "transparent", border: "none", color: "var(--muted)",
-                         padding: "10px 12px", cursor: "pointer", fontSize: 12, fontWeight: 700,
-                         fontFamily: "inherit", marginTop: 8, letterSpacing: ".3px", textTransform: "uppercase" }}>
+                         padding: "10px 12px", cursor: "pointer", fontSize: 12.5, fontWeight: 700,
+                         fontFamily: "inherit", letterSpacing: ".2px" }}>
  <span style={{ flex: 1, textAlign: "start" }}>{t(g)}</span>
  <span style={{ display: "inline-block", transition: "transform .15s", transform: isOpen ? "rotate(90deg)" : "none", opacity: 0.6, fontSize: 15 }}>›</span>
  </button>

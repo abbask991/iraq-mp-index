@@ -1,8 +1,8 @@
-"""Workspace API — each account manages its OWN watchlist (auth-scoped, isolated)."""
+"""Workspace API — each TENANT manages its OWN watchlist (org-scoped, isolated)."""
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from app.common_auth import current_user
+from app.common_auth import current_org
 from app.services import workspace
 
 router = APIRouter(prefix="/api/workspace", tags=["workspace"])
@@ -16,11 +16,12 @@ class WatchlistReq(BaseModel):
 
 
 @router.get("/watchlist")
-async def get_watchlist(user: dict = Depends(current_user)):
-    return {"workspace": user["id"], "email": user["email"],
-            "watchlist": await workspace.get_watchlist(user["id"])}
+async def get_watchlist(ctx: dict = Depends(current_org)):
+    wl = await workspace.get_watchlist(ctx["org_id"], legacy_uid=ctx["user"]["id"])
+    return {"workspace": ctx["org_id"], "org": ctx["org"]["name"],
+            "email": ctx["user"]["email"], "role": ctx["role"], "watchlist": wl}
 
 
 @router.post("/watchlist")
-async def set_watchlist(req: WatchlistReq, user: dict = Depends(current_user)):
-    return await workspace.set_watchlist(user["id"], req.dict())
+async def set_watchlist(req: WatchlistReq, ctx: dict = Depends(current_org)):
+    return await workspace.set_watchlist(ctx["org_id"], req.dict())
