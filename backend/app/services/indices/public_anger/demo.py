@@ -1,0 +1,87 @@
+"""Realistic demo payload — powers offline presentations while providers are capped."""
+
+
+def payload(scope_name: str = "وزارة الكهرباء", scope_type: str = "entity") -> dict:
+    return {
+        "demo": True,
+        "scope_type": scope_type, "scope_id": scope_name, "scope_name": scope_name,
+        "score": 78, "risk_level": "High", "risk_level_ar": "مرتفع",
+        "trend": "accelerating", "trend_ar": "متسارع",
+        "change_24h": 16, "change_7d": 23,
+        "confidence_score": 82, "confidence_label": "High", "confidence_label_ar": "عالية",
+        "needs_review": False,
+        "updated_at": None,
+        "components": {
+            "negative_sentiment": 81, "anger_emotion": 84, "complaint_volume": 76,
+            "narrative_velocity": 72, "engagement_intensity": 69, "protest_language": 34,
+            "cross_platform": 62,
+        },
+        "drivers": [
+            {"driver_name": "نقص الكهرباء", "driver_type": "service", "contribution_score": 31,
+             "trend": "rising", "volume": 340, "evidence_count": 340,
+             "top_platforms": [{"platform": "facebook", "count": 220}, {"platform": "x", "count": 80}],
+             "sample_evidence": [{"text": "ثلاث ساعات كهرباء باليوم! وين الإصلاح يللي وعدتونا بيه؟", "platform": "facebook", "source": "تعليق"}]},
+            {"driver_name": "تردّي الخدمات", "driver_type": "service", "contribution_score": 24,
+             "trend": "rising", "volume": 210, "evidence_count": 210,
+             "top_platforms": [{"platform": "facebook", "count": 150}],
+             "sample_evidence": [{"text": "خدمات صفر ورواتبكم مضمونة، عاش الفساد", "platform": "facebook", "source": "تعليق"}]},
+            {"driver_name": "الفساد والمحاصصة", "driver_type": "corruption", "contribution_score": 18,
+             "trend": "stable", "volume": 150, "evidence_count": 150,
+             "top_platforms": [{"platform": "x", "count": 90}],
+             "sample_evidence": [{"text": "مليارات تنصرف والنتيجة ظلام", "platform": "x", "source": "منشور"}]},
+            {"driver_name": "الغلاء والأسعار", "driver_type": "economic", "contribution_score": 15,
+             "trend": "rising", "volume": 120, "evidence_count": 120, "top_platforms": [{"platform": "facebook", "count": 70}],
+             "sample_evidence": []},
+        ],
+        "narratives": [
+            {"narrative_id": "elec_fail", "narrative_title": "جدل حول «فشل إصلاح الكهرباء»",
+             "narrative_summary": "تكرار مكثّف لاتهامات بعدم تنفيذ وعود إصلاح الكهرباء بنبرة غاضبة وساخرة.",
+             "anger_intensity_score": 88, "volume": 340, "velocity": 82, "confidence_score": 84,
+             "top_entities": ["وزارة الكهرباء"], "top_platforms": [{"platform": "facebook", "count": 220}],
+             "evidence": [{"text": "وين مشاريع الكهرباء يللي صرفوا عليها؟", "platform": "facebook"}]},
+            {"narrative_id": "corruption", "narrative_title": "جدل حول «الفساد وهدر المال»",
+             "narrative_summary": "ربط الأزمة بالفساد وهدر الميزانيات.",
+             "anger_intensity_score": 74, "volume": 150, "velocity": 60, "confidence_score": 72,
+             "top_entities": ["وزارة الكهرباء", "هيئة النزاهة"], "top_platforms": [{"platform": "x", "count": 90}],
+             "evidence": []},
+        ],
+        "platform_breakdown": [
+            {"platform": "facebook", "anger_score": 86, "volume": 640, "negative_share": 0.78, "anger_share": 0.61, "engagement": 84},
+            {"platform": "x", "anger_score": 64, "volume": 260, "negative_share": 0.66, "anger_share": 0.44, "engagement": 58},
+            {"platform": "news", "anger_score": 41, "volume": 90, "negative_share": 0.52, "anger_share": 0.2, "engagement": 12},
+            {"platform": "telegram", "anger_score": 55, "volume": 70, "negative_share": 0.6, "anger_share": 0.4, "engagement": 33},
+        ],
+        "entity_breakdown": [
+            {"entity_name": "وزارة الكهرباء", "anger_score": 84, "anger_volume": 640,
+             "drivers": ["نقص الكهرباء", "تردّي الخدمات"], "narratives": ["فشل إصلاح الكهرباء"], "trend": "rising"},
+            {"entity_name": "الحكومة المحلية", "anger_score": 57, "anger_volume": 180,
+             "drivers": ["تردّي الخدمات"], "narratives": [], "trend": "stable"},
+        ],
+        "evidence": [
+            {"evidence_type": "comment", "platform": "facebook", "source_name": "تعليق عام",
+             "content_text": "ثلاث ساعات كهرباء باليوم! وين الإصلاح؟", "anger_score": 90,
+             "sentiment": "negative", "emotion": "anger", "engagement": {"likes": 340, "replies": 55}, "timestamp": None},
+            {"evidence_type": "post", "platform": "x", "source_name": "@user",
+             "content_text": "مليارات تنصرف والنتيجة ظلام #الكهرباء", "anger_score": 76,
+             "sentiment": "negative", "emotion": "frustration", "engagement": {"reposts": 210}, "timestamp": None},
+            {"evidence_type": "article", "platform": "news", "source_name": "موقع إخباري",
+             "content_text": "احتجاجات متفرّقة بسبب انقطاع الكهرباء في عدة محافظات", "anger_score": 48,
+             "sentiment": "negative", "emotion": None, "engagement": {}, "timestamp": None},
+        ],
+        "timeline": {
+            "daily": [{"t": f"يوم -{6 - i}", "score": v} for i, v in enumerate([52, 55, 58, 61, 66, 71, 78])],
+        },
+        "explanation": {
+            "summary": ("ارتفع الغضب العام بشكل حادّ خلال 24 ساعة (من 62 إلى 78) مدفوعاً أساساً بتعليقات "
+                        "فيسبوك حول انقطاع الكهرباء وتكرار اتهامات بسوء الخدمة. أقوى الإشارات من عناقيد الشكاوى "
+                        "والتعليقات الساخرة، بينما أظهرت X نشاطاً أقلّ لكنه أسرع نمواً."),
+            "explanation": "الوزن الأكبر للسلبية والغضب الصريح على فيسبوك، مع تسارع في سرعة السردية.",
+            "why_changed": "التغيّر مدفوع أساساً بنقص الكهرباء وتصاعد الاتهامات بسوء الخدمة.",
+            "what_to_watch": ["استمرار الانقطاع بساعات الذروة قد يرفع المؤشّر أكثر.",
+                              "ظهور لغة تعبئة محدودة — راقب التحوّل نحو حشد."],
+            "recommended_actions": ["تصعيد للقيادة", "تحضير بيان استباقي", "رصد مكثّف كل ساعة"],
+            "uncertainty": "مؤشّر احتمالي آلي — يُستأنس به ولا يُعتمد كحقيقة قاطعة.",
+        },
+        "disclaimer": "يقيس الغضب الرقمي المرصود، وليس استطلاعاً سكانياً. مؤشّرات احتمالية تتطلّب مراجعة بشرية.",
+        "note": "🧪 وضع العرض — بيانات تجريبية واقعية.",
+    }

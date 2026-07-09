@@ -57,6 +57,12 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: "indices", icon: "🧪", ar: "مختبر المؤشرات الاستراتيجية", en: "Strategic Indices Lab",
+    items: [
+      { ar: "مؤشر الغضب العام", en: "Public Anger Index", href: "/monitor/indices/public-anger" },
+    ],
+  },
+  {
     key: "trends", icon: "📈", ar: "الترندات والإنذار", en: "Trends & Early Warning",
     items: [
       { ar: "ترندات الآن", en: "Trending Now", href: "/monitor/discover" },
