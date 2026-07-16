@@ -102,9 +102,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
   const Controls = (
  <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
  <button className="btn ghost" style={{ flex: 1, fontSize: 12 }}
-        onClick={() => setLang(lang === "ar" ? "en" : "ar")}> {lang === "ar" ? "EN" : "ع"}</button>
+        onClick={() => setLang(lang === "ar" ? "en" : "ar")}>{lang === "ar" ? "EN" : "ع"}</button>
  <button className="btn ghost" style={{ flex: 1, fontSize: 12 }}
-        onClick={toggleTheme}>{theme === "dark" ? " Light" : " Dark"}</button>
+        onClick={toggleTheme}>{theme === "dark" ? "Light" : "Dark"}</button>
  </div>
   );
   const LangBtn = Controls;
@@ -120,7 +120,6 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
 
   if (state === "locked") return (
  <div className="card" style={{ maxWidth: 520, margin: "40px auto", textAlign: "center" }}>
- <div style={{ fontSize: 40 }}></div>
  <h2>{t(T.notActiveT)}</h2>
  <p className="muted">
         {sub?.status === "expired" ? t(T.expired) : t(T.pending)} {t(T.currentPlan)}

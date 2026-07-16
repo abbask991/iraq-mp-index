@@ -5,7 +5,7 @@ export type NavItem = {
   ar: string; en: string; href?: string; matchPrefix?: string;
   soon?: boolean; action?: "logout"; plan?: boolean; danger?: boolean; adminOnly?: boolean;
 };
-export type NavGroup = { key: string; icon: string; ar: string; en: string; defaultOpen?: boolean; items: NavItem[] };
+export type NavGroup = { key: string; ar: string; en: string; defaultOpen?: boolean; items: NavItem[] };
 
 // UI-level admin allowlist for the entitlements panel (extend as needed).
 export const ADMIN_EMAILS = ["abbaskareemsaddam@gmail.com", "admin@mpii.iq"];
@@ -19,7 +19,7 @@ export const PLANS: { key: string; ar: string }[] = [
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    key: "ops", icon: "🎯", ar: "مركز العمليات", en: "Operations Center", defaultOpen: true,
+    key: "ops", ar: "مركز العمليات", en: "Operations Center", defaultOpen: true,
     items: [
       { ar: "غرفة الحرب (مباشر)", en: "Live War Room", href: "/monitor/warroom", danger: true },
       { ar: "مركز القيادة (ابدأ هنا)", en: "Command Center (start here)", href: "/monitor/command" },
@@ -33,7 +33,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "media", icon: "📡", ar: "الرصد الإعلامي", en: "Media Monitoring",
+    key: "media", ar: "الرصد الإعلامي", en: "Media Monitoring",
     items: [
       { ar: "الإعلام التقليدي", en: "Traditional Media", href: "/monitor" },
       { ar: "الإعلام الرقمي", en: "Digital Media", href: "/monitor/targets" },
@@ -45,7 +45,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "analysis", icon: "📊", ar: "التحليل والبحوث", en: "Analysis & Research",
+    key: "analysis", ar: "التحليل والبحوث", en: "Analysis & Research",
     items: [
       { ar: "تحليل المحتوى", en: "Content Analysis", href: "/monitor/content" },
       { ar: "حصة الصوت (SOV)", en: "Share of Voice", href: "/monitor/sov" },
@@ -57,13 +57,13 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "indices", icon: "🧪", ar: "مختبر المؤشرات الاستراتيجية", en: "Strategic Indices Lab",
+    key: "indices", ar: "مختبر المؤشرات الاستراتيجية", en: "Strategic Indices Lab",
     items: [
       { ar: "مؤشر الغضب العام", en: "Public Anger Index", href: "/monitor/indices/public-anger" },
     ],
   },
   {
-    key: "trends", icon: "📈", ar: "الترندات والإنذار", en: "Trends & Early Warning",
+    key: "trends", ar: "الترندات والإنذار", en: "Trends & Early Warning",
     items: [
       { ar: "ترندات الآن", en: "Trending Now", href: "/monitor/discover" },
       { ar: "تحليل ترند محدّد", en: "Trend Analysis", href: "/monitor/trends" },
@@ -72,7 +72,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "campaigns", icon: "🛡️", ar: "الحملات والتضليل", en: "Campaigns & Disinformation",
+    key: "campaigns", ar: "الحملات والتضليل", en: "Campaigns & Disinformation",
     items: [
       { ar: "رادار الحملات", en: "Campaign Radar", href: "/monitor/campaigns" },
       { ar: "فحص حملة محدّدة", en: "Campaign Check", href: "/monitor/campaign" },
@@ -84,7 +84,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "narratives", icon: "🧵", ar: "السرديات والمعركة الإعلامية", en: "Narratives & Battlefield",
+    key: "narratives", ar: "السرديات والمعركة الإعلامية", en: "Narratives & Battlefield",
     items: [
       { ar: "غرفة حرب السرديات", en: "Narrative War Room", href: "/monitor/narratives" },
       { ar: "ساحة المعركة الإعلامية", en: "Media Battlefield", href: "/monitor/battlefield" },
@@ -92,7 +92,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "entities", icon: "🏛️", ar: "الكيانات والتأثير", en: "Entities & Influence",
+    key: "entities", ar: "الكيانات والتأثير", en: "Entities & Influence",
     items: [
       { ar: "مساحة عمل الكيان", en: "Entity Workspace", href: "/monitor/entities/%D9%88%D8%B2%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D9%83%D9%87%D8%B1%D8%A8%D8%A7%D8%A1/workspace", matchPrefix: "/monitor/entities" },
       { ar: "التوأم الرقمي", en: "Digital Twin", href: "/monitor/intelligence" },
@@ -103,7 +103,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "corporate", icon: "🏢", ar: "استخبارات الشركات والمؤسسات", en: "Corporate Intelligence",
+    key: "corporate", ar: "استخبارات الشركات والمؤسسات", en: "Corporate Intelligence",
     items: [
       { ar: "لوحة الشركة الموحّدة", en: "Company Dashboard", href: "/monitor/corporate" },
       { ar: "رادار الأزمات", en: "Crisis Radar", href: "/monitor/corporate/crisis" },
@@ -119,7 +119,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "reports", icon: "📄", ar: "التقارير والمخرجات", en: "Reports & Deliverables",
+    key: "reports", ar: "التقارير والمخرجات", en: "Reports & Deliverables",
     items: [
       { ar: "التقرير اليومي", en: "Daily Brief", href: "/monitor/brief" },
       { ar: "التقرير الشامل", en: "Full Dossier", href: "/monitor/dossier" },
@@ -130,7 +130,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "system", icon: "⚙️", ar: "النظام والإعدادات", en: "System & Settings",
+    key: "system", ar: "النظام والإعدادات", en: "System & Settings",
     items: [
       { ar: "الحساب واشتراكي", en: "Account & Subscription", href: "/monitor/account" },
       { ar: "الباقة الحالية", en: "Current Plan", plan: true },
@@ -146,7 +146,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "soon", icon: "🔜", ar: "قريباً", en: "Coming Soon",
+    key: "soon", ar: "قريباً", en: "Coming Soon",
     items: [
       { ar: "الرصد الدولي", en: "International Monitoring", soon: true },
     ],
