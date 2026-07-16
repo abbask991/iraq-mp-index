@@ -103,25 +103,30 @@ export default function CommandCenter() {
                     overall? Labelled as a composite so it is never mistaken for a
                     measured index. */}
                 {(() => {
-                  const vals = RISK_LABELS.map(([k]) => d.national_risk[k]).filter((v) => v != null);
-                  if (!vals.length) return null;
-                  const composite = Math.round(vals.reduce((a: number, b: number) => a + b, 0) / vals.length);
-                  const t = toneOfScore(composite);
+                  const present = RISK_LABELS.filter(([k]) => d.national_risk[k] != null);
+                  if (!present.length) return null;
+                  // The DRIVING risk, not the mean. Averaging dilutes: with indices
+                  // 39/3/0/5 the mean is 12 — green, "all clear" — while reputation
+                  // risk sits at 39. A posture headline must not understate the worst
+                  // live risk, so take the max and name what is driving it.
+                  const driver = present.reduce((a, b) => (d.national_risk[b[0]] > d.national_risk[a[0]] ? b : a));
+                  const peak = d.national_risk[driver[0]];
+                  const t = toneOfScore(peak);
                   return (
                     <Card t={t}>
                       <CardHead
                         title="الحالة العامة الآن"
-                        right={d.executive?.risk_level ? <Badge t={toneOf(d.executive.risk_level)} dot>{d.executive.risk_level}</Badge> : null}
+                        right={d.executive?.risk_level ? <Badge t={toneOf(d.executive.risk_level)} dot>{d.executive.risk_level}</Badge> : <Badge t={t} dot>{peak >= 70 ? "حرج" : peak >= 50 ? "مرتفع" : peak >= 30 ? "متوسط" : "منخفض"}</Badge>}
                       />
                       <div style={{ display: "flex", alignItems: "center", gap: "var(--s-5)", flexWrap: "wrap", justifyContent: "center" }}>
-                        <Gauge value={composite} sub="مركّب" color={riskColor(composite)} size={132} stroke={11} />
-                        <div style={{ flex: 1, minWidth: 170 }}>
+                        <Gauge value={peak} sub={driver[1]} color={riskColor(peak)} size={132} stroke={11} />
+                        <div style={{ flex: 1, minWidth: 160 }}>
+                          <div className="u-fine" style={{ marginBottom: 4 }}>المؤشر المحرّك</div>
+                          <div style={{ fontSize: "var(--t-md)", fontWeight: "var(--w-bold)", lineHeight: "var(--lh-tight)" }}>{driver[1]}</div>
                           {d.executive?.top_event && (
                             <>
-                              <div className="u-fine" style={{ marginBottom: 4 }}>أبرز حدث</div>
-                              <div style={{ fontSize: "var(--t-base)", fontWeight: "var(--w-bold)", lineHeight: "var(--lh-base)" }}>
-                                {d.executive.top_event}
-                              </div>
+                              <div className="u-fine" style={{ margin: "var(--s-3) 0 4px" }}>أبرز حدث</div>
+                              <div style={{ fontSize: "var(--t-sm)", lineHeight: "var(--lh-base)" }}>{d.executive.top_event}</div>
                             </>
                           )}
                           <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", marginTop: "var(--s-3)" }}>
@@ -135,7 +140,7 @@ export default function CommandCenter() {
                         </div>
                       </div>
                       <div className="u-card-foot">
-                        <span className="u-fine">متوسط المؤشرات الأربعة — مؤشر مركّب، مو قياس مستقل</span>
+                        <span className="u-fine">أعلى المؤشرات الأربعة — المؤشر المحرّك للحالة، مو متوسّطاً</span>
                       </div>
                     </Card>
                   );
@@ -164,24 +169,15 @@ export default function CommandCenter() {
                       .map(([k, label]) => ({ label, value: d.national_risk[k] }))}
                   />
                 </Card>
-                {/* fourth card of the national picture — the mood split */}
-                {d.national_sentiment?.neg != null && (
-                <Card>
-                  <CardHead
-                    title="مزاج الرأي العام"
-                    right={<span className="u-fine u-num">{fmt((d.national_sentiment.pos || 0) + (d.national_sentiment.neg || 0) + (d.national_sentiment.neu || 0))} إشارة</span>}
-                  />
-                  {/* diverging poles + gray neutral — the validated blue↔rose pair */}
-                  <DonutChart
-                    segments={[
-                      { label: "سلبي", value: d.national_sentiment.neg || 0, color: "#f43f5e" },
-                      { label: "محايد", value: d.national_sentiment.neu || 0, color: "#64748b" },
-                      { label: "إيجابي", value: d.national_sentiment.pos || 0, color: "#4f9dff" },
-                    ]}
-                    centerLabel={`${Math.round(((d.national_sentiment.neg || 0) / ((d.national_sentiment.pos || 0) + (d.national_sentiment.neg || 0) + (d.national_sentiment.neu || 0) || 1)) * 100)}%`}
-                    centerSub="سلبي"
-                  />
-                </Card>
+                {/* Fourth card. Deliberately driven by top_risks, not sentiment:
+                    national_sentiment comes from the overview extract and is empty
+                    on live data, which left this slot as a hole in the 2x2. Risk
+                    ranking is present whenever the page has anything to show. */}
+                {d.top_risks?.length > 0 && (
+                  <Card>
+                    <CardHead title="مَن يقود الخطر" right={<span className="u-fine">٠ – ١٠٠</span>} />
+                    <RankBars data={d.top_risks.map((r: any) => ({ label: r.entity, value: Number(r.risk) || 0 }))} max={100} />
+                  </Card>
                 )}
               </Grid>
             </Section>
@@ -190,12 +186,6 @@ export default function CommandCenter() {
           {/* Top risks */}
           {d.top_risks?.length > 0 && (
             <Section title="أخطر ما يجري اليوم" icon="alert" count={d.top_risks.length}>
-              {/* the cross-entity comparison the cards can't give at a glance.
-                  One series → one colour; the severity badge on each card carries status. */}
-              <Card style={{ marginBottom: "var(--s-3)" }}>
-                <CardHead title="ترتيب الكيانات حسب درجة الخطر" right={<span className="u-fine">٠ – ١٠٠</span>} />
-                <RankBars data={d.top_risks.map((r: any) => ({ label: r.entity, value: Number(r.risk) || 0 }))} max={100} />
-              </Card>
               <Grid cols="auto">
                 {d.top_risks.map((r: any, i: number) => {
                   const t = toneOf(r.level);
@@ -286,7 +276,25 @@ export default function CommandCenter() {
                 ))}
               </Card>
             )}
-            {/* platform mix sits with the conversation, not with the risk posture */}
+            {/* mood + reach sit with the conversation, not with the risk posture */}
+            {d.national_sentiment?.neg != null && (
+              <Card>
+                <CardHead
+                  title={<><Icon name="brain" size={16} /> مزاج الرأي العام</>}
+                  right={<span className="u-fine u-num">{fmt((d.national_sentiment.pos || 0) + (d.national_sentiment.neg || 0) + (d.national_sentiment.neu || 0))} إشارة</span>}
+                />
+                {/* diverging poles + gray neutral — the validated blue↔rose pair */}
+                <DonutChart
+                  segments={[
+                    { label: "سلبي", value: d.national_sentiment.neg || 0, color: "#f43f5e" },
+                    { label: "محايد", value: d.national_sentiment.neu || 0, color: "#64748b" },
+                    { label: "إيجابي", value: d.national_sentiment.pos || 0, color: "#4f9dff" },
+                  ]}
+                  centerLabel={`${Math.round(((d.national_sentiment.neg || 0) / ((d.national_sentiment.pos || 0) + (d.national_sentiment.neg || 0) + (d.national_sentiment.neu || 0) || 1)) * 100)}%`}
+                  centerSub="سلبي"
+                />
+              </Card>
+            )}
             {d.platform_activity?.length > 0 && (
               <Card>
                 <CardHead title={<><Icon name="megaphone" size={16} /> أين يجري النقاش</>} right={<span className="u-fine">حصّة المنصّة</span>} />
