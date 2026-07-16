@@ -22,16 +22,21 @@ export default function EmotionHeatmap({ data }: { data: { entity: string; emoti
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
+          {rows.map((r, i) => {
+            // Scale is a property of the ROW, not of a cell: intel_digest ships a
+            // distribution summing to 100 (emotions.aggregate returns
+            // round(share * 100)); a fractional source would sum to ~1. Deciding
+            // per cell breaks on a legitimate 1 — it means 1%, but "1 <= 1" reads
+            // as a fraction and renders 100%, turning the smallest value into the
+            // largest.
+            const rowSum = Object.values(r.emotions || {}).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
+            const isPct = rowSum > 1.5;
+            return (
             <tr key={i}>
               <td className="emo-ent">{r.entity}</td>
               {EMO.map((e) => {
-                // intel_digest ships these as 0-100 percentages (emotions.aggregate
-                // returns round(share * 100)). This clamped to 0-1, so every real
-                // value >= 1 saturated and every cell rendered "100" — in the war
-                // room too. Accept percentages; tolerate 0-1 fractions.
-                const raw = r.emotions[e.k] || 0;
-                const pct = Math.max(0, Math.min(100, raw > 1 ? raw : raw * 100));
+                const raw = Number(r.emotions[e.k]) || 0;
+                const pct = Math.max(0, Math.min(100, isPct ? raw : raw * 100));
                 const v = pct / 100;
                 return (
                   <td key={e.k}>
@@ -43,7 +48,8 @@ export default function EmotionHeatmap({ data }: { data: { entity: string; emoti
                 );
               })}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
