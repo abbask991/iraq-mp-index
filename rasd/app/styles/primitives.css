@@ -201,8 +201,10 @@
   .ch-donut-key i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
   .ch-donut-k { flex: 1; color: var(--muted); }
 
-  /* gauge row */
-  .ch-gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--s-4); justify-items: center; }
+  /* gauge grid — fixed 2×2. auto-fit wrapped 4 gauges as 3+1, which reads as a
+     layout bug rather than a grid. */
+  .ch-gauges { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s-5) var(--s-4); justify-items: center; }
+  @media (max-width: 420px) { .ch-gauges { grid-template-columns: 1fr; } }
 
   /* sentiment stacked bar — 2px surface gaps between segments, never borders */
   .ch-sent-bar {
