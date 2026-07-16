@@ -95,10 +95,51 @@ export default function CommandCenter() {
             </Callout>
           </div>
 
-          {/* National risk — circular gauges + the radar "situation matrix" */}
+          {/* National risk — the posture headline, gauges, radar, mood */}
           {d.national_risk && (
             <Section title="الصورة الوطنية" icon="target">
               <Grid cols="2">
+                {/* The one number a decision-maker asks for first: how bad is it
+                    overall? Labelled as a composite so it is never mistaken for a
+                    measured index. */}
+                {(() => {
+                  const vals = RISK_LABELS.map(([k]) => d.national_risk[k]).filter((v) => v != null);
+                  if (!vals.length) return null;
+                  const composite = Math.round(vals.reduce((a: number, b: number) => a + b, 0) / vals.length);
+                  const t = toneOfScore(composite);
+                  return (
+                    <Card t={t}>
+                      <CardHead
+                        title="الحالة العامة الآن"
+                        right={d.executive?.risk_level ? <Badge t={toneOf(d.executive.risk_level)} dot>{d.executive.risk_level}</Badge> : null}
+                      />
+                      <div style={{ display: "flex", alignItems: "center", gap: "var(--s-5)", flexWrap: "wrap", justifyContent: "center" }}>
+                        <Gauge value={composite} sub="مركّب" color={riskColor(composite)} size={132} stroke={11} />
+                        <div style={{ flex: 1, minWidth: 170 }}>
+                          {d.executive?.top_event && (
+                            <>
+                              <div className="u-fine" style={{ marginBottom: 4 }}>أبرز حدث</div>
+                              <div style={{ fontSize: "var(--t-base)", fontWeight: "var(--w-bold)", lineHeight: "var(--lh-base)" }}>
+                                {d.executive.top_event}
+                              </div>
+                            </>
+                          )}
+                          <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", marginTop: "var(--s-3)" }}>
+                            {d.most_damaged && (
+                              <Badge t="danger"><Icon name="trendDown" size={12} /> {d.most_damaged.entity} ({d.most_damaged.change})</Badge>
+                            )}
+                            {d.most_improved && (
+                              <Badge t="ok"><Icon name="trendUp" size={12} /> {d.most_improved.entity} (+{d.most_improved.change})</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="u-card-foot">
+                        <span className="u-fine">متوسط المؤشرات الأربعة — مؤشر مركّب، مو قياس مستقل</span>
+                      </div>
+                    </Card>
+                  );
+                })()}
                 <Card>
                   <CardHead title="مؤشرات الخطر" right={<span className="u-fine">٠ – ١٠٠</span>} />
                   <div className="ch-gauges">
@@ -123,24 +164,8 @@ export default function CommandCenter() {
                       .map(([k, label]) => ({ label, value: d.national_risk[k] }))}
                   />
                 </Card>
-              </Grid>
-              {(d.most_damaged || d.most_improved) && (
-                <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", marginTop: "var(--s-3)" }}>
-                  {d.most_damaged && (
-                    <Badge t="danger"><Icon name="trendDown" size={12} /> الأكثر تضرّراً: {d.most_damaged.entity} ({d.most_damaged.change})</Badge>
-                  )}
-                  {d.most_improved && (
-                    <Badge t="ok"><Icon name="trendUp" size={12} /> الأكثر تحسّناً: {d.most_improved.entity} (+{d.most_improved.change})</Badge>
-                  )}
-                </div>
-              )}
-            </Section>
-          )}
-
-          {/* Mood + reach — where the conversation actually is */}
-          {(d.national_sentiment?.neg != null || d.platform_activity?.length > 0) && (
-            <Grid cols="2" style={{ marginBottom: "var(--s-6)" }}>
-              {d.national_sentiment?.neg != null && (
+                {/* fourth card of the national picture — the mood split */}
+                {d.national_sentiment?.neg != null && (
                 <Card>
                   <CardHead
                     title="مزاج الرأي العام"
@@ -157,27 +182,8 @@ export default function CommandCenter() {
                     centerSub="سلبي"
                   />
                 </Card>
-              )}
-              {d.platform_activity?.length > 0 && (
-                <Card>
-                  <CardHead title="أين يجري النقاش" right={<span className="u-fine">حصّة المنصّة</span>} />
-                  {/* categorical identity → the validated slot order, never cycled */}
-                  <DonutChart
-                    segments={d.platform_activity.map((p: any) => ({ label: PLATFORM_AR[p.platform] || p.platform, value: p.count ?? p.pct }))}
-                    centerLabel={String(d.platform_activity.length)}
-                    centerSub="منصّات"
-                  />
-                </Card>
-              )}
-            </Grid>
-          )}
-
-          {/* Emotion grid — where anger concentrates */}
-          {d.emotion_heatmap?.length > 0 && (
-            <Section title="خريطة المشاعر" icon="brain" count={d.emotion_heatmap.length}>
-              <Card>
-                <EmotionHeatmap data={d.emotion_heatmap} />
-              </Card>
+                )}
+              </Grid>
             </Section>
           )}
 
@@ -280,7 +286,28 @@ export default function CommandCenter() {
                 ))}
               </Card>
             )}
+            {/* platform mix sits with the conversation, not with the risk posture */}
+            {d.platform_activity?.length > 0 && (
+              <Card>
+                <CardHead title={<><Icon name="megaphone" size={16} /> أين يجري النقاش</>} right={<span className="u-fine">حصّة المنصّة</span>} />
+                {/* categorical identity → the validated slot order, never cycled */}
+                <DonutChart
+                  segments={d.platform_activity.map((p: any) => ({ label: PLATFORM_AR[p.platform] || p.platform, value: p.count ?? p.pct }))}
+                  centerLabel={String(d.platform_activity.length)}
+                  centerSub="منصّات"
+                />
+              </Card>
+            )}
           </Grid>
+
+          {/* Emotion grid — moved below the trending row */}
+          {d.emotion_heatmap?.length > 0 && (
+            <Section title="خريطة المشاعر" icon="brain" count={d.emotion_heatmap.length}>
+              <Card>
+                <EmotionHeatmap data={d.emotion_heatmap} />
+              </Card>
+            </Section>
+          )}
 
           {d.recommended_actions?.length > 0 && (
             <Section title="إجراءات موصى بها" icon="check" count={d.recommended_actions.length}>
