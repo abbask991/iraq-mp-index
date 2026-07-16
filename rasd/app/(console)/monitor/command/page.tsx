@@ -5,7 +5,13 @@ import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
 import { PageHeader, Section, Card, CardHead, Callout, Stat, Badge, Button, Meter, Grid, Row, Icon, type Tone, type IconName } from "@/components/ui";
-import { RankBars, DeltaBars } from "@/components/ui/charts";
+import { RankBars, DeltaBars, SentimentBar } from "@/components/ui/charts";
+import EmotionHeatmap from "@/components/EmotionHeatmap";
+
+const PLATFORM_AR: Record<string, string> = {
+  facebook: "فيسبوك", x: "إكس", telegram: "تيليجرام", tiktok: "تيك توك",
+  instagram: "إنستغرام", youtube: "يوتيوب", news: "أخبار",
+};
 
 /** "-18 سمعة" / "+11 خطر" → -18 / +11. The payload ships deltas as prose. */
 const deltaNum = (s: string) => { const m = String(s).match(/-?\d+/); return m ? Number(m[0]) : 0; };
@@ -116,6 +122,40 @@ export default function CommandCenter() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Mood + reach — where the conversation actually is */}
+          {(d.national_sentiment?.neg != null || d.platform_activity?.length > 0) && (
+            <Grid cols="2" style={{ marginBottom: "var(--s-6)" }}>
+              {d.national_sentiment?.neg != null && (
+                <Card>
+                  <CardHead
+                    title="مزاج الرأي العام"
+                    right={<span className="u-fine u-num">{fmt((d.national_sentiment.pos || 0) + (d.national_sentiment.neg || 0) + (d.national_sentiment.neu || 0))} إشارة</span>}
+                  />
+                  <SentimentBar pos={d.national_sentiment.pos || 0} neg={d.national_sentiment.neg || 0} neu={d.national_sentiment.neu || 0} />
+                </Card>
+              )}
+              {d.platform_activity?.length > 0 && (
+                <Card>
+                  <CardHead title="أين يجري النقاش" right={<span className="u-fine">حصّة المنصّة</span>} />
+                  <RankBars
+                    data={d.platform_activity.map((p: any) => ({ label: PLATFORM_AR[p.platform] || p.platform, value: p.pct }))}
+                    max={100}
+                    unit="٪"
+                  />
+                </Card>
+              )}
+            </Grid>
+          )}
+
+          {/* Emotion grid — where anger concentrates */}
+          {d.emotion_heatmap?.length > 0 && (
+            <Section title="خريطة المشاعر" icon="brain" count={d.emotion_heatmap.length}>
+              <Card>
+                <EmotionHeatmap data={d.emotion_heatmap} />
+              </Card>
+            </Section>
           )}
 
           {/* Top risks */}

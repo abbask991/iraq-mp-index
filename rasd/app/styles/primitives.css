@@ -194,6 +194,21 @@
     font-size: var(--t-sm); font-weight: var(--w-bold); min-width: 40px; text-align: start;
   }
 
+  /* sentiment stacked bar — 2px surface gaps between segments, never borders */
+  .ch-sent-bar {
+    display: flex; gap: 2px; height: 14px; border-radius: var(--r-sm);
+    overflow: hidden; background: var(--input);
+  }
+  .ch-sent-seg { display: block; height: 100%; transition: width .7s var(--ease); }
+  .ch-sent-seg:first-child { border-start-start-radius: var(--r-sm); border-end-start-radius: var(--r-sm); }
+  .ch-sent-seg:last-child { border-start-end-radius: var(--r-sm); border-end-end-radius: var(--r-sm); }
+  .ch-sent-legend {
+    display: flex; gap: var(--s-4); flex-wrap: wrap;
+    margin-top: var(--s-3); font-size: var(--t-sm);
+  }
+  .ch-sent-legend > span { display: inline-flex; align-items: center; gap: 5px; }
+  .ch-sent-legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
   .ch-div-legend {
     display: flex; gap: var(--s-4); justify-content: flex-end;
     font-size: var(--t-xs); color: var(--muted); margin-bottom: var(--s-2);

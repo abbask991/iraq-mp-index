@@ -9,8 +9,44 @@
 //    its own severity would double-encode length as hue and burn the free channel;
 //    the severity badge beside each row carries that status, with a text label.
 
-const DIV_POS = "#4f9dff"; // gain  (cool pole)
-const DIV_NEG = "#f43f5e"; // drop  (warm pole)
+const DIV_POS = "#4f9dff"; // gain / positive  (cool pole)
+const DIV_NEG = "#f43f5e"; // drop / negative  (warm pole)
+const DIV_MID = "#64748b"; // neutral midpoint — gray, never a hue
+
+/* ---------- sentiment: diverging stacked bar centred on neutral ----------
+   The canonical form for an ordered-scale share (negative ↔ neutral ↔ positive). */
+export function SentimentBar({ pos, neg, neu }: { pos: number; neg: number; neu: number }) {
+  const total = pos + neg + neu || 1;
+  const seg = [
+    { v: neg, c: DIV_NEG, l: "سلبي" },
+    { v: neu, c: DIV_MID, l: "محايد" },
+    { v: pos, c: DIV_POS, l: "إيجابي" },
+  ];
+  return (
+    <div className="ch-sent">
+      <div className="ch-sent-bar">
+        {seg.map((s, i) => (
+          <span
+            key={i}
+            className="ch-sent-seg"
+            style={{ width: `${(s.v / total) * 100}%`, background: s.c }}
+            title={`${s.l}: ${s.v.toLocaleString("en-US")} (${Math.round((s.v / total) * 100)}%)`}
+          />
+        ))}
+      </div>
+      {/* every value is readable without hovering — the tooltip only enhances */}
+      <div className="ch-sent-legend">
+        {seg.map((s, i) => (
+          <span key={i}>
+            <i style={{ background: s.c }} />
+            {s.l} <b className="u-num">{Math.round((s.v / total) * 100)}%</b>
+            <span className="u-fine u-num"> ({s.v.toLocaleString("en-US")})</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ---------- ranked horizontal bars — one measure across nominal entities ---------- */
 export function RankBars({
