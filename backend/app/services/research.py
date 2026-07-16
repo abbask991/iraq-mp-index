@@ -82,15 +82,34 @@ async def polls(demo: bool = False) -> dict:
 async def poll(question: str, demo: bool = False) -> dict:
     if demo or not question:
         q = question or "هل تثق بأداء الحكومة الحالية؟"
+        # deterministic per-question variation → each question yields a distinct,
+        # plausible split (so demo presentations don't look identical).
+        import hashlib
+        h = int(hashlib.md5(q.encode("utf-8")).hexdigest(), 16)
+        oppose = 42 + h % 28                       # 42..69
+        support = 16 + (h // 11) % 26              # 16..41
+        neutral = 100 - oppose - support
+        if neutral < 5:
+            support = max(10, 100 - oppose - 7)
+            neutral = 100 - oppose - support
+        sample = 4200 + h % 8200
+        fb_op = min(92, oppose + 3 + h % 6)
+        x_op = max(8, oppose - 5 - (h // 3) % 6)
+        news_op = max(8, min(92, oppose - 6 + (h // 5) % 9))
+        base = max(10, oppose - 9)
+        trend = [{"label": f"أسبوع {i + 1}", "oppose": max(10, min(92, base + i * 3 + (h // (i + 2)) % 3))}
+                 for i in range(4)]
+        lead = ("المعارضة تفوق التأييد" if oppose > support else "التأييد يفوق المعارضة")
+        rising = trend[-1]["oppose"] >= trend[0]["oppose"]
         return {
-            "demo": True, "question": q, "sample": 9800, "confidence": _conf(9800),
-            "result": {"support": 27, "oppose": 61, "neutral": 12},
-            "by_platform": [{"platform": "فيسبوك", "support": 24, "oppose": 64},
-                            {"platform": "إكس", "support": 31, "oppose": 57},
-                            {"platform": "أخبار", "support": 29, "oppose": 55}],
-            "trend": [{"label": "أسبوع 1", "oppose": 52}, {"label": "أسبوع 2", "oppose": 56},
-                      {"label": "أسبوع 3", "oppose": 59}, {"label": "أسبوع 4", "oppose": 61}],
-            "reading": "المعارضة تتصاعد أسبوعياً؛ فيسبوك الأكثر سلبية. مؤشر ثقة منخفض بأداء الحكومة.",
+            "demo": True, "question": q, "sample": sample, "confidence": _conf(sample),
+            "result": {"support": support, "oppose": oppose, "neutral": neutral},
+            "by_platform": [{"platform": "فيسبوك", "support": max(5, 100 - fb_op - 8), "oppose": fb_op},
+                            {"platform": "إكس", "support": max(5, 100 - x_op - 10), "oppose": x_op},
+                            {"platform": "أخبار", "support": max(5, 100 - news_op - 12), "oppose": news_op}],
+            "trend": trend,
+            "reading": f"{lead} في النقاش العام حول هذا السؤال؛ فيسبوك الأكثر حدّة. "
+                       f"الاتجاه الأسبوعي {'متصاعد' if rising else 'مستقر/متراجع'}.",
             "method": "استطلاع سلبي (Passive) — مُشتق من مشاعر النقاش العام، مو استطلاع مباشر.",
             "disclaimer": "تقدير احتمالي من إشارات عامة — لا يُعادل استطلاعاً ميدانياً بعيّنة ممثّلة.",
         }

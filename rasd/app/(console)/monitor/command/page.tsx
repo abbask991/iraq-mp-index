@@ -5,8 +5,10 @@ import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
 import { PageHeader, Section, Card, CardHead, Callout, Stat, Badge, Button, Meter, Grid, Row, Icon, type Tone, type IconName } from "@/components/ui";
-import { RankBars, DeltaBars, SentimentBar } from "@/components/ui/charts";
+import { RankBars, DeltaBars, DonutChart, riskColor } from "@/components/ui/charts";
 import EmotionHeatmap from "@/components/EmotionHeatmap";
+import Gauge from "@/components/Gauge";
+import RadarChart from "@/components/RadarChart";
 
 const PLATFORM_AR: Record<string, string> = {
   facebook: "فيسبوك", x: "إكس", telegram: "تيليجرام", tiktok: "تيك توك",
@@ -93,24 +95,35 @@ export default function CommandCenter() {
             </Callout>
           </div>
 
-          {/* National risk — was 4 tiny chips, now the KPI strip it should always have been */}
+          {/* National risk — circular gauges + the radar "situation matrix" */}
           {d.national_risk && (
-            <div className="u-section">
-              <div className="u-stats">
-                {RISK_LABELS.map(([k, label, icon]) =>
-                  d.national_risk[k] != null ? (
-                    <Stat
-                      key={k}
-                      label={label}
-                      icon={icon}
-                      value={d.national_risk[k]}
-                      t={toneOfScore(d.national_risk[k])}
-                      meta={`من ١٠٠`}
-                      chart={<Meter value={d.national_risk[k]} t={toneOfScore(d.national_risk[k])} />}
-                    />
-                  ) : null
-                )}
-              </div>
+            <Section title="الصورة الوطنية" icon="target">
+              <Grid cols="2">
+                <Card>
+                  <CardHead title="مؤشرات الخطر" right={<span className="u-fine">٠ – ١٠٠</span>} />
+                  <div className="ch-gauges">
+                    {RISK_LABELS.map(([k, label]) =>
+                      d.national_risk[k] != null ? (
+                        <Gauge
+                          key={k}
+                          value={d.national_risk[k]}
+                          label={label}
+                          sub="من ١٠٠"
+                          color={riskColor(d.national_risk[k])}
+                          size={112}
+                        />
+                      ) : null
+                    )}
+                  </div>
+                </Card>
+                <Card>
+                  <CardHead title="مصفوفة الموقف" right={<span className="u-fine">شكل ملف الخطر</span>} />
+                  <RadarChart
+                    axes={RISK_LABELS.filter(([k]) => d.national_risk[k] != null)
+                      .map(([k, label]) => ({ label, value: d.national_risk[k] }))}
+                  />
+                </Card>
+              </Grid>
               {(d.most_damaged || d.most_improved) && (
                 <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", marginTop: "var(--s-3)" }}>
                   {d.most_damaged && (
@@ -121,7 +134,7 @@ export default function CommandCenter() {
                   )}
                 </div>
               )}
-            </div>
+            </Section>
           )}
 
           {/* Mood + reach — where the conversation actually is */}
@@ -133,16 +146,26 @@ export default function CommandCenter() {
                     title="مزاج الرأي العام"
                     right={<span className="u-fine u-num">{fmt((d.national_sentiment.pos || 0) + (d.national_sentiment.neg || 0) + (d.national_sentiment.neu || 0))} إشارة</span>}
                   />
-                  <SentimentBar pos={d.national_sentiment.pos || 0} neg={d.national_sentiment.neg || 0} neu={d.national_sentiment.neu || 0} />
+                  {/* diverging poles + gray neutral — the validated blue↔rose pair */}
+                  <DonutChart
+                    segments={[
+                      { label: "سلبي", value: d.national_sentiment.neg || 0, color: "#f43f5e" },
+                      { label: "محايد", value: d.national_sentiment.neu || 0, color: "#64748b" },
+                      { label: "إيجابي", value: d.national_sentiment.pos || 0, color: "#4f9dff" },
+                    ]}
+                    centerLabel={`${Math.round(((d.national_sentiment.neg || 0) / ((d.national_sentiment.pos || 0) + (d.national_sentiment.neg || 0) + (d.national_sentiment.neu || 0) || 1)) * 100)}%`}
+                    centerSub="سلبي"
+                  />
                 </Card>
               )}
               {d.platform_activity?.length > 0 && (
                 <Card>
                   <CardHead title="أين يجري النقاش" right={<span className="u-fine">حصّة المنصّة</span>} />
-                  <RankBars
-                    data={d.platform_activity.map((p: any) => ({ label: PLATFORM_AR[p.platform] || p.platform, value: p.pct }))}
-                    max={100}
-                    unit="٪"
+                  {/* categorical identity → the validated slot order, never cycled */}
+                  <DonutChart
+                    segments={d.platform_activity.map((p: any) => ({ label: PLATFORM_AR[p.platform] || p.platform, value: p.count ?? p.pct }))}
+                    centerLabel={String(d.platform_activity.length)}
+                    centerSub="منصّات"
                   />
                 </Card>
               )}
