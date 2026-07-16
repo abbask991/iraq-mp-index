@@ -273,7 +273,9 @@ export default function WarRoom() {
           </div>
 
           {/* AI situation brief */}
-          {(d.summary || d.recommended_actions?.length) && (
+          {/* Boolean, not a number: `undefined || 0` is 0, and React renders 0 —
+              which put a stray "0" on the page whenever there was no brief. */}
+          {(!!d.summary || (d.recommended_actions?.length ?? 0) > 0) && (
             <div className="wr-brief">
               <div className="wr-cap"><Icon name="brain" size={13} /> تقييم الموقف — الذكاء الاصطناعي</div>
               {d.summary && <p style={{ fontSize: 14.5, lineHeight: 2, margin: "4px 0 10px" }}>{d.summary}</p>}
