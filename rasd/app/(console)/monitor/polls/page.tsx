@@ -16,7 +16,11 @@ export default function Polls() {
   useEffect(() => { apiGet("/api/research/polls?demo=1").then(setList).finally(() => setLoading(false)); }, []);
   const run = async (question: string, real = false) => {
     setBusy(true); setPoll(null); setQ(question);
-    const r = await apiGet(`/api/research/poll?question=${encodeURIComponent(question)}${real ? "" : "&demo=1"}`).catch(() => null);
+    const enc = encodeURIComponent(question);
+    let r = await apiGet(`/api/research/poll?question=${enc}${real ? "" : "&demo=1"}`).catch(() => null);
+    if (real && (!r || r.empty)) {   // sources not active yet → never leave it empty, show demo
+      r = await apiGet(`/api/research/poll?question=${enc}&demo=1`).catch(() => null);
+    }
     setPoll(r); setBusy(false);
   };
 

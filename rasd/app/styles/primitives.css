@@ -1,0 +1,248 @@
+/* UI primitives — the layer the product never had.
+   Lives in @layer ui, declared last in tokens.css, so these beat the legacy
+   rules in globals.css regardless of source order or specificity. */
+
+@layer ui {
+  /* ---------- page header ---------- */
+  .u-page-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: var(--s-4); flex-wrap: wrap;
+    padding-bottom: var(--s-4); margin-bottom: var(--s-5);
+    border-bottom: 1px solid var(--line);
+  }
+  .u-page-title {
+    margin: 0; font-size: var(--t-2xl); font-weight: var(--w-black);
+    letter-spacing: -.5px; line-height: var(--lh-tight);
+  }
+  .u-page-sub {
+    margin: var(--s-2) 0 0; color: var(--muted);
+    font-size: var(--t-base); line-height: var(--lh-base); max-width: 68ch;
+  }
+  .u-page-actions { display: flex; gap: var(--s-2); align-items: center; flex-wrap: wrap; }
+
+  /* ---------- section ---------- */
+  .u-section { margin-bottom: var(--s-6); }
+  .u-section-head {
+    display: flex; align-items: center; gap: var(--s-3);
+    margin-bottom: var(--s-3);
+  }
+  .u-section-title {
+    margin: 0; font-size: var(--t-lg); font-weight: var(--w-bold);
+    letter-spacing: -.2px; display: flex; align-items: center; gap: var(--s-2);
+  }
+  .u-section-rule { flex: 1; height: 1px; background: var(--line); }
+  .u-section-count {
+    font-size: var(--t-xs); color: var(--muted); font-variant-numeric: tabular-nums;
+    background: var(--input); border: 1px solid var(--line);
+    border-radius: var(--r-full); padding: 2px var(--s-2);
+  }
+
+  /* ---------- card ---------- */
+  .u-card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: var(--s-4);
+    box-shadow: var(--sh-1);
+    transition: border-color var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease), transform var(--dur-base) var(--ease);
+  }
+  .u-card-i { cursor: pointer; }
+  .u-card-i:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); box-shadow: var(--sh-3); transform: translateY(-2px); }
+  .u-card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); margin-bottom: var(--s-2); }
+  .u-card-title { margin: 0; font-size: var(--t-base); font-weight: var(--w-bold); letter-spacing: -.1px; }
+  .u-card-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--line); }
+
+  /* severity rail — the encoding that makes a risk list scannable */
+  .u-card[data-tone] { border-inline-start-width: 3px; }
+  .u-card[data-tone="ok"]     { border-inline-start-color: var(--ok); }
+  .u-card[data-tone="warn"]   { border-inline-start-color: var(--warn); }
+  .u-card[data-tone="danger"] { border-inline-start-color: var(--danger); }
+  .u-card[data-tone="crit"]   { border-inline-start-color: var(--crit); }
+  .u-card[data-tone="info"]   { border-inline-start-color: var(--info); }
+
+  /* ---------- callout ---------- */
+  .u-callout {
+    border: 1px solid var(--line); border-radius: var(--r-lg);
+    padding: var(--s-5); position: relative; overflow: hidden;
+    border-inline-start: 3px solid var(--info);
+    background: linear-gradient(135deg, var(--info-bg), transparent 62%), var(--panel);
+  }
+  .u-callout[data-tone="danger"] { border-inline-start-color: var(--danger); background: linear-gradient(135deg, var(--danger-bg), transparent 62%), var(--panel); }
+  .u-callout[data-tone="ok"]     { border-inline-start-color: var(--ok);     background: linear-gradient(135deg, var(--ok-bg), transparent 62%), var(--panel); }
+  .u-callout-label {
+    display: flex; align-items: center; gap: var(--s-2);
+    font-size: var(--t-xs); font-weight: var(--w-bold); letter-spacing: .4px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: var(--s-3);
+  }
+  .u-callout-body { font-size: var(--t-md); line-height: var(--lh-relaxed); margin: 0; }
+
+  /* ---------- priority strip ---------- */
+  .u-priority {
+    display: flex; align-items: flex-start; gap: var(--s-3);
+    margin-top: var(--s-4); padding: var(--s-3) var(--s-4);
+    border-radius: var(--r-md); background: var(--danger-bg);
+    border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+    font-size: var(--t-base); line-height: var(--lh-base);
+  }
+  .u-priority b { color: var(--danger); }
+
+  /* ---------- stats ---------- */
+  .u-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s-3); }
+  .u-stat {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--r-md); padding: var(--s-4);
+    position: relative; overflow: hidden;
+  }
+  .u-stat::after {
+    content: ""; position: absolute; inset-block-start: 0; inset-inline-start: 0;
+    width: 100%; height: 2px; background: var(--tone, var(--line));
+    opacity: .8;
+  }
+  .u-stat[data-tone="ok"]     { --tone: var(--ok); }
+  .u-stat[data-tone="warn"]   { --tone: var(--warn); }
+  .u-stat[data-tone="danger"] { --tone: var(--danger); }
+  .u-stat[data-tone="crit"]   { --tone: var(--crit); }
+  .u-stat-l {
+    font-size: var(--t-xs); color: var(--muted); font-weight: var(--w-med);
+    letter-spacing: .3px; margin-bottom: var(--s-2);
+    display: flex; align-items: center; gap: var(--s-1);
+  }
+  .u-stat-v {
+    font-size: var(--t-2xl); font-weight: var(--w-black); line-height: 1;
+    letter-spacing: -1px; font-variant-numeric: tabular-nums;
+    color: var(--tone, var(--text));
+  }
+  .u-stat-c { margin-top: var(--s-3); }
+  .u-stat-m { font-size: var(--t-xs); color: var(--muted); margin-top: var(--s-2); }
+
+  /* ---------- badge ---------- */
+  .u-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: var(--t-xs); font-weight: var(--w-bold);
+    padding: 3px var(--s-2); border-radius: var(--r-full);
+    border: 1px solid var(--line); background: var(--input); color: var(--muted);
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .u-badge[data-tone="ok"]     { color: var(--ok);     background: var(--ok-bg);     border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
+  .u-badge[data-tone="warn"]   { color: var(--warn);   background: var(--warn-bg);   border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
+  .u-badge[data-tone="danger"] { color: var(--danger); background: var(--danger-bg); border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
+  .u-badge[data-tone="crit"]   { color: var(--crit);   background: var(--crit-bg);   border-color: color-mix(in srgb, var(--crit) 34%, transparent); }
+  .u-badge[data-tone="info"]   { color: var(--info);   background: var(--info-bg);   border-color: color-mix(in srgb, var(--info) 30%, transparent); }
+  .u-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+
+  /* ---------- button ---------- */
+  .u-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+    font: inherit; font-size: var(--t-sm); font-weight: var(--w-bold);
+    padding: var(--s-2) var(--s-4); border-radius: var(--r-sm);
+    border: 1px solid var(--line); background: var(--input); color: var(--text);
+    cursor: pointer; white-space: nowrap;
+    transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  }
+  .u-btn:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); color: var(--text); }
+  .u-btn[data-variant="primary"] {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #04121a; border-color: transparent;
+  }
+  .u-btn[data-variant="primary"]:hover { filter: brightness(1.08); }
+  .u-btn[aria-pressed="true"] { background: var(--info-bg); border-color: color-mix(in srgb, var(--info) 45%, transparent); color: var(--info); }
+  .u-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ---------- meter (kills the [style*=…] hack at globals.css:447) ---------- */
+  .u-meter { height: 6px; border-radius: var(--r-full); background: var(--input); overflow: hidden; border: 1px solid var(--line); }
+  .u-meter-fill { height: 100%; border-radius: inherit; background: var(--tone, var(--accent)); transition: width .6s var(--ease); }
+  .u-meter[data-tone="ok"]     { --tone: var(--ok); }
+  .u-meter[data-tone="warn"]   { --tone: var(--warn); }
+  .u-meter[data-tone="danger"] { --tone: var(--danger); }
+  .u-meter[data-tone="crit"]   { --tone: var(--crit); }
+
+  /* ---------- row list ---------- */
+  .u-row {
+    display: flex; align-items: flex-start; gap: var(--s-3);
+    padding: var(--s-3) 0; border-top: 1px solid var(--line);
+  }
+  .u-row:first-child { border-top: 0; padding-top: 0; }
+  .u-row-main { flex: 1; min-width: 0; }
+  .u-row-t { font-size: var(--t-base); font-weight: var(--w-med); display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+  .u-row-m { font-size: var(--t-sm); color: var(--muted); margin-top: var(--s-1); line-height: var(--lh-base); }
+
+  /* ---------- grid ---------- */
+  .u-grid { display: grid; gap: var(--s-3); }
+  .u-grid[data-cols="auto"] { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .u-grid[data-cols="2"] { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 860px) { .u-grid[data-cols="2"] { grid-template-columns: 1fr; } }
+
+  /* ---------- charts ---------- */
+  /* Thin marks, rounded data-ends, recessive track. Bars are divs, not SVG, so
+     they inherit RTL direction for free. */
+  .ch-rank-row, .ch-div-row {
+    display: grid; grid-template-columns: minmax(90px, 24%) 1fr auto;
+    align-items: center; gap: var(--s-3); padding: var(--s-2) 0;
+  }
+  .ch-rank-l, .ch-div-l {
+    font-size: var(--t-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .ch-rank-track {
+    height: 10px; border-radius: var(--r-full);
+    background: var(--input); border: 1px solid var(--line); overflow: hidden;
+  }
+  /* the measure hue. Deliberately NOT --accent2: blue is reserved for the
+     diverging positive pole, so it must not also mean "risk magnitude". */
+  .ch-rank-fill {
+    display: block; height: 100%; border-radius: var(--r-full);
+    background: var(--accent); transition: width .7s var(--ease);
+  }
+  .ch-rank-v, .ch-div-v {
+    font-size: var(--t-sm); font-weight: var(--w-bold); min-width: 40px; text-align: start;
+  }
+
+  /* donut + key */
+  .ch-donut { display: flex; align-items: center; gap: var(--s-5); flex-wrap: wrap; justify-content: center; }
+  .ch-donut-key { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); min-width: 130px; }
+  .ch-donut-key li { display: flex; align-items: center; gap: var(--s-2); font-size: var(--t-sm); }
+  .ch-donut-key i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .ch-donut-k { flex: 1; color: var(--muted); }
+
+  /* gauge grid — fixed 2×2. auto-fit wrapped 4 gauges as 3+1, which reads as a
+     layout bug rather than a grid. */
+  .ch-gauges { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s-5) var(--s-4); justify-items: center; }
+  @media (max-width: 420px) { .ch-gauges { grid-template-columns: 1fr; } }
+
+  /* sentiment stacked bar — 2px surface gaps between segments, never borders */
+  .ch-sent-bar {
+    display: flex; gap: 2px; height: 14px; border-radius: var(--r-sm);
+    overflow: hidden; background: var(--input);
+  }
+  .ch-sent-seg { display: block; height: 100%; transition: width .7s var(--ease); }
+  .ch-sent-seg:first-child { border-start-start-radius: var(--r-sm); border-end-start-radius: var(--r-sm); }
+  .ch-sent-seg:last-child { border-start-end-radius: var(--r-sm); border-end-end-radius: var(--r-sm); }
+  .ch-sent-legend {
+    display: flex; gap: var(--s-4); flex-wrap: wrap;
+    margin-top: var(--s-3); font-size: var(--t-sm);
+  }
+  .ch-sent-legend > span { display: inline-flex; align-items: center; gap: 5px; }
+  .ch-sent-legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+  .ch-div-legend {
+    display: flex; gap: var(--s-4); justify-content: flex-end;
+    font-size: var(--t-xs); color: var(--muted); margin-bottom: var(--s-2);
+  }
+  .ch-div-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .ch-div-legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+  .ch-div-plot { position: relative; height: 10px; }
+  /* the zero baseline — a solid hairline, never dashed */
+  .ch-div-axis {
+    position: absolute; inset-block: -4px; inset-inline-start: 50%;
+    width: 1px; background: var(--line);
+  }
+  .ch-div-fill {
+    position: absolute; inset-block: 0; height: 10px;
+    border-radius: var(--r-sm); transition: width .7s var(--ease);
+  }
+
+  /* ---------- icon ---------- */
+  .u-icon { flex: none; display: inline-block; vertical-align: -.125em; }
+
+  /* ---------- misc ---------- */
+  .u-muted { color: var(--muted); font-size: var(--t-sm); line-height: var(--lh-base); }
+  .u-fine  { color: var(--muted); font-size: var(--t-xs); line-height: var(--lh-base); }
+  .u-num   { font-variant-numeric: tabular-nums; }
+}

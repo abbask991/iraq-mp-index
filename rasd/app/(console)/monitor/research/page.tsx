@@ -16,7 +16,11 @@ export default function Research() {
   useEffect(() => { apiGet("/api/research/studies?demo=1").then(setList).finally(() => setLoading(false)); }, []);
   const open = async (t: string, real = false) => {
     setGen(true); setStudy(null); setTopic(t);
-    const r = await apiGet(`/api/research/study?topic=${encodeURIComponent(t)}${real ? "" : "&demo=1"}`).catch(() => null);
+    const enc = encodeURIComponent(t);
+    let r = await apiGet(`/api/research/study?topic=${enc}${real ? "" : "&demo=1"}`).catch(() => null);
+    if (real && (!r || r.empty)) {   // sources not active yet → fall back to demo, never empty
+      r = await apiGet(`/api/research/study?topic=${enc}&demo=1`).catch(() => null);
+    }
     setStudy(r); setGen(false);
   };
 

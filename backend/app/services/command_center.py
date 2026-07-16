@@ -110,6 +110,13 @@ async def build(demo: bool = False) -> dict:
         "executive": {"risk_level": ex.get("risk_level"), "top_event": ex.get("top_event"),
                       "recommendation": ex.get("recommendation")},
         "national_risk": dg.get("risk_summary", {}),
+        # Pass-through of fields the digest ALREADY computes. Zero extra cost — this
+        # service is pure assembly — and they turn the page from text cards into
+        # actual charts (sentiment split, platform mix, emotion grid, geography).
+        "national_sentiment": dg.get("national_sentiment") or {},
+        "platform_activity": dg.get("platform_activity") or [],
+        "emotion_heatmap": dg.get("emotion_heatmap") or [],
+        "geo": dg.get("geo"),
         "top_risks": risks,
         "what_changed": changes,
         "most_damaged": ({"entity": most_damaged["name"], "change": most_damaged.get("rep_delta", 0)}
@@ -138,6 +145,23 @@ def _demo_payload() -> dict:
         "executive": {"risk_level": "مرتفع", "top_event": "تصاعد الغضب حول الكهرباء على فيسبوك",
                       "recommendation": "مراقبة مكثّفة 6 ساعات + تحضير بيان"},
         "national_risk": {"political": 58, "reputation": 61, "crisis": 47, "campaign": 52},
+        # Consistent with the demo story above: electricity-driven negativity,
+        # Facebook-heavy, anger concentrated on the service ministries.
+        "national_sentiment": {"pos": 412, "neg": 1985, "neu": 733},
+        "platform_activity": [
+            {"platform": "facebook", "count": 1840, "pct": 59},
+            {"platform": "x", "count": 742, "pct": 24},
+            {"platform": "telegram", "count": 356, "pct": 11},
+            {"platform": "tiktok", "count": 192, "pct": 6},
+        ],
+        "emotion_heatmap": [
+            {"entity": "وزارة الكهرباء", "emotions": {"anger": 62, "frustration": 48, "sarcasm": 31, "fear": 12, "sadness": 9, "disgust": 14, "trust": 4, "joy": 2}},
+            {"entity": "أسعار السلة الغذائية", "emotions": {"anger": 44, "frustration": 51, "sarcasm": 18, "fear": 22, "sadness": 16, "disgust": 8, "trust": 3, "joy": 1}},
+            {"entity": "ملف المنافذ الحدودية", "emotions": {"anger": 38, "frustration": 22, "sarcasm": 26, "fear": 8, "sadness": 5, "disgust": 29, "trust": 6, "joy": 2}},
+            {"entity": "هيئة النزاهة", "emotions": {"anger": 11, "frustration": 9, "sarcasm": 14, "fear": 5, "sadness": 3, "disgust": 6, "trust": 34, "joy": 12}},
+            {"entity": "البرلمان", "emotions": {"anger": 24, "frustration": 19, "sarcasm": 33, "fear": 6, "sadness": 7, "disgust": 15, "trust": 8, "joy": 3}},
+        ],
+        "geo": None,
         "top_risks": [
             {"entity": "وزارة الكهرباء", "risk": 74, "level": "حرج", "reason": "السردية: فشل الخدمات · ارتفاع الخطر +12 · مؤشر أزمة مرتفع", "evidence_count": 342, "recommended_action": "تصعيد للقيادة فوراً"},
             {"entity": "ملف المنافذ الحدودية", "risk": 61, "level": "مرتفع", "reason": "السردية: التهريب والفساد · تراجع السمعة -9", "evidence_count": 188, "recommended_action": "مراقبة مكثّفة (6 ساعات)"},
