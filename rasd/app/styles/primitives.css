@@ -193,6 +193,11 @@
     border-bottom: 1px solid var(--line); margin-bottom: var(--s-5);
     overflow-x: auto; overflow-y: hidden;
     scrollbar-width: none;
+    /* 13 tabs + group labels overflow ~1100px of content, so the strip scrolls.
+       Fade the overflowing edge — without it the hidden tabs simply look cut off
+       and nothing says they can be reached. */
+    -webkit-mask-image: linear-gradient(to left, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to left, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%);
   }
   .u-tabs::-webkit-scrollbar { display: none; }
   .u-tabs-run { display: flex; flex-direction: column; gap: 2px; flex: none; }
