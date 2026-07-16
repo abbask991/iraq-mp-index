@@ -154,12 +154,14 @@ def _demo_payload() -> dict:
             {"platform": "telegram", "count": 356, "pct": 11},
             {"platform": "tiktok", "count": 192, "pct": 6},
         ],
+        # Each row is a DISTRIBUTION summing to 100 — same contract as the real
+        # emotions.aggregate(), which returns round(share * 100) per emotion.
         "emotion_heatmap": [
-            {"entity": "وزارة الكهرباء", "emotions": {"anger": 62, "frustration": 48, "sarcasm": 31, "fear": 12, "sadness": 9, "disgust": 14, "trust": 4, "joy": 2}},
-            {"entity": "أسعار السلة الغذائية", "emotions": {"anger": 44, "frustration": 51, "sarcasm": 18, "fear": 22, "sadness": 16, "disgust": 8, "trust": 3, "joy": 1}},
-            {"entity": "ملف المنافذ الحدودية", "emotions": {"anger": 38, "frustration": 22, "sarcasm": 26, "fear": 8, "sadness": 5, "disgust": 29, "trust": 6, "joy": 2}},
-            {"entity": "هيئة النزاهة", "emotions": {"anger": 11, "frustration": 9, "sarcasm": 14, "fear": 5, "sadness": 3, "disgust": 6, "trust": 34, "joy": 12}},
-            {"entity": "البرلمان", "emotions": {"anger": 24, "frustration": 19, "sarcasm": 33, "fear": 6, "sadness": 7, "disgust": 15, "trust": 8, "joy": 3}},
+            {"entity": "وزارة الكهرباء", "emotions": {"anger": 38, "frustration": 26, "sarcasm": 14, "fear": 6, "sadness": 5, "disgust": 8, "trust": 2, "joy": 1}},
+            {"entity": "أسعار السلة الغذائية", "emotions": {"anger": 30, "frustration": 32, "sarcasm": 9, "fear": 12, "sadness": 10, "disgust": 5, "trust": 1, "joy": 1}},
+            {"entity": "ملف المنافذ الحدودية", "emotions": {"anger": 26, "frustration": 16, "sarcasm": 20, "fear": 6, "sadness": 4, "disgust": 22, "trust": 4, "joy": 2}},
+            {"entity": "هيئة النزاهة", "emotions": {"anger": 12, "frustration": 10, "sarcasm": 15, "fear": 5, "sadness": 4, "disgust": 6, "trust": 34, "joy": 14}},
+            {"entity": "البرلمان", "emotions": {"anger": 22, "frustration": 18, "sarcasm": 30, "fear": 5, "sadness": 7, "disgust": 12, "trust": 4, "joy": 2}},
         ],
         "geo": None,
         "top_risks": [

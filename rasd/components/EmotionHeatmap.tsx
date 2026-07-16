@@ -26,12 +26,18 @@ export default function EmotionHeatmap({ data }: { data: { entity: string; emoti
             <tr key={i}>
               <td className="emo-ent">{r.entity}</td>
               {EMO.map((e) => {
-                const v = Math.max(0, Math.min(1, r.emotions[e.k] || 0));
+                // intel_digest ships these as 0-100 percentages (emotions.aggregate
+                // returns round(share * 100)). This clamped to 0-1, so every real
+                // value >= 1 saturated and every cell rendered "100" — in the war
+                // room too. Accept percentages; tolerate 0-1 fractions.
+                const raw = r.emotions[e.k] || 0;
+                const pct = Math.max(0, Math.min(100, raw > 1 ? raw : raw * 100));
+                const v = pct / 100;
                 return (
                   <td key={e.k}>
-                    <span className="emo-cell" title={`${e.ar}: ${Math.round(v * 100)}%`}
+                    <span className="emo-cell" title={`${e.ar}: ${Math.round(pct)}%`}
                       style={{ background: e.c, opacity: v < 0.04 ? 0.06 : 0.18 + v * 0.82 }}>
-                      {v >= 0.18 ? Math.round(v * 100) : ""}
+                      {v >= 0.18 ? Math.round(pct) : ""}
                     </span>
                   </td>
                 );
