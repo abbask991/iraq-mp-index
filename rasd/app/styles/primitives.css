@@ -110,6 +110,7 @@
     letter-spacing: -1px; font-variant-numeric: tabular-nums;
     color: var(--tone, var(--text));
   }
+  .u-stat-c { margin-top: var(--s-3); }
   .u-stat-m { font-size: var(--t-xs); color: var(--muted); margin-top: var(--s-2); }
 
   /* ---------- badge ---------- */
@@ -168,6 +169,47 @@
   .u-grid[data-cols="auto"] { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
   .u-grid[data-cols="2"] { grid-template-columns: repeat(2, 1fr); }
   @media (max-width: 860px) { .u-grid[data-cols="2"] { grid-template-columns: 1fr; } }
+
+  /* ---------- charts ---------- */
+  /* Thin marks, rounded data-ends, recessive track. Bars are divs, not SVG, so
+     they inherit RTL direction for free. */
+  .ch-rank-row, .ch-div-row {
+    display: grid; grid-template-columns: minmax(90px, 24%) 1fr auto;
+    align-items: center; gap: var(--s-3); padding: var(--s-2) 0;
+  }
+  .ch-rank-l, .ch-div-l {
+    font-size: var(--t-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .ch-rank-track {
+    height: 10px; border-radius: var(--r-full);
+    background: var(--input); border: 1px solid var(--line); overflow: hidden;
+  }
+  /* the measure hue. Deliberately NOT --accent2: blue is reserved for the
+     diverging positive pole, so it must not also mean "risk magnitude". */
+  .ch-rank-fill {
+    display: block; height: 100%; border-radius: var(--r-full);
+    background: var(--accent); transition: width .7s var(--ease);
+  }
+  .ch-rank-v, .ch-div-v {
+    font-size: var(--t-sm); font-weight: var(--w-bold); min-width: 40px; text-align: start;
+  }
+
+  .ch-div-legend {
+    display: flex; gap: var(--s-4); justify-content: flex-end;
+    font-size: var(--t-xs); color: var(--muted); margin-bottom: var(--s-2);
+  }
+  .ch-div-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .ch-div-legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+  .ch-div-plot { position: relative; height: 10px; }
+  /* the zero baseline — a solid hairline, never dashed */
+  .ch-div-axis {
+    position: absolute; inset-block: -4px; inset-inline-start: 50%;
+    width: 1px; background: var(--line);
+  }
+  .ch-div-fill {
+    position: absolute; inset-block: 0; height: 10px;
+    border-radius: var(--r-sm); transition: width .7s var(--ease);
+  }
 
   /* ---------- icon ---------- */
   .u-icon { flex: none; display: inline-block; vertical-align: -.125em; }

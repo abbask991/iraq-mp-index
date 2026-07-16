@@ -5,6 +5,10 @@ import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
 import { PageHeader, Section, Card, CardHead, Callout, Stat, Badge, Button, Meter, Grid, Row, Icon, type Tone, type IconName } from "@/components/ui";
+import { RankBars, DeltaBars } from "@/components/ui/charts";
+
+/** "-18 سمعة" / "+11 خطر" → -18 / +11. The payload ships deltas as prose. */
+const deltaNum = (s: string) => { const m = String(s).match(/-?\d+/); return m ? Number(m[0]) : 0; };
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 
@@ -96,6 +100,7 @@ export default function CommandCenter() {
                       value={d.national_risk[k]}
                       t={toneOfScore(d.national_risk[k])}
                       meta={`من ١٠٠`}
+                      chart={<Meter value={d.national_risk[k]} t={toneOfScore(d.national_risk[k])} />}
                     />
                   ) : null
                 )}
@@ -116,6 +121,12 @@ export default function CommandCenter() {
           {/* Top risks */}
           {d.top_risks?.length > 0 && (
             <Section title="أخطر ما يجري اليوم" icon="alert" count={d.top_risks.length}>
+              {/* the cross-entity comparison the cards can't give at a glance.
+                  One series → one colour; the severity badge on each card carries status. */}
+              <Card style={{ marginBottom: "var(--s-3)" }}>
+                <CardHead title="ترتيب الكيانات حسب درجة الخطر" right={<span className="u-fine">٠ – ١٠٠</span>} />
+                <RankBars data={d.top_risks.map((r: any) => ({ label: r.entity, value: Number(r.risk) || 0 }))} max={100} />
+              </Card>
               <Grid cols="auto">
                 {d.top_risks.map((r: any, i: number) => {
                   const t = toneOf(r.level);
@@ -147,6 +158,13 @@ export default function CommandCenter() {
           {/* What changed */}
           {d.what_changed?.length > 0 && (
             <Section title="ما الذي تغيّر خلال ٢٤ ساعة" icon="refresh" count={d.what_changed.length}>
+              {/* polarity around zero — the one thing the row list can't show */}
+              <Card style={{ marginBottom: "var(--s-3)" }}>
+                <CardHead title="حجم التغيّر واتجاهه" />
+                {/* only rows whose change is an actual delta — "حملة جديدة" is prose,
+                    not a number, and would plot as a meaningless zero-width bar */}
+                <DeltaBars data={d.what_changed.filter((c: any) => /-?\d/.test(String(c.change))).map((c: any) => ({ label: c.entity, value: deltaNum(c.change) }))} />
+              </Card>
               <Card>
                 {d.what_changed.map((c: any, i: number) => {
                   const cfg = CHANGE[c.type] || { icon: "refresh" as IconName, tone: "neutral" as Tone };
@@ -169,24 +187,33 @@ export default function CommandCenter() {
               <Card>
                 <CardHead title={<><Icon name="megaphone" size={16} /> حملات نشطة (الأعلى خطراً)</>} />
                 {d.active_campaigns.map((c: any, i: number) => (
-                  <Row
-                    key={i}
-                    title={<span className="u-num">#{c.hashtag}</span>}
-                    right={<Badge t={toneOf(c.level || "متوسط")}>تنسيق {c.coordination}</Badge>}
-                  />
+                  <div key={i} style={{ padding: "var(--s-3) 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--s-2)", marginBottom: "var(--s-2)" }}>
+                      <span className="u-num" style={{ fontWeight: "var(--w-med)" }}>#{c.hashtag}</span>
+                      <Badge t={toneOf(c.level || "متوسط")}>تنسيق {c.coordination}</Badge>
+                    </div>
+                    {/* one measure → one hue; the badge above carries the status */}
+                    <Meter value={Number(c.coordination) || 0} />
+                  </div>
                 ))}
               </Card>
             )}
             {d.trending?.length > 0 && (
               <Card>
-                <CardHead title={<><Icon name="fire" size={16} /> الأكثر تداولاً الآن</>} />
+                <CardHead title={<><Icon name="fire" size={16} /> الأكثر تداولاً الآن</>} right={<span className="u-fine">السرعة ٠ – ١٠٠</span>} />
                 {d.trending.map((t: any, i: number) => (
-                  <Row
-                    key={i}
-                    title={<b>{t.topic}</b>}
-                    meta={<span className="u-num">سرعة {t.velocity} · {t.sentiment} · {fmt(t.posts)} منشور</span>}
-                    right={<Badge t={toneOf(String(t.risk))}>خطر {t.risk}</Badge>}
-                  />
+                  <div key={i} style={{ padding: "var(--s-3) 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--s-2)", marginBottom: "var(--s-2)" }}>
+                      <b>{t.topic}</b>
+                      <Badge t={toneOf(String(t.risk))}>خطر {t.risk}</Badge>
+                    </div>
+                    {/* velocity is not risk — colouring it with risk tones would be a
+                        status colour on a non-status measure. One measure → one hue. */}
+                    <Meter value={Number(t.velocity) || 0} />
+                    <div className="u-fine u-num" style={{ marginTop: "var(--s-2)" }}>
+                      سرعة {t.velocity} · {t.sentiment} · {fmt(t.posts)} منشور
+                    </div>
+                  </div>
                 ))}
               </Card>
             )}

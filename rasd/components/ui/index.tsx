@@ -65,7 +65,7 @@ export function Callout({ label, icon, t, children, footer }: { label: string; i
   );
 }
 
-export function Stat({ label, value, meta, t, icon }: { label: string; value: React.ReactNode; meta?: string; t?: Tone; icon?: IconName }) {
+export function Stat({ label, value, meta, t, icon, chart }: { label: string; value: React.ReactNode; meta?: string; t?: Tone; icon?: IconName; chart?: React.ReactNode }) {
   return (
     <div className="u-stat" {...tone(t)}>
       <div className="u-stat-l">
@@ -73,6 +73,7 @@ export function Stat({ label, value, meta, t, icon }: { label: string; value: Re
         {label}
       </div>
       <div className="u-stat-v">{value}</div>
+      {chart && <div className="u-stat-c">{chart}</div>}
       {meta && <div className="u-stat-m">{meta}</div>}
     </div>
   );
