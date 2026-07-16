@@ -4,13 +4,32 @@ import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
+import { PageHeader, Section, Card, CardHead, Callout, Stat, Badge, Button, Meter, Grid, Row, Icon, type Tone, type IconName } from "@/components/ui";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
-const lvlColor = (l: string) => (/حرج/.test(l) ? "#dc2626" : /مرتفع/.test(l) ? "#f43f5e" : /متوسط/.test(l) ? "#f59e0b" : "#22c55e");
-const changeIcon: Record<string, string> = {
-  reputation_drop: "📉", reputation_gain: "📈", risk_rise: "⚠️", risk_drop: "✅",
-  new_campaign: "📢", new_trend: "🔥", sentiment_shift: "🔄",
+
+/** Arabic severity label → semantic tone. Single source for every colour on this page. */
+const toneOf = (l: string): Tone =>
+  /حرج/.test(l) ? "crit" : /مرتفع/.test(l) ? "danger" : /متوسط/.test(l) ? "warn" : "ok";
+/** Numeric risk (0-100) → tone. */
+const toneOfScore = (n: number): Tone => (n >= 70 ? "crit" : n >= 50 ? "danger" : n >= 30 ? "warn" : "ok");
+
+const CHANGE: Record<string, { icon: IconName; tone: Tone }> = {
+  reputation_drop: { icon: "trendDown", tone: "danger" },
+  reputation_gain: { icon: "trendUp", tone: "ok" },
+  risk_rise: { icon: "alert", tone: "danger" },
+  risk_drop: { icon: "check", tone: "ok" },
+  new_campaign: { icon: "megaphone", tone: "warn" },
+  new_trend: { icon: "fire", tone: "warn" },
+  sentiment_shift: { icon: "refresh", tone: "info" },
 };
+
+const RISK_LABELS: [string, string, IconName][] = [
+  ["political", "خطر سياسي", "target"],
+  ["reputation", "خطر السمعة", "trendDown"],
+  ["crisis", "مؤشر الأزمة", "alert"],
+  ["campaign", "حملات منسّقة", "megaphone"],
+];
 
 export default function CommandCenter() {
   const [d, setD] = useState<any>(null);
@@ -21,117 +40,169 @@ export default function CommandCenter() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <h2 style={{ margin: 0 }}>🎯 مركز القيادة</h2>
-        <button className={`btn ${demo ? "" : "ghost"}`} onClick={() => setDemo(!demo)} style={demo ? { background: "#6366f1" } : {}}>🧪 وضع العرض {demo ? "(مفعّل)" : ""}</button>
-      </div>
-      <p className="muted">ماذا يجب أن يعرفه صانع القرار الآن؟ — الصورة الكاملة خلال 60 ثانية.</p>
+      <PageHeader
+        title="مركز القيادة"
+        sub="ماذا يجب أن يعرفه صانع القرار الآن؟ — الصورة الكاملة خلال ٦٠ ثانية."
+        actions={
+          <Button aria-pressed={demo} onClick={() => setDemo(!demo)}>
+            <Icon name="flask" size={14} />
+            وضع العرض{demo ? " · مفعّل" : ""}
+          </Button>
+        }
+      />
 
       {loading && <SkelCards count={4} />}
-      {!loading && d?.empty && !demo && <EmptyState title="لا بيانات مرصودة بعد" subtitle={d?.note} action={{ label: "وضع العرض", onClick: () => setDemo(true) }} />}
+      {!loading && d?.empty && !demo && (
+        <EmptyState title="لا بيانات مرصودة بعد" subtitle={d?.note} action={{ label: "وضع العرض", onClick: () => setDemo(true) }} />
+      )}
 
       {!loading && d && (!d.empty || demo) && (
         <>
-          {demo && <p className="muted" style={{ fontSize: 11.5, color: "#6366f1" }}>🧪 {d.note}</p>}
+          {demo && (
+            <div className="u-fine" style={{ marginBottom: "var(--s-4)", color: "var(--info)", display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+              <Icon name="flask" size={13} />
+              {d.note}
+            </div>
+          )}
 
-          {/* Executive brief + urgent recommendation */}
-          <div className="cbox" style={{ marginBottom: 14, borderInlineStart: "4px solid #6366f1", background: "color-mix(in srgb,#6366f1 6%,var(--card))" }}>
-            <h4 style={{ margin: "0 0 6px" }}>🧠 الموجز التنفيذي</h4>
-            <p style={{ fontSize: 14.5, lineHeight: 1.9, margin: 0 }}>{d.executive_brief}</p>
-            {d.urgent_recommendation && (
-              <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 10, background: "color-mix(in srgb,#f43f5e 12%,transparent)", fontSize: 13.5 }}>
-                🚨 <b>الأولوية الآن:</b> {d.urgent_recommendation}
-              </div>
-            )}
+          {/* Executive brief — the one thing a decision-maker reads first */}
+          <div className="u-section">
+            <Callout
+              label="الموجز التنفيذي"
+              icon="brain"
+              footer={
+                d.urgent_recommendation ? (
+                  <div className="u-priority">
+                    <span style={{ color: "var(--danger)", marginTop: 2 }}><Icon name="siren" size={16} /></span>
+                    <span><b>الأولوية الآن:</b> {d.urgent_recommendation}</span>
+                  </div>
+                ) : null
+              }
+            >
+              {d.executive_brief}
+            </Callout>
           </div>
 
-          {/* national risk chips */}
+          {/* National risk — was 4 tiny chips, now the KPI strip it should always have been */}
           {d.national_risk && (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-              {Object.entries({ political: "سياسي", reputation: "سمعة", crisis: "أزمة", campaign: "حملات" }).map(([k, l]: any) => (
-                d.national_risk[k] != null && <span key={k} className="chip" style={{ color: lvlColor(d.national_risk[k] >= 50 ? "مرتفع" : "متوسط") }}>{l}: <b>{d.national_risk[k]}</b></span>
-              ))}
-              {d.most_damaged && <span className="chip" style={{ color: "#f43f5e" }}>📉 الأكثر تضرّراً: {d.most_damaged.entity} ({d.most_damaged.change})</span>}
-              {d.most_improved && <span className="chip" style={{ color: "#22c55e" }}>📈 الأكثر تحسّناً: {d.most_improved.entity} (+{d.most_improved.change})</span>}
+            <div className="u-section">
+              <div className="u-stats">
+                {RISK_LABELS.map(([k, label, icon]) =>
+                  d.national_risk[k] != null ? (
+                    <Stat
+                      key={k}
+                      label={label}
+                      icon={icon}
+                      value={d.national_risk[k]}
+                      t={toneOfScore(d.national_risk[k])}
+                      meta={`من ١٠٠`}
+                    />
+                  ) : null
+                )}
+              </div>
+              {(d.most_damaged || d.most_improved) && (
+                <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", marginTop: "var(--s-3)" }}>
+                  {d.most_damaged && (
+                    <Badge t="danger"><Icon name="trendDown" size={12} /> الأكثر تضرّراً: {d.most_damaged.entity} ({d.most_damaged.change})</Badge>
+                  )}
+                  {d.most_improved && (
+                    <Badge t="ok"><Icon name="trendUp" size={12} /> الأكثر تحسّناً: {d.most_improved.entity} (+{d.most_improved.change})</Badge>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
           {/* Top risks */}
           {d.top_risks?.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              <h3 style={{ marginBottom: 8 }}>🔴 أخطر ما يجري اليوم</h3>
-              <div className="grid">
-                {d.top_risks.map((r: any, i: number) => (
-                  <div key={i} className="cbox" style={{ borderInlineStart: `4px solid ${lvlColor(r.level)}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <b style={{ fontSize: 14 }}>{r.entity}</b>
-                      <span className="chip" style={{ color: lvlColor(r.level), fontSize: 11 }}>{r.level} · {r.risk}</span>
-                    </div>
-                    <div style={{ fontSize: 12.5, marginTop: 5, lineHeight: 1.7 }}>{r.reason}</div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
-                      <span className="muted" style={{ fontSize: 11 }}>📎 {fmt(r.evidence_count)} دليل</span>
-                      <EvidenceExplorer subject={r.entity} type="risk" score={r.risk} demo={demo} />
-                    </div>
-                    <div style={{ marginTop: 6, fontSize: 12.5 }}>▸ <b>{r.recommended_action}</b></div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Section title="أخطر ما يجري اليوم" icon="alert" count={d.top_risks.length}>
+              <Grid cols="auto">
+                {d.top_risks.map((r: any, i: number) => {
+                  const t = toneOf(r.level);
+                  return (
+                    <Card key={i} t={t}>
+                      <CardHead
+                        title={r.entity}
+                        right={<Badge t={t} dot>{r.level} · {r.risk}</Badge>}
+                      />
+                      <Meter value={Number(r.risk) || 0} t={t} />
+                      <p className="u-muted" style={{ margin: "var(--s-3) 0 0" }}>{r.reason}</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", marginTop: "var(--s-3)" }}>
+                        <span style={{ color: "var(--accent)", marginTop: 1 }}><Icon name="bolt" size={14} /></span>
+                        <span style={{ fontSize: "var(--t-sm)", fontWeight: "var(--w-bold)" }}>{r.recommended_action}</span>
+                      </div>
+                      <div className="u-card-foot">
+                        <span className="u-fine u-num" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                          <Icon name="clip" size={12} /> {fmt(r.evidence_count)} دليل
+                        </span>
+                        <EvidenceExplorer subject={r.entity} type="risk" score={r.risk} demo={demo} />
+                      </div>
+                    </Card>
+                  );
+                })}
+              </Grid>
+            </Section>
           )}
 
           {/* What changed */}
           {d.what_changed?.length > 0 && (
-            <div className="cbox" style={{ marginBottom: 14 }}>
-              <h3 style={{ marginTop: 0 }}>🔄 ما الذي تغيّر (24 ساعة)؟</h3>
-              {d.what_changed.map((c: any, i: number) => (
-                <div key={i} style={{ display: "flex", gap: 10, padding: "8px 0", borderTop: i ? "1px solid var(--line)" : 0, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 18 }}>{changeIcon[c.type] || "•"}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13.5 }}><b>{c.entity}</b> <span className="chip" style={{ fontSize: 10.5, color: lvlColor(c.risk_level) }}>{c.change}</span></div>
-                    <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>{c.reason} · 📎 {fmt(c.evidence_count)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Section title="ما الذي تغيّر خلال ٢٤ ساعة" icon="refresh" count={d.what_changed.length}>
+              <Card>
+                {d.what_changed.map((c: any, i: number) => {
+                  const cfg = CHANGE[c.type] || { icon: "refresh" as IconName, tone: "neutral" as Tone };
+                  return (
+                    <Row
+                      key={i}
+                      icon={cfg.icon}
+                      iconTone={cfg.tone}
+                      title={<><b>{c.entity}</b><Badge t={toneOf(c.risk_level)}>{c.change}</Badge></>}
+                      meta={<>{c.reason} · <span className="u-num">{fmt(c.evidence_count)} دليل</span></>}
+                    />
+                  );
+                })}
+              </Card>
+            </Section>
           )}
 
-          <div className="grid" style={{ marginBottom: 14 }}>
-            {/* Active campaigns */}
+          <Grid cols="2" style={{ marginBottom: "var(--s-6)" }}>
             {d.active_campaigns?.length > 0 && (
-              <div className="cbox">
-                <h4>📢 حملات نشطة (الأعلى خطراً)</h4>
+              <Card>
+                <CardHead title={<><Icon name="megaphone" size={16} /> حملات نشطة (الأعلى خطراً)</>} />
                 {d.active_campaigns.map((c: any, i: number) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
-                    <span>#{c.hashtag}</span><span className="chip" style={{ fontSize: 10.5, color: lvlColor(c.level || "متوسط") }}>تنسيق {c.coordination}</span>
-                  </div>
+                  <Row
+                    key={i}
+                    title={<span className="u-num">#{c.hashtag}</span>}
+                    right={<Badge t={toneOf(c.level || "متوسط")}>تنسيق {c.coordination}</Badge>}
+                  />
                 ))}
-              </div>
+              </Card>
             )}
-            {/* Trending */}
             {d.trending?.length > 0 && (
-              <div className="cbox">
-                <h4>🔥 الأكثر تداولاً الآن</h4>
+              <Card>
+                <CardHead title={<><Icon name="fire" size={16} /> الأكثر تداولاً الآن</>} />
                 {d.trending.map((t: any, i: number) => (
-                  <div key={i} style={{ padding: "6px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                      <b>{t.topic}</b><span className="chip" style={{ fontSize: 10.5, color: lvlColor(t.risk) }}>خطر {t.risk}</span>
-                    </div>
-                    <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>⚡ سرعة {t.velocity} · {t.sentiment} · {fmt(t.posts)} منشور</div>
-                  </div>
+                  <Row
+                    key={i}
+                    title={<b>{t.topic}</b>}
+                    meta={<span className="u-num">سرعة {t.velocity} · {t.sentiment} · {fmt(t.posts)} منشور</span>}
+                    right={<Badge t={toneOf(String(t.risk))}>خطر {t.risk}</Badge>}
+                  />
                 ))}
-              </div>
+              </Card>
             )}
-          </div>
+          </Grid>
 
-          {/* Recommended actions */}
           {d.recommended_actions?.length > 0 && (
-            <div className="cbox" style={{ marginBottom: 14, borderInlineStart: "4px solid #22c55e" }}>
-              <h4 style={{ marginTop: 0 }}>✅ إجراءات موصى بها</h4>
-              {d.recommended_actions.map((a: string, i: number) => <div key={i} style={{ fontSize: 13.5, padding: "3px 0" }}>▸ {a}</div>)}
-            </div>
+            <Section title="إجراءات موصى بها" icon="check" count={d.recommended_actions.length}>
+              <Card t="ok">
+                {d.recommended_actions.map((a: string, i: number) => (
+                  <Row key={i} icon="check" iconTone="ok" title={a} />
+                ))}
+              </Card>
+            </Section>
           )}
 
-          <p className="muted" style={{ fontSize: 11 }}>{d.disclaimer}</p>
+          <p className="u-fine">{d.disclaimer}</p>
         </>
       )}
     </div>

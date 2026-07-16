@@ -1,4 +1,7 @@
+// Order matters: tokens.css declares the layer order (tokens < legacy < ui).
+import "./styles/tokens.css";
 import "./globals.css";
+import "./styles/primitives.css";
 import { Tajawal } from "next/font/google";
 import DirInit from "@/components/DirInit";
 

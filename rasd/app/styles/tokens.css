@@ -1,0 +1,54 @@
+/* Design tokens — the scale the product never had.
+   Loaded FIRST (app/layout.tsx) so it also declares the layer order:
+   tokens < legacy < ui  →  primitives beat the 820 accreted lines in
+   globals.css without a single !important, and without editing them. */
+@layer tokens, legacy, ui;
+
+@layer tokens {
+  :root {
+    /* Space — 4px base. Every magic number in the codebase rounds to one of these. */
+    --s-1: 4px;  --s-2: 8px;   --s-3: 12px; --s-4: 16px; --s-5: 20px;
+    --s-6: 24px; --s-8: 32px;  --s-10: 40px; --s-12: 48px; --s-16: 64px;
+
+    /* Radius — collapses the current 6–18px chaos to 4 steps. */
+    --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-full: 999px;
+
+    /* Type — tuned for Tajawal/Arabic, which needs more leading than Latin. */
+    --t-xs: 11px; --t-sm: 12.5px; --t-base: 14px; --t-md: 16px;
+    --t-lg: 19px; --t-xl: 23px;   --t-2xl: 30px;  --t-3xl: 40px;
+    --w-normal: 400; --w-med: 500; --w-bold: 700; --w-black: 850;
+    --lh-tight: 1.3; --lh-base: 1.6; --lh-relaxed: 1.85;
+
+    /* Semantic status — replaces #22c55e / #f59e0b / #f43f5e hardcoded in dozens of files. */
+    --ok: #22c55e;    --ok-bg: color-mix(in srgb, #22c55e 12%, transparent);
+    --warn: #f59e0b;  --warn-bg: color-mix(in srgb, #f59e0b 12%, transparent);
+    --danger: #f43f5e; --danger-bg: color-mix(in srgb, #f43f5e 12%, transparent);
+    --crit: #dc2626;  --crit-bg: color-mix(in srgb, #dc2626 14%, transparent);
+    --info: #6366f1;  --info-bg: color-mix(in srgb, #6366f1 12%, transparent);
+
+    /* Elevation */
+    --sh-1: 0 1px 2px rgba(0,0,0,.20);
+    --sh-2: 0 2px 8px rgba(0,0,0,.24);
+    --sh-3: 0 8px 24px rgba(0,0,0,.30);
+    --sh-4: 0 20px 48px rgba(0,0,0,.38);
+
+    /* Motion */
+    --dur-fast: .15s; --dur-base: .22s;
+    --ease: cubic-bezier(.2,.7,.2,1);
+
+    /* Layering */
+    --z-nav: 40; --z-drawer: 50; --z-modal: 60; --z-toast: 70;
+  }
+
+  [data-theme="light"] {
+    --ok-bg: color-mix(in srgb, #22c55e 10%, transparent);
+    --warn-bg: color-mix(in srgb, #f59e0b 10%, transparent);
+    --danger-bg: color-mix(in srgb, #f43f5e 9%, transparent);
+    --crit-bg: color-mix(in srgb, #dc2626 9%, transparent);
+    --info-bg: color-mix(in srgb, #6366f1 9%, transparent);
+    --sh-1: 0 1px 2px rgba(15,23,42,.06);
+    --sh-2: 0 2px 8px rgba(15,23,42,.08);
+    --sh-3: 0 8px 24px rgba(15,23,42,.10);
+    --sh-4: 0 20px 48px rgba(15,23,42,.14);
+  }
+}

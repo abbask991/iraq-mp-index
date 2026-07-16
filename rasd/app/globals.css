@@ -1,6 +1,12 @@
 /* Tajawal is self-hosted via next/font in app/layout.tsx (--font-tajawal).
    The old render-blocking @import of fonts.googleapis.com lived here. */
 
+
+/* The 820 accreted lines below keep resolving among themselves exactly as
+   before. Wrapping them in @layer legacy lets @layer ui (primitives.css)
+   win without editing a single rule here. */
+@layer legacy {
+
 :root {
   --bg: #0a0e17; --panel: #111726; --line: #1f2a3d; --text: #e8eef9;
   --muted: #8a97ad; --accent: #34d6c6; --accent2: #4f9dff; --input: #0c1320; --hover: #0e1626;
@@ -822,3 +828,6 @@ h3 { letter-spacing: -.2px; }
 }
 .admin-main table:not(.paper table) td { padding: 9px 11px; border-bottom: 1px solid var(--line); font-size: 13px; }
 
+
+
+}
