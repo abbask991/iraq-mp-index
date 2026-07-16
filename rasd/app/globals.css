@@ -105,6 +105,12 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .admin-side a:hover { background: var(--hover); color: var(--text); padding-inline-start: 16px; }
 .admin-side a.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #04121a; font-weight: 800;
   box-shadow: 0 6px 18px rgba(52,214,198,.32); }
+/* A grid track defaults to min-width:auto, so this column refuses to shrink below
+   its widest child — the war room's 9-column emotion table forced .admin-main to
+   1500px and the page scrolled sideways at 1440. The identical rule already
+   existed inside the mobile media query below; the bug was never width-specific,
+   so it belongs here. */
+.admin-main { min-width: 0; }
 .admin-main h2 { margin: 0 0 4px; }
 .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 8px 0 4px; }
 @media (max-width: 700px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
