@@ -68,6 +68,7 @@ async def build(demo: bool = False) -> dict:
     risks = [{
         "entity": e["name"], "risk": e.get("risk", 0), "level": _risk_label(e.get("risk", 0)),
         "reason": _reason(e), "evidence_count": e.get("data_points", 0),
+        "evidence_capped": e.get("data_points_capped", False),
         "recommended_action": _actions_for(e)[0],
     } for e in top_risk]
 
@@ -116,6 +117,7 @@ async def build(demo: bool = False) -> dict:
         "national_sentiment": dg.get("national_sentiment") or {},
         "platform_activity": dg.get("platform_activity") or [],
         "emotion_heatmap": dg.get("emotion_heatmap") or [],
+        "coverage": dg.get("coverage") or {},
         "geo": dg.get("geo"),
         "top_risks": risks,
         "what_changed": changes,
@@ -148,6 +150,8 @@ def _demo_payload() -> dict:
         # Consistent with the demo story above: electricity-driven negativity,
         # Facebook-heavy, anger concentrated on the service ministries.
         "national_sentiment": {"pos": 412, "neg": 1985, "neu": 733},
+        "coverage": {"signals": 3130, "sample": 3130, "platforms": 4, "sources": 86,
+                     "engagement": 412_800, "latest": "2026-07-17T09:20:00Z", "comments": 8420},
         "platform_activity": [
             {"platform": "facebook", "count": 1840, "pct": 59},
             {"platform": "x", "count": 742, "pct": 24},

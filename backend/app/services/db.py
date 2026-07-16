@@ -62,6 +62,33 @@ async def select(table: str, query: str = "select=*", timeout: int = 15):
         return r.json() if r.status_code == 200 else []
 
 
+async def count(table: str, query: str = "", timeout: int = 15) -> int | None:
+    """Exact row count via PostgREST's Content-Range header.
+
+    select() can only report how many rows it fetched, which is the page size —
+    so a capped read looks identical to a real total. Coverage figures shown to a
+    client must be the true count, not a limit.
+
+    Returns None (not 0) when unavailable, so callers can hide the figure rather
+    than assert "0 signals".
+    """
+    if not enabled():
+        return None
+    try:
+        async with httpx.AsyncClient() as c:
+            r = await c.get(
+                f"{SUPABASE_URL}/rest/v1/{table}?select=id&limit=1" + (f"&{query}" if query else ""),
+                headers={**_h(), "Prefer": "count=exact", "Range-Unit": "items", "Range": "0-0"},
+                timeout=timeout,
+            )
+            # Content-Range: "0-0/12345"  → the part after the slash is the total
+            cr = r.headers.get("content-range") or ""
+            total = cr.split("/")[-1]
+            return int(total) if total.isdigit() else None
+    except Exception:
+        return None
+
+
 async def insert(table: str, row, *, upsert: bool = False, on_conflict: str | None = None,
                  returning: bool = False, timeout: int = 15):
     """POST a row (or list of rows). `upsert=True` + `on_conflict` merges."""

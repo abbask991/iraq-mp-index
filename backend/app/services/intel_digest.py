@@ -80,6 +80,7 @@ async def build_digest(now_ts: float | None = None):
             "national_trend_probability": prob,
             "emotions": emo,
             "data_points": twin.get("data_points", 0),
+            "data_points_capped": twin.get("data_points_capped", False),
             "rep_delta": rep - p.get("reputation", rep),
             "risk_delta": risk - p.get("risk", risk),
         })
@@ -127,15 +128,33 @@ async def build_digest(now_ts: float | None = None):
         "campaign": _avg([e.get("campaign_threat", 0) for e in entities]),
     } if entities else {}
 
-    # platform activity (share of stored mentions by platform)
-    platform_activity = []
+    # platform activity (share of stored mentions by platform) + coverage.
+    # Coverage answers the first question a client asks of any number on the
+    # dashboard: "based on what?" Without it, every score is an unbacked claim.
+    platform_activity, coverage = [], {}
     try:
         from collections import Counter
-        rows = await db.select("mentions", "select=platform&order=created_at.desc&limit=3000")
+        rows = await db.select(
+            "mentions", "select=platform,source,engagement,created_at&order=created_at.desc&limit=3000")
         pc = Counter((r.get("platform") or "x") for r in rows)
         tot = sum(pc.values()) or 1
         platform_activity = [{"platform": p, "count": c, "pct": round(c / tot * 100)}
                              for p, c in pc.most_common()]
+        # `rows` is a capped sample — the honest total needs an exact count.
+        total_signals = await db.count("mentions")
+        sample = len(rows)
+        coverage = {
+            "signals": total_signals,               # None if the count is unavailable
+            "sample": sample,                       # rows the sums below are computed over
+            "platforms": len(pc),
+            "sources": len({r.get("source") for r in rows if r.get("source")}),
+            "engagement": sum(int(r.get("engagement") or 0) for r in rows),
+            "latest": max((r.get("created_at") for r in rows if r.get("created_at")), default=None),
+            # comments live in facebook_comments, which migration 011 creates. Until
+            # it is applied the table does not exist, so the figure is omitted rather
+            # than shown as 0.
+            "comments": None,
+        }
     except Exception:
         pass
 
@@ -160,6 +179,7 @@ async def build_digest(now_ts: float | None = None):
         "national_sentiment": national_sentiment,
         "executive": executive, "risk_summary": risk_summary,
         "platform_activity": platform_activity,
+        "coverage": coverage,
         "count": len(entities),
     }
     await redis_client.set(DIGEST_KEY, json.dumps(digest, ensure_ascii=False), ex=_TTL)

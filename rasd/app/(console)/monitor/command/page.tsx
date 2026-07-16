@@ -77,6 +77,41 @@ export default function CommandCenter() {
             </div>
           )}
 
+          {/* Coverage — "based on what?". Every score below is an unbacked claim
+              without it. Figures that are unavailable are omitted, never zeroed. */}
+          {(d.coverage?.signals != null || d.coverage?.platforms) && (
+            <div className="u-section">
+              <div className="u-stats">
+                {d.coverage.signals != null && (
+                  <Stat label="إشارات مرصودة" icon="clip" value={fmt(d.coverage.signals)} meta="إجمالي المخزّن" />
+                )}
+                {d.coverage.platforms > 0 && (
+                  <Stat label="منصّات ممسوحة" icon="megaphone" value={d.coverage.platforms}
+                    meta={(d.platform_activity || []).map((p: any) => PLATFORM_AR[p.platform] || p.platform).join(" · ") || undefined} />
+                )}
+                {d.coverage.sources > 0 && (
+                  <Stat label="مصادر" icon="brain" value={fmt(d.coverage.sources)} meta={`ضمن آخر ${fmt(d.coverage.sample || 0)} إشارة`} />
+                )}
+                {d.coverage.engagement > 0 && (
+                  <Stat label="تفاعلات" icon="bolt" value={fmt(d.coverage.engagement)} meta={`ضمن آخر ${fmt(d.coverage.sample || 0)} إشارة`} />
+                )}
+                {d.coverage.comments != null && (
+                  <Stat label="تعليقات محلَّلة" icon="brain" value={fmt(d.coverage.comments)} />
+                )}
+              </div>
+              {d.coverage.latest && (
+                <div className="u-fine" style={{ marginTop: "var(--s-2)" }}>
+                  آخر إشارة مرصودة: {new Date(d.coverage.latest).toLocaleString("ar-IQ", { dateStyle: "medium", timeStyle: "short" })}
+                </div>
+              )}
+              {d.coverage.comments == null && !demo && (
+                <div className="u-fine" style={{ marginTop: "var(--s-2)" }}>
+                  التعليقات غير محتسبة — يتطلّب تطبيق ترحيل ‎011‎ لتفعيل تخزين منشورات/تعليقات فيسبوك.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Executive brief — the one thing a decision-maker reads first */}
           <div className="u-section">
             <Callout
@@ -202,8 +237,11 @@ export default function CommandCenter() {
                         <span style={{ fontSize: "var(--t-sm)", fontWeight: "var(--w-bold)" }}>{r.recommended_action}</span>
                       </div>
                       <div className="u-card-foot">
-                        <span className="u-fine u-num" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                          <Icon name="clip" size={12} /> {fmt(r.evidence_count)} دليل
+                        <span className="u-fine u-num" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                          title={r.evidence_capped ? "بلغ سقف الاستعلام — العدد الفعلي أكبر" : undefined}>
+                          {/* the backend caps the read at 300, so a saturated value is a
+                              floor, not a count. Render it as such. */}
+                          <Icon name="clip" size={12} /> {fmt(r.evidence_count)}{r.evidence_capped ? "+" : ""} دليل
                         </span>
                         <EvidenceExplorer subject={r.entity} type="risk" score={r.risk} demo={demo} />
                       </div>

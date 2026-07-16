@@ -77,10 +77,11 @@ async def build(entity_id: str, days: int = 30) -> dict:
         "entity_metrics_daily",
         f"select=day,mentions,pos,neg,neu,media_index&entity_id=eq.{entity_id}"
         f"&order=day.asc&limit={days}")
+    MENTION_CAP = 300
     mentions = await db.select(
         "mentions",
         f"select=text,sentiment,source,platform,created_at&entity_id=eq.{entity_id}"
-        f"&order=created_at.desc&limit=300")
+        f"&order=created_at.desc&limit={MENTION_CAP}")
 
     pos = sum(m.get("pos", 0) for m in metrics) or sum(1 for x in mentions if x.get("sentiment") == "إيجابي")
     neg = sum(m.get("neg", 0) for m in metrics) or sum(1 for x in mentions if x.get("sentiment") == "سلبي")
@@ -117,4 +118,9 @@ async def build(entity_id: str, days: int = 30) -> dict:
     twin = compose(inputs)
     twin["window_days"] = len(metrics)
     twin["data_points"] = len(mentions)
+    # `mentions` is capped, so data_points saturates at MENTION_CAP: an entity with
+    # 5,000 mentions reports the same "300" as one with exactly 300. Surfacing that
+    # as an evidence count overstates thin coverage and understates deep coverage.
+    # Callers must render a saturated value as "300+", not "300".
+    twin["data_points_capped"] = len(mentions) >= MENTION_CAP
     return twin
