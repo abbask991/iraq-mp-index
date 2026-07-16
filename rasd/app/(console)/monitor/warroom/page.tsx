@@ -8,11 +8,14 @@ import WarGraph from "@/components/WarGraph";
 import RadarChart from "@/components/RadarChart";
 import EmotionHeatmap from "@/components/EmotionHeatmap";
 import IraqMap from "@/components/IraqMap";
+import Icon from "@/components/ui/Icon";
 
 const TRAJ = (t: string) => (t === "rising" || t === "escalating" ? "▲" : t === "declining" || t === "cooling" ? "▼" : "▬");
 
 const REFRESH = 45;
-const sevIcon = (s: string) => (s === "red" ? "🔴" : s === "orange" ? "🟠" : "🟡");
+/** Severity → colour. Was 🔴/🟠/🟡; the dot is drawn now, so it takes the palette
+ *  and stays crisp at any size instead of depending on the OS emoji font. */
+const sevColor = (s: string) => (s === "red" ? "#f43f5e" : s === "orange" ? "#fb923c" : "#eab308");
 const riskColor = (v: number) => (v >= 70 ? "#f43f5e" : v >= 50 ? "#fb923c" : v >= 30 ? "#f59e0b" : "#22c55e");
 
 // National alert posture — the DEFCON-style status the whole room keys off.
@@ -104,9 +107,9 @@ export default function WarRoom() {
 
   // breaking ticker items
   const ticker: string[] = [
-    ...alerts.slice(0, 6).map((a) => `${sevIcon(a.severity)} ${a.message}`),
-    ...narrs.slice(0, 4).map((n: any) => `📈 سردية صاعدة: ${n.narrative} (${n.posts || 0})`),
-    ...attacked.slice(0, 3).map((e: any) => `🎯 تحت الهجوم: ${e.name} — خطر ${e.risk}`),
+    ...alerts.slice(0, 6).map((a) => a.message),
+    ...narrs.slice(0, 4).map((n: any) => `سردية صاعدة: ${n.narrative} (${n.posts || 0})`),
+    ...attacked.slice(0, 3).map((e: any) => `تحت الهجوم: ${e.name} — خطر ${e.risk}`),
   ];
 
   return (
@@ -131,8 +134,8 @@ export default function WarRoom() {
               transform="rotate(-90 18 18)" style={{ transition: "stroke-dashoffset 1s linear" }} />
           </svg><span className="wr-ring-n">{countdown}</span></span>
           <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => setSound((s) => !s)} title="تنبيه صوتي">
-            {sound ? "🔔" : "🔕"}</button>
-          <button className="btn ghost" style={{ fontSize: 12 }} onClick={fs}>⛶ ملء الشاشة</button>
+            {sound ? <Icon name="bell" size={14} /> : <Icon name="bellOff" size={14} />}</button>
+          <button className="btn ghost" style={{ fontSize: 12 }} onClick={fs}><Icon name="expand" size={13} /> ملء الشاشة</button>
         </div>
       </div>
 
@@ -152,7 +155,7 @@ export default function WarRoom() {
             <div className="wr-posture-r">
               {reds > 0 && <span className="wr-badge" style={{ background: "#f43f5e" }}>{reds} تهديد حرج</span>}
               {camps.length > 0 && <span className="wr-badge" style={{ background: "#fb923c" }}>{camps.length} حملة منسّقة</span>}
-              {d.facebook?.approval != null && <span className="wr-badge" style={{ background: d.facebook.approval >= 55 ? "#22c55e" : d.facebook.approval >= 40 ? "#f59e0b" : "#f43f5e" }}>👍 فيسبوك {d.facebook.approval}% تأييد</span>}
+              {d.facebook?.approval != null && <span className="wr-badge" style={{ background: d.facebook.approval >= 55 ? "#22c55e" : d.facebook.approval >= 40 ? "#f59e0b" : "#f43f5e" }}><Icon name="trendUp" size={12} /> فيسبوك {d.facebook.approval}% تأييد</span>}
               <span className="wr-badge" style={{ background: pos.color }}>الخطر {risk}/100</span>
             </div>
           </div>
@@ -170,12 +173,12 @@ export default function WarRoom() {
           {/* main: map · threat graph · alert ticker */}
           <div className="wr-main3">
             <div className="wr-graph">
-              <div className="wr-cap">🗺️ الخريطة الميدانية — العراق</div>
+              <div className="wr-cap"><Icon name="map" size={13} /> الخريطة الميدانية — العراق</div>
               {d.geo?.governorates?.length ? <IraqMap geo={d.geo} />
                 : <div className="muted" style={{ padding: 24, textAlign: "center" }}>لا بيانات جغرافية بعد.</div>}
             </div>
             <div className="wr-graph">
-              <div className="wr-cap">🕸️ خريطة التهديد الحيّة — كيانات · سرديات · حملات</div>
+              <div className="wr-cap"><Icon name="network" size={13} /> خريطة التهديد الحيّة — كيانات · سرديات · حملات</div>
               <WarGraph data={{ nodes: d.nodes, edges: d.edges }} />
             </div>
             <div className="wr-side">
@@ -183,10 +186,10 @@ export default function WarRoom() {
               <div className="wr-alerts">
                 {alerts.length ? alerts.slice(0, 14).map((a, i) => (
                   <div key={i} className="wr-alert" style={{ ["--ac" as any]: a.severity === "red" ? "#f43f5e" : a.severity === "orange" ? "#fb923c" : "#eab308" }}>
-                    <span>{sevIcon(a.severity)}</span>
+                    <span className="u-badge-dot" style={{ background: sevColor(a.severity), marginTop: 6 }} />
                     <span style={{ flex: 1 }}>{a.message}</span>
                   </div>
-                )) : <div className="muted" style={{ fontSize: 13, padding: 8 }}>لا تنبيهات نشطة — الوضع تحت السيطرة. ✅</div>}
+                )) : <div className="muted" style={{ fontSize: 13, padding: 8 }}>لا تنبيهات نشطة — الوضع تحت السيطرة. </div>}
               </div>
             </div>
           </div>
@@ -194,7 +197,7 @@ export default function WarRoom() {
           {/* mid: most-attacked · coordinated campaigns · narratives */}
           <div className="wr-tri">
             <div className="wr-panel">
-              <div className="wr-cap" style={{ color: "#f43f5e" }}>🎯 الأكثر تعرّضاً للهجوم</div>
+              <div className="wr-cap" style={{ color: "#f43f5e" }}><Icon name="target" size={13} /> الأكثر تعرّضاً للهجوم</div>
               {attacked.length ? attacked.slice(0, 6).map((e: any, i: number) => (
                 <div key={i} className="wr-attrow">
                   <span className="wr-attname">{e.name}</span>
@@ -205,18 +208,18 @@ export default function WarRoom() {
             </div>
 
             <div className="wr-panel">
-              <div className="wr-cap" style={{ color: "#fb923c" }}>🕸️ الحملات المنسّقة النشطة</div>
+              <div className="wr-cap" style={{ color: "#fb923c" }}><Icon name="network" size={13} /> الحملات المنسّقة النشطة</div>
               {camps.length ? camps.slice(0, 6).map((c: any, i: number) => (
                 <Link key={i} href={`/monitor/coordination?q=${encodeURIComponent(c.hashtag || "")}`} className="wr-camprow">
                   <span style={{ flex: 1, fontWeight: 600 }}>#{c.hashtag || "—"}</span>
                   <span className="chip" style={{ color: (c.coordination_score || 0) >= 60 ? "#f43f5e" : "#fb923c" }}>تنسيق {c.coordination_score || 0}</span>
                   <span style={{ color: "var(--muted)", fontSize: 12 }}>↗</span>
                 </Link>
-              )) : <span className="muted">لا حملات منسّقة مرصودة حالياً. ✅</span>}
+              )) : <span className="muted">لا حملات منسّقة مرصودة حالياً. </span>}
             </div>
 
             <div className="wr-panel">
-              <div className="wr-cap">📈 معركة السرديات</div>
+              <div className="wr-cap"><Icon name="trendUp" size={13} /> معركة السرديات</div>
               {narrs.length ? narrs.slice(0, 7).map((n: any, i: number) => (
                 <div key={i} className="wr-narrrow">
                   <span className="wr-narrdot" style={{ background: (n.neg_ratio || 0) > 0.5 ? "#f43f5e" : "#22c55e" }} />
@@ -230,11 +233,11 @@ export default function WarRoom() {
           {/* viz row: risk radar · platform activity */}
           <div className="wr-viz">
             <div className="wr-panel">
-              <div className="wr-cap">🎯 مصفوفة المخاطر الوطنية</div>
+              <div className="wr-cap"><Icon name="target" size={13} /> مصفوفة المخاطر الوطنية</div>
               <RadarChart axes={radarAxes} color={riskColor(risk)} />
             </div>
             <div className="wr-panel">
-              <div className="wr-cap">📡 نشاط المنصّات</div>
+              <div className="wr-cap"><Icon name="megaphone" size={13} /> نشاط المنصّات</div>
               {platforms.length ? platforms.slice(0, 7).map((p: any, i: number) => {
                 const k = (p.platform || "x").toLowerCase();
                 return (
@@ -251,11 +254,11 @@ export default function WarRoom() {
           {/* viz row 2: emotion heatmap · spread velocity */}
           <div className="wr-viz">
             <div className="wr-panel">
-              <div className="wr-cap">🌡️ خريطة حرارة المشاعر</div>
+              <div className="wr-cap"><Icon name="thermometer" size={13} /> خريطة حرارة المشاعر</div>
               <EmotionHeatmap data={heatmap} />
             </div>
             <div className="wr-panel">
-              <div className="wr-cap">🚀 سرعة الانتشار</div>
+              <div className="wr-cap"><Icon name="rocket" size={13} /> سرعة الانتشار</div>
               {momentum.length ? (
                 <div className="wr-velos">
                   {momentum.slice(0, 4).map((m: any, i: number) => (
@@ -272,7 +275,7 @@ export default function WarRoom() {
           {/* AI situation brief */}
           {(d.summary || d.recommended_actions?.length) && (
             <div className="wr-brief">
-              <div className="wr-cap">🧠 تقييم الموقف — الذكاء الاصطناعي</div>
+              <div className="wr-cap"><Icon name="brain" size={13} /> تقييم الموقف — الذكاء الاصطناعي</div>
               {d.summary && <p style={{ fontSize: 14.5, lineHeight: 2, margin: "4px 0 10px" }}>{d.summary}</p>}
               {d.recommended_actions?.length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
