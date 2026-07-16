@@ -52,7 +52,10 @@ def _rule_brief(top_risk: list, changes: list, campaigns: list) -> str:
         parts.append(f"أبرز تغيّر: {c['entity']} ({c['change']}) — {c['reason']}.")
     if campaigns:
         parts.append(f"حملات نشطة مشتبهة: {len(campaigns)}.")
-    parts.append("ملخّص آلي مبسّط (بدون ذكاء اصطناعي) — يُستبدل بالموجز التنفيذي الكامل عند توفّر الرصيد.")
+    # Client-facing. Never mention credit, billing, or which engine is degraded —
+    # that is our operational state, not the reader's business, and it reads as
+    # "this product is running broken" to a buyer.
+    parts.append("ملخّص قاعدي مولّد من المؤشرات المرصودة.")
     return " ".join(parts)
 
 
@@ -99,8 +102,12 @@ async def build(demo: bool = False) -> dict:
         "risk": "مرتفع" if (n.get("neg_ratio", 0) or 0) > 0.6 and n.get("posts", 0) > 20 else "متوسط",
     } for n in narrs]
 
-    # most urgent recommendation
+    # most urgent recommendation. `is_urgent` says whether there is genuinely
+    # something to act on: below the "مرتفع" threshold _actions_for() returns
+    # "لا ردّ موصى به الآن", and rendering that inside an alarm box trains the
+    # reader to ignore the alarm box.
     urgent = (_actions_for(top_risk[0])[0] if top_risk else "الوضع مستقر — مراقبة روتينية")
+    is_urgent = bool(top_risk and (top_risk[0].get("risk", 0) or 0) >= 50)
 
     brief = ex.get("brief") or _rule_brief(top_risk, changes, campaigns)
 
@@ -130,6 +137,7 @@ async def build(demo: bool = False) -> dict:
                              for c in campaigns],
         "trending": trending,
         "urgent_recommendation": urgent,
+        "is_urgent": is_urgent,
         "recommended_actions": (_actions_for(top_risk[0]) if top_risk else ["مراقبة روتينية"]),
         "empty": not ents,
         "note": None if ents else "لا توجد بيانات مرصودة بعد — شغّل الجمع أو جرّب وضع العرض (?demo=1).",
@@ -193,6 +201,7 @@ def _demo_payload() -> dict:
             {"topic": "حملة مكافحة الفساد", "velocity": 59, "sentiment": "إيجابي/مختلط", "posts": 52, "risk": "متوسط"},
         ],
         "urgent_recommendation": "تصعيد ملف الكهرباء للقيادة + تحضير بيان توضيحي خلال الساعات القادمة",
+        "is_urgent": True,
         "recommended_actions": ["تصعيد للقيادة فوراً", "تحضير بيان توضيحي", "رصد تعليقات فيسبوك عن كثب", "إعداد تقرير موجز"],
         "empty": False, "note": "🧪 وضع العرض — بيانات تجريبية واقعية.",
         "disclaimer": "مؤشرات احتمالية آلية — تتطلّب مراجعة بشرية. لا تُثبت تنسيقاً أو انتماءً كحقيقة.",

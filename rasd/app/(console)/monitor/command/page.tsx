@@ -18,6 +18,17 @@ const PLATFORM_AR: Record<string, string> = {
 /** "-18 سمعة" / "+11 خطر" → -18 / +11. The payload ships deltas as prose. */
 const deltaNum = (s: string) => { const m = String(s).match(/-?\d+/); return m ? Number(m[0]) : 0; };
 
+/** Human age of the digest. It is rebuilt ~every 3h and cached for a day, so a
+ *  failed cron can serve day-old data under a card titled "الآن". Say the age. */
+function ageOf(generatedAt?: number) {
+  if (!generatedAt) return null;
+  const mins = Math.max(0, Math.round((Date.now() / 1000 - generatedAt) / 60));
+  const stale = mins > 240; // matches the digest endpoint's own staleness rule (>4h)
+  const label = mins < 1 ? "الآن" : mins < 60 ? `قبل ${mins} دقيقة`
+    : mins < 1440 ? `قبل ${Math.round(mins / 60)} ساعة` : `قبل ${Math.round(mins / 1440)} يوم`;
+  return { label, stale };
+}
+
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 
 /** Arabic severity label → semantic tone. Single source for every colour on this page. */
@@ -56,10 +67,23 @@ export default function CommandCenter() {
         title="مركز القيادة"
         sub="ماذا يجب أن يعرفه صانع القرار الآن؟ — الصورة الكاملة خلال ٦٠ ثانية."
         actions={
-          <Button aria-pressed={demo} onClick={() => setDemo(!demo)}>
-            <Icon name="flask" size={14} />
-            وضع العرض{demo ? " · مفعّل" : ""}
-          </Button>
+          <>
+            {(() => {
+              const a = ageOf(d?.generated_at);
+              if (!a) return null;
+              return (
+                <span className="u-age" data-stale={a.stale ? "1" : undefined}
+                  title={a.stale ? "البيانات لم تُحدَّث منذ أكثر من ٤ ساعات" : undefined}>
+                  <Icon name={a.stale ? "alert" : "refresh"} size={12} />
+                  آخر تحديث: {a.label}{a.stale ? " — قديمة" : ""}
+                </span>
+              );
+            })()}
+            <Button aria-pressed={demo} onClick={() => setDemo(!demo)}>
+              <Icon name="flask" size={14} />
+              وضع العرض{demo ? " · مفعّل" : ""}
+            </Button>
+          </>
         }
       />
 
@@ -119,10 +143,20 @@ export default function CommandCenter() {
               icon="brain"
               footer={
                 d.urgent_recommendation ? (
-                  <div className="u-priority">
-                    <span style={{ color: "var(--danger)", marginTop: 2 }}><Icon name="siren" size={16} /></span>
-                    <span><b>الأولوية الآن:</b> {d.urgent_recommendation}</span>
-                  </div>
+                  // An alarm box is only an alarm if it is sometimes silent. When
+                  // nothing is urgent this used to shout "no response recommended"
+                  // in red — which teaches the eye to skip the box that matters.
+                  d.is_urgent ? (
+                    <div className="u-priority">
+                      <span style={{ color: "var(--danger)", marginTop: 2 }}><Icon name="siren" size={16} /></span>
+                      <span><b>الأولوية الآن:</b> {d.urgent_recommendation}</span>
+                    </div>
+                  ) : (
+                    <div className="u-calm">
+                      <span style={{ color: "var(--ok)", marginTop: 2 }}><Icon name="check" size={16} /></span>
+                      <span>لا توجد أولوية عاجلة — {d.urgent_recommendation}</span>
+                    </div>
+                  )
                 ) : null
               }
             >

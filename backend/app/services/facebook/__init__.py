@@ -235,7 +235,7 @@ def _comment_reaction_gap(react_approval, comment_sent, comment_intel, sample_co
     if react_approval is None or cm is None:
         return {"available": False, "reaction_mood": react_approval, "comment_mood": cm,
                 "public_pressure": pressure,
-                "note": "حساب مزاج التعليقات يحتاج المصنّف (ذكاء اصطناعي) — الفجوة تظهر عند توفّر الرصيد."}
+                "note": "حساب فجوة المزاج يتطلّب تصنيف التعليقات — غير متاح لهذه اللقطة."}
     gap = max(0, react_approval - cm)
     level = "حرج" if gap >= 50 else "مرتفع" if gap >= 30 else "متوسط" if gap >= 15 else "منخفض"
     misleading = gap >= 30

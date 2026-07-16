@@ -72,9 +72,12 @@ async def dashboard(demo: bool = False) -> dict:
         infl = sorted(rollup, key=lambda r: -(r.get("engagement") or 0))[:8]
         return {
             "stored": False, "demo": demo,
-            "note": ("🧪 وضع العرض — بيانات تجريبية واقعية تمرّ عبر المحرّك الحقيقي (تصنيف لغوي بدون ذكاء اصطناعي)."
+            # Client-facing. The previous text named a database migration and told
+            # the reader to top up an API account — our operational state, in the
+            # buyer's face. Say what the snapshot covers, not what we haven't paid.
+            "note": ("وضع العرض — بيانات تجريبية تمرّ عبر المحرّك الحقيقي."
                      if demo else
-                     "لقطة حيّة من النبض الوطني (تفاعلات + انتشار + ترتيب الصفحات تشتغل بدون تخزين). طبّق ترحيل 011 ليبدأ تراكم التاريخ (ترند/DNA/journey)، واشحن رصيد Anthropic للمواضيع/الشخصيات."),
+                     "لقطة حيّة: التفاعلات والانتشار وترتيب الصفحات. المؤشرات التاريخية (الترند/البصمة/الرحلة) تتراكم مع استمرار الرصد."),
             "totals": {"pages": snap.get("pages_ok", 0), "posts": len(snap.get("viral_posts") or []),
                        "comments": snap.get("comments_analyzed", 0),
                        "reactions": (snap.get("total_positive") or 0) + (snap.get("total_negative") or 0) or snap.get("total_engagement", 0)},

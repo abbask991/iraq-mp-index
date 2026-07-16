@@ -218,7 +218,7 @@ def offline_insights(texts: list, subject: str = "") -> dict:
             "talking_points": [{"point": c["representative"][:120], "repetition": "عالٍ", "note": f"×{c['size']}"}
                                for c in cl if c["size"] >= 2][:5],
             "notable_quotes": [], "audience": {},
-            "takeaways": ["تحليل لغوي تقريبي (بدون ذكاء اصطناعي) — للعرض/التطوير؛ يُستبدل بالتحليل الكامل عند توفّر الرصيد."]}
+            "takeaways": ["تحليل لغوي تقريبي مبني على معجم — مؤشرات عامة، لا يُغني عن التحليل التفصيلي."]}
 
 
 def prepare(texts: list) -> dict:

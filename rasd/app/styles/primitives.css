@@ -83,6 +83,21 @@
     font-size: var(--t-base); line-height: var(--lh-base);
   }
   .u-priority b { color: var(--danger); }
+  /* the calm counterpart — same slot, no alarm styling */
+  .u-calm {
+    display: flex; align-items: flex-start; gap: var(--s-3);
+    margin-top: var(--s-4); padding: var(--s-3) var(--s-4);
+    border-radius: var(--r-md); background: var(--ok-bg);
+    border: 1px solid color-mix(in srgb, var(--ok) 22%, transparent);
+    font-size: var(--t-base); line-height: var(--lh-base); color: var(--muted);
+  }
+
+  /* data freshness */
+  .u-age {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: var(--t-xs); color: var(--muted);
+  }
+  .u-age[data-stale="1"] { color: var(--warn); }
 
   /* ---------- stats ---------- */
   .u-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s-3); }
