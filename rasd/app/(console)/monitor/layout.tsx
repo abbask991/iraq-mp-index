@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -219,7 +219,12 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
              {t(T.trial)}{dl != null ? (lang === "ar" ? ` — باقٍ ${dl} يوم` : ` — ${dl} days left`) : ""}. {t(T.upgrade)}
  </div>
         )}
-        {children}
+        {/* Tabs read ?tab= via useSearchParams, which opts a route out of static
+            rendering unless it sits under a Suspense boundary — the failure only
+            shows at build time, not in dev. One boundary here covers every page. */}
+        <Suspense fallback={<p className="muted" style={{ padding: 30 }}>…</p>}>
+          {children}
+        </Suspense>
  </div>
  </div>
  </>

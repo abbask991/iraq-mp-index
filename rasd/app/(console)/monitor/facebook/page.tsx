@@ -1,11 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { apiGet, apiSend } from "@/lib/api";
 import Gauge from "@/components/Gauge";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
 import { Bars as MBars } from "@/components/MiniCharts";
+import { PageHeader, Button, Icon } from "@/components/ui";
+import Tabs, { type TabDef } from "@/components/ui/Tabs";
 
 const appColor = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
@@ -29,10 +32,10 @@ function GapCard({ d }: { d: any }) {
   const danger = gap >= 25;
   return (
     <div className="cbox" style={{ marginBottom: 14, borderInlineStart: `4px solid ${danger ? "#f43f5e" : "#22c55e"}` }}>
-      <h4 style={{ margin: "0 0 8px" }}>🎭 فجوة التأييد — اللايكات مقابل التعليقات</h4>
+      <h4 style={{ margin: "0 0 8px" }}>فجوة التأييد — اللايكات مقابل التعليقات</h4>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ flex: "1 1 200px" }}>
-          {[["👍 تأييد التفاعلات (اللايكات)", ra, "#22c55e"], ["💬 تأييد التعليقات (النص الفعلي)", ca, "#3b82f6"]].map(([l, v, c]: any) => (
+          {[["تأييد التفاعلات (اللايكات)", ra, "#22c55e"], ["تأييد التعليقات (النص الفعلي)", ca, "#3b82f6"]].map(([l, v, c]: any) => (
             <div key={l} style={{ marginBottom: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 3 }}><span>{l}</span><b>{v}%</b></div>
               <span style={{ display: "block", height: 10, borderRadius: 999, background: "var(--input)", overflow: "hidden" }}>
@@ -70,11 +73,11 @@ function Insights({ ins }: { ins: any }) {
   if (!has("topics") && !has("entities") && !has("grievances") && !has("takeaways")) return null;
   return (
     <div style={{ marginBottom: 14 }}>
-      <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}>🔬 تحليل عميق — ماذا يقول الجمهور فعلاً <span className="muted" style={{ fontSize: 11, fontWeight: 400 }}>({ins.analyzed_comments} تعليق)</span></h3>
+      <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}>تحليل عميق — ماذا يقول الجمهور فعلاً <span className="muted" style={{ fontSize: 11, fontWeight: 400 }}>({ins.analyzed_comments} تعليق)</span></h3>
 
       {has("takeaways") && (
         <div className="cbox" style={{ marginBottom: 12, borderInlineStart: "4px solid #6366f1", background: "color-mix(in srgb, #6366f1 7%, var(--card))" }}>
-          <h4 style={{ margin: "0 0 6px" }}>🎯 خلاصات قابلة للتنفيذ</h4>
+          <h4 style={{ margin: "0 0 6px" }}>خلاصات قابلة للتنفيذ</h4>
           {ins.takeaways.map((t: string, i: number) => (
             <div key={i} style={{ fontSize: 13.5, lineHeight: 1.85, padding: "4px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>▸ {t}</div>
           ))}
@@ -83,7 +86,7 @@ function Insights({ ins }: { ins: any }) {
 
       {has("topics") && (
         <div className="cbox" style={{ marginBottom: 12 }}>
-          <h4>📌 القضايا التي تشغل الجمهور</h4>
+          <h4>القضايا التي تشغل الجمهور</h4>
           {ins.topics.map((t: any, i: number) => (
             <div key={i} style={{ padding: "8px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -100,7 +103,7 @@ function Insights({ ins }: { ins: any }) {
 
       {has("entities") && (
         <div className="cbox" style={{ marginBottom: 12 }}>
-          <h4>👥 الشخصيات والجهات في حديث الناس</h4>
+          <h4>الشخصيات والجهات في حديث الناس</h4>
           {ins.entities.map((e: any, i: number) => (
             <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "7px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
               <span className="chip" style={{ fontSize: 11, color: sentColor(e.stance), minWidth: 52, textAlign: "center" }}>{e.stance}</span>
@@ -117,13 +120,13 @@ function Insights({ ins }: { ins: any }) {
         <div className="grid" style={{ marginBottom: 12 }}>
           {has("grievances") && (
             <div className="cbox">
-              <h4 style={{ color: "#f43f5e" }}>😡 أبرز الشكاوى</h4>
+              <h4 style={{ color: "#f43f5e" }}>أبرز الشكاوى</h4>
               {ins.grievances.map((g: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "4px 0", lineHeight: 1.7 }}>• {g}</div>)}
             </div>
           )}
           {has("demands") && (
             <div className="cbox">
-              <h4 style={{ color: "#22c55e" }}>✊ أبرز المطالب</h4>
+              <h4 style={{ color: "#22c55e" }}>أبرز المطالب</h4>
               {ins.demands.map((g: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "4px 0", lineHeight: 1.7 }}>• {g}</div>)}
             </div>
           )}
@@ -133,11 +136,11 @@ function Insights({ ins }: { ins: any }) {
       {(has("accusations") || has("praise")) && (
         <div className="grid" style={{ marginBottom: 12 }}>
           {has("accusations") && (
-            <div className="cbox"><h4 style={{ color: "#f43f5e" }}>⚠️ أبرز الاتهامات</h4>
+            <div className="cbox"><h4 style={{ color: "#f43f5e" }}>أبرز الاتهامات</h4>
               {ins.accusations.map((g: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "4px 0", lineHeight: 1.7 }}>• {g}</div>)}</div>
           )}
           {has("praise") && (
-            <div className="cbox"><h4 style={{ color: "#22c55e" }}>👍 أبرز المديح</h4>
+            <div className="cbox"><h4 style={{ color: "#22c55e" }}>أبرز المديح</h4>
               {ins.praise.map((g: string, i: number) => <div key={i} style={{ fontSize: 13, padding: "4px 0", lineHeight: 1.7 }}>• {g}</div>)}</div>
           )}
         </div>
@@ -145,7 +148,7 @@ function Insights({ ins }: { ins: any }) {
 
       {has("talking_points") && (
         <div className="cbox" style={{ marginBottom: 12 }}>
-          <h4>🔁 رسائل متكررة <span className="muted" style={{ fontSize: 11, fontWeight: 400 }}>(قد تدل على تنسيق — مراجعة بشرية)</span></h4>
+          <h4>رسائل متكررة <span className="muted" style={{ fontSize: 11, fontWeight: 400 }}>(قد تدل على تنسيق — مراجعة بشرية)</span></h4>
           {ins.talking_points.map((t: any, i: number) => (
             <div key={i} style={{ fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
               <b>{t.point}</b> {t.repetition && <span className="chip" style={{ fontSize: 10.5 }}>تكرار {t.repetition}</span>}
@@ -157,7 +160,7 @@ function Insights({ ins }: { ins: any }) {
 
       {has("notable_quotes") && (
         <div className="cbox" style={{ marginBottom: 12 }}>
-          <h4>💬 اقتباسات بارزة</h4>
+          <h4>اقتباسات بارزة</h4>
           {ins.notable_quotes.map((q: any, i: number) => (
             <div key={i} style={{ fontSize: 13, padding: "6px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
               <span style={{ color: sentColor(q.sentiment), fontWeight: 700 }}>● </span>«{q.text}»
@@ -170,11 +173,11 @@ function Insights({ ins }: { ins: any }) {
       {ins.audience && (ins.audience.supporters_care_about?.length > 0 || ins.audience.critics_care_about?.length > 0) && (
         <div className="grid" style={{ marginBottom: 12 }}>
           {ins.audience.supporters_care_about?.length > 0 && (
-            <div className="cbox"><h4 style={{ color: "#22c55e" }}>🟢 ما يهمّ المؤيدين</h4>
+            <div className="cbox"><h4 style={{ color: "#22c55e" }}>ما يهمّ المؤيدين</h4>
               {ins.audience.supporters_care_about.map((x: string, i: number) => <div key={i} style={{ fontSize: 12.5, padding: "3px 0" }}>• {x}</div>)}</div>
           )}
           {ins.audience.critics_care_about?.length > 0 && (
-            <div className="cbox"><h4 style={{ color: "#f43f5e" }}>🔴 ما يهمّ المنتقدين</h4>
+            <div className="cbox"><h4 style={{ color: "#f43f5e" }}>ما يهمّ المنتقدين</h4>
               {ins.audience.critics_care_about.map((x: string, i: number) => <div key={i} style={{ fontSize: 12.5, padding: "3px 0" }}>• {x}</div>)}</div>
           )}
         </div>
@@ -189,7 +192,7 @@ function CommentIntel({ ci }: { ci: any }) {
   const p = ci.pressure || {};
   return (
     <div className="cbox" style={{ marginBottom: 14 }}>
-      <h4>🧩 ذكاء التعليقات <span className="muted" style={{ fontSize: 11, fontWeight: 400 }}>({fmt(ci.total_comments)} تعليق · {fmt(ci.clusters)} مجموعة بعد إزالة التكرار)</span></h4>
+      <h4>ذكاء التعليقات <span className="muted" style={{ fontSize: 11, fontWeight: 400 }}>({fmt(ci.total_comments)} تعليق · {fmt(ci.clusters)} مجموعة بعد إزالة التكرار)</span></h4>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
         <Kpi label="ضغط الجمهور" value={p.score ?? "—"} color={p.score >= 60 ? "#f43f5e" : p.score >= 35 ? "#f59e0b" : "#22c55e"} sub="حجم + تكرار + غضب" />
         <Kpi label="نسبة التكرار" value={p.repetition_ratio != null ? Math.round(p.repetition_ratio * 100) + "%" : "—"} sub="تعليقات مكرّرة" />
@@ -197,7 +200,7 @@ function CommentIntel({ ci }: { ci: any }) {
       </div>
       {ci.repeated_phrases?.length > 0 && (
         <div style={{ marginTop: 6 }}>
-          <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>🔁 عبارات متكرّرة (قد تدل على تنسيق — مراجعة بشرية):</div>
+          <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>عبارات متكرّرة (قد تدل على تنسيق — مراجعة بشرية):</div>
           {ci.repeated_phrases.map((r: any, i: number) => (
             <div key={i} style={{ fontSize: 12.5, padding: "3px 0" }}><span className="chip" style={{ fontSize: 10.5 }}>×{r.count}</span> {r.phrase}</div>
           ))}
@@ -220,7 +223,7 @@ function GapV2({ g }: { g: any }) {
   if (!g.available) {
     return (
       <div className="cbox" style={{ marginBottom: 14, borderInlineStart: "4px solid #8a97ad" }}>
-        <h4 style={{ margin: "0 0 4px" }}>🎭 فجوة التفاعل/التعليق</h4>
+        <h4 style={{ margin: "0 0 4px" }}>فجوة التفاعل/التعليق</h4>
         <div style={{ fontSize: 13 }}>التفاعلات: <b style={{ color: appColor(g.reaction_mood ?? 0) }}>{g.reaction_mood ?? "—"}%</b></div>
         <p className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>{g.note}</p>
       </div>
@@ -229,10 +232,10 @@ function GapV2({ g }: { g: any }) {
   const danger = g.misleading;
   return (
     <div className="cbox" style={{ marginBottom: 14, borderInlineStart: `4px solid ${danger ? "#f43f5e" : "#22c55e"}` }}>
-      <h4 style={{ margin: "0 0 8px" }}>🎭 فجوة التفاعل/التعليق — هل التفاعلات مضلّلة؟ <span className="chip" style={{ fontSize: 10.5 }}>{g.level}</span></h4>
+      <h4 style={{ margin: "0 0 8px" }}>فجوة التفاعل/التعليق — هل التفاعلات مضلّلة؟ <span className="chip" style={{ fontSize: 10.5 }}>{g.level}</span></h4>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ flex: "1 1 220px" }}>
-          {[["👍 مزاج التفاعلات", g.reaction_mood, "#22c55e"], ["💬 مزاج التعليقات", g.comment_mood, "#3b82f6"]].map(([l, v, c]: any) => (
+          {[["مزاج التفاعلات", g.reaction_mood, "#22c55e"], ["مزاج التعليقات", g.comment_mood, "#3b82f6"]].map(([l, v, c]: any) => (
             <div key={l} style={{ marginBottom: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 3 }}><span>{l}</span><b>{v}%</b></div>
               <span style={{ display: "block", height: 10, borderRadius: 999, background: "var(--input)", overflow: "hidden" }}>
@@ -264,7 +267,7 @@ function AudienceMood({ ins }: { ins: any }) {
   const colorOf = (k: string) => (["anger", "frustration", "fear"].includes(k) ? "#f43f5e" : ["support", "trust"].includes(k) ? "#22c55e" : "#f59e0b");
   return (
     <div className="cbox" style={{ marginBottom: 14 }}>
-      <h4>🌡️ مؤشّر مزاج الجمهور {ins.mood_index != null && <span style={{ color: appColor(ins.mood_index) }}>· {ins.mood_index}/100</span>}</h4>
+      <h4>مؤشّر مزاج الجمهور {ins.mood_index != null && <span style={{ color: appColor(ins.mood_index) }}>· {ins.mood_index}/100</span>}</h4>
       {dims.filter(([k]) => am[k] != null).map(([k, label]) => (
         <div key={k} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
           <span style={{ width: 56, fontSize: 12.5 }}>{label}</span>
@@ -285,7 +288,7 @@ function useFb(path: string, demo: boolean) {
   return { d, loading, load };
 }
 
-const PLAT_EMOJI: Record<string, string> = { facebook: "📘", x: "✖️", telegram: "✈️", news: "📰", tiktok: "🎵", instagram: "📷" };
+const PLAT_EMOJI: Record<string, string> = { facebook: "", x: "", telegram: "", news: "", tiktok: "", instagram: "" };
 
 function ViralView({ demo }: { demo: boolean }) {
   const { d, loading, load } = useFb("/api/facebook/viral-posts", demo);
@@ -300,17 +303,17 @@ function ViralView({ demo }: { demo: boolean }) {
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{p.text}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11.5, marginBottom: 6 }}>
             <span className="chip">{p.page}</span>
-            <span className="chip">👍 {fmt(p.reactions)}</span><span className="chip">💬 {fmt(p.comments)}</span><span className="chip">🔁 {fmt(p.shares)}</span>
-            {p.related_entity && <span className="chip" style={{ background: "color-mix(in srgb,#6366f1 18%,transparent)" }}>🏛️ {p.related_entity}</span>}
-            <span className="chip" style={{ color: p.risk?.score >= 50 ? "#f43f5e" : "#f59e0b" }}>⚠️ خطر {p.risk?.score} ({p.risk?.level})</span>
+            <span className="chip">{fmt(p.reactions)}</span><span className="chip">{fmt(p.comments)}</span><span className="chip">{fmt(p.shares)}</span>
+            {p.related_entity && <span className="chip" style={{ background: "color-mix(in srgb,#6366f1 18%,transparent)" }}>{p.related_entity}</span>}
+            <span className="chip" style={{ color: p.risk?.score >= 50 ? "#f43f5e" : "#f59e0b" }}>خطر {p.risk?.score} ({p.risk?.level})</span>
           </div>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12 }}>
-            <span>👍 مزاج التفاعل: <b style={{ color: appColor(p.reaction_mood ?? 0) }}>{p.reaction_mood ?? "—"}</b></span>
-            <span>💬 مزاج التعليق: <b style={{ color: appColor(p.comment_mood ?? 0) }}>{p.comment_mood ?? "—"}</b></span>
-            {p.narrative && <span>🧵 السردية: <b>{p.narrative}</b></span>}
+            <span>مزاج التفاعل: <b style={{ color: appColor(p.reaction_mood ?? 0) }}>{p.reaction_mood ?? "—"}</b></span>
+            <span>مزاج التعليق: <b style={{ color: appColor(p.comment_mood ?? 0) }}>{p.comment_mood ?? "—"}</b></span>
+            {p.narrative && <span>السردية: <b>{p.narrative}</b></span>}
           </div>
           <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {(p.why_viral || []).map((w: string, j: number) => <span key={j} className="chip" style={{ fontSize: 11 }}>🔥 {w}</span>)}
+            {(p.why_viral || []).map((w: string, j: number) => <span key={j} className="chip" style={{ fontSize: 11 }}>{w}</span>)}
           </div>
           <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center" }}>
             <EvidenceExplorer subject={p.related_entity || p.narrative || p.page} type="viral_post" score={p.risk?.score} demo={demo} />
@@ -333,7 +336,7 @@ function ClustersView({ demo }: { demo: boolean }) {
       {cl.map((c: any, i: number) => (
         <div key={i} className="cbox" style={{ marginBottom: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
-            <h4 style={{ margin: 0 }}>🕸️ {c.label}</h4>
+            <h4 style={{ margin: 0 }}>{c.label}</h4>
             <span className="chip" style={{ fontSize: 11 }}>تشابه {c.avg_similarity}% · ثقة {c.confidence}</span>
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
@@ -359,7 +362,7 @@ function JourneyView({ demo }: { demo: boolean }) {
       {(d.journeys || []).map((j: any, i: number) => (
         <div key={i} className="cbox" style={{ marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-            <h4 style={{ margin: 0 }}>🧵 {j.title}</h4>
+            <h4 style={{ margin: 0 }}>{j.title}</h4>
             <span className="chip" style={{ fontSize: 11, color: j.became_national ? "#f43f5e" : "var(--muted)" }}>{j.became_national ? "🇮🇶 قضية وطنية" : "محدودة"}</span>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 11.5, marginTop: 4 }}>
@@ -414,7 +417,7 @@ function DnaView({ demo }: { demo: boolean }) {
       {d && !d.error && (
         <>
           <div className="cbox" style={{ marginBottom: 12 }}>
-            <h4 style={{ margin: "0 0 6px" }}>🧬 بصمة: {d.page}</h4>
+            <h4 style={{ margin: "0 0 6px" }}>بصمة: {d.page}</h4>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Kpi label="التأثير" value={d.influence} color="#6366f1" />
               <Kpi label="النبرة" value={d.sentiment_tendency} />
@@ -423,12 +426,12 @@ function DnaView({ demo }: { demo: boolean }) {
             </div>
           </div>
           {d.dominant_topics?.length > 0 && (
-            <div className="cbox" style={{ marginBottom: 12 }}><h4>📌 المواضيع المهيمنة</h4>
+            <div className="cbox" style={{ marginBottom: 12 }}><h4>المواضيع المهيمنة</h4>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{d.dominant_topics.map((x: string, i: number) => <span key={i} className="chip">{x}</span>)}</div></div>
           )}
           <AudienceMood ins={{ audience_mood: d.audience_mood, mood_index: d.comment_profile?.approval }} />
           {d.similar_pages?.length > 0 && (
-            <div className="cbox" style={{ marginBottom: 12 }}><h4>🔗 صفحات مشابهة سلوكياً</h4>
+            <div className="cbox" style={{ marginBottom: 12 }}><h4>صفحات مشابهة سلوكياً</h4>
               {d.similar_pages.map((s: any, i: number) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "4px 0" }}>
                   <span>{s.page}</span><span className="muted">تشابه {s.similarity}%</span>
@@ -454,7 +457,7 @@ function CommentersView({ demo }: { demo: boolean }) {
       {list.map((p: any, i: number) => (
         <div key={i} style={{ padding: "7px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><b>{p.name}</b><span className="chip" style={{ fontSize: 10 }}>{p.comments} تعليق · {p[key1]}%</span></div>
-          <div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>«{p.sample}»{p.flag ? ` · ⚠️ ${p.flag}` : ""} · تأثير {p.influence}</div>
+          <div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>«{p.sample}»{p.flag ? ` · ${p.flag}` : ""} · تأثير {p.influence}</div>
         </div>
       ))}
     </div>
@@ -463,8 +466,8 @@ function CommentersView({ demo }: { demo: boolean }) {
     <>
       <p className="muted" style={{ fontSize: 12, marginBottom: 10 }}>مين يقود النقاش: المدافعون عن العلامة مقابل المنتقدين المتكرّرين.</p>
       <div className="grid" style={{ marginBottom: 14 }}>
-        <Col title="🟢 المدافعون" list={d.advocates} color="#22c55e" key1="positivity" />
-        <Col title="🔴 المنتقدون" list={d.detractors} color="#f43f5e" key1="negativity" />
+        <Col title="المدافعون" list={d.advocates} color="#22c55e" key1="positivity" />
+        <Col title="المنتقدون" list={d.detractors} color="#f43f5e" key1="negativity" />
       </div>
       {d.most_active?.length > 0 && <div className="cbox"><h4>الأكثر نشاطاً</h4><MBars data={d.most_active.map((x: any) => ({ label: x.name.slice(0, 8), value: x.comments, color: "#4f9dff" }))} height={110} /></div>}
       <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>{d.disclaimer}</p>
@@ -554,7 +557,7 @@ function FbAlertsView({ demo }: { demo: boolean }) {
   if (!al.length) return <EmptyState title="تنبيهات فيسبوك" subtitle={d?.note || "لا تنبيهات — الوضع مستقر."} action={{ label: "إعادة", onClick: load }} />;
   return (
     <>
-      <div className="cbox" style={{ marginBottom: 12, borderInlineStart: `4px solid ${sevColor(d.highest)}` }}>🚨 <b>{d.count}</b> تنبيهات · الأعلى: <b style={{ color: sevColor(d.highest) }}>{d.highest}</b></div>
+      <div className="cbox" style={{ marginBottom: 12, borderInlineStart: `4px solid ${sevColor(d.highest)}` }}><b>{d.count}</b> تنبيهات · الأعلى: <b style={{ color: sevColor(d.highest) }}>{d.highest}</b></div>
       {al.map((a: any, i: number) => (
         <div key={i} className="cbox" style={{ marginBottom: 10, borderInlineStart: `4px solid ${sevColor(a.severity)}` }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
@@ -579,7 +582,7 @@ function FbReportView({ demo }: { demo: boolean }) {
     <div className="brief-wrap">
       <div className="brief-bar no-print" style={{ marginBottom: 10 }}>
         <span className="muted" style={{ fontSize: 12 }}>تقرير جاهز للطبع/الإرسال</span>
-        <button className="btn" onClick={() => window.print()}>⬇️ تحميل / طباعة PDF</button>
+        <button className="btn" onClick={() => window.print()}>تحميل / طباعة PDF</button>
       </div>
       <div className="brief-doc">
         <div className="brief-head">
@@ -594,7 +597,7 @@ function FbReportView({ demo }: { demo: boolean }) {
             ))}
           </div>
           {d.reaction_approval != null && d.comment_approval != null && (
-            <p style={{ fontSize: 13, marginTop: 8 }}>🎭 فجوة التفاعل/التعليق: <b style={{ color: "#f43f5e" }}>{Math.max(0, d.reaction_approval - d.comment_approval)}</b> نقطة — اللايكات أعلى من المزاج الحقيقي بالتعليقات.</p>
+            <p style={{ fontSize: 13, marginTop: 8 }}>فجوة التفاعل/التعليق: <b style={{ color: "#f43f5e" }}>{Math.max(0, d.reaction_approval - d.comment_approval)}</b> نقطة — اللايكات أعلى من المزاج الحقيقي بالتعليقات.</p>
           )}
         </section>
         {ins.topics?.length > 0 && (
@@ -609,7 +612,7 @@ function FbReportView({ demo }: { demo: boolean }) {
         )}
         {d.viral_posts?.length > 0 && (
           <section className="brief-sec"><h3>④ الأكثر انتشاراً</h3>
-            {d.viral_posts.slice(0, 5).map((p: any, i: number) => <div key={i} style={{ fontSize: 12.5, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>{p.text} <span className="muted">— {p.page} · 👍 {fmt(p.reactions)}</span></div>)}
+            {d.viral_posts.slice(0, 5).map((p: any, i: number) => <div key={i} style={{ fontSize: 12.5, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>{p.text} <span className="muted">— {p.page} · {fmt(p.reactions)}</span></div>)}
           </section>
         )}
         <div className="brief-foot muted">{d.disclaimer} · Sentinel Intelligence · {today}</div>
@@ -618,34 +621,51 @@ function FbReportView({ demo }: { demo: boolean }) {
   );
 }
 
+/** The 13 views, grouped by the question each answers. Same views in the same
+ *  order of importance — but 13 flat buttons wrapped onto three ragged rows and
+ *  read as a pile. Grouping is what makes a long strip navigable. */
+const FB_TABS: TabDef[] = [
+  { key: "dashboard",  label: "اللوحة",         icon: "brain",   group: "نظرة عامة" },
+  { key: "national",   label: "النبض الوطني",   icon: "target",  group: "نظرة عامة" },
+  { key: "viral",      label: "الأكثر انتشاراً", icon: "fire",    group: "نظرة عامة" },
+  { key: "commenters", label: "المعلّقون",       icon: "brain",   group: "الجمهور" },
+  { key: "clusters",   label: "العناقيد",       icon: "network", group: "الجمهور" },
+  { key: "page",       label: "صفحة محدّدة",    icon: "target",  group: "الصفحات" },
+  { key: "dna",        label: "بصمة الصفحة",    icon: "flask",   group: "الصفحات" },
+  { key: "compare",    label: "المقارنة",       icon: "network", group: "الصفحات" },
+  { key: "content",    label: "أداء المحتوى",   icon: "trendUp", group: "المحتوى" },
+  { key: "timing",     label: "التوقيت",        icon: "refresh", group: "المحتوى" },
+  { key: "journey",    label: "الرحلة",         icon: "rocket",  group: "المحتوى" },
+  { key: "alerts",     label: "التنبيهات",      icon: "siren",   group: "المخرجات" },
+  { key: "report",     label: "التقرير",        icon: "clip",    group: "المخرجات" },
+];
+const FB_KEYS = FB_TABS.map((t) => t.key);
+
 export default function Facebook() {
-  const [tab, setTab] = useState<"dashboard" | "national" | "page" | "viral" | "clusters" | "journey" | "dna" | "commenters" | "content" | "compare" | "timing" | "alerts" | "report">("dashboard");
+  const search = useSearchParams();
+  const urlTab = search?.get("tab") || "";
+  const [tab, setTab] = useState<string>(FB_KEYS.includes(urlTab) ? urlTab : "dashboard");
+  useEffect(() => { if (FB_KEYS.includes(urlTab)) setTab(urlTab); }, [urlTab]);
   const [demo, setDemo] = useState(false);
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <h2 style={{ margin: 0 }}>🧠 استخبارات فيسبوك</h2>
-        <button className={`btn ${demo ? "" : "ghost"}`} onClick={() => setDemo(!demo)} style={demo ? { background: "#6366f1" } : {}}>
-          🧪 وضع العرض {demo ? "(مفعّل)" : ""}
-        </button>
-      </div>
-      <p className="muted">فيسبوك مكان الجمهور العراقي الحقيقي — مو مجرّد منشورات، بل طبقة استخبارات: مين يهمّ، شنو يصير، شنو يقول الناس.</p>
-      {demo && <p className="muted" style={{ fontSize: 11.5, color: "#6366f1" }}>🧪 وضع العرض مفعّل — بيانات تجريبية واقعية عبر المحرّك الحقيقي (للتطوير/العرض بدون استهلاك الخدمات الخارجية).</p>}
-      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-        <button className={`btn ${tab === "dashboard" ? "" : "ghost"}`} onClick={() => setTab("dashboard")}>🧠 اللوحة</button>
-        <button className={`btn ${tab === "national" ? "" : "ghost"}`} onClick={() => setTab("national")}>🇮🇶 النبض الوطني</button>
-        <button className={`btn ${tab === "viral" ? "" : "ghost"}`} onClick={() => setTab("viral")}>🔥 الأكثر انتشاراً</button>
-        <button className={`btn ${tab === "clusters" ? "" : "ghost"}`} onClick={() => setTab("clusters")}>🕸️ العناقيد</button>
-        <button className={`btn ${tab === "journey" ? "" : "ghost"}`} onClick={() => setTab("journey")}>🧵 الرحلة</button>
-        <button className={`btn ${tab === "dna" ? "" : "ghost"}`} onClick={() => setTab("dna")}>🧬 بصمة الصفحة</button>
-        <button className={`btn ${tab === "commenters" ? "" : "ghost"}`} onClick={() => setTab("commenters")}>👤 المعلّقون</button>
-        <button className={`btn ${tab === "content" ? "" : "ghost"}`} onClick={() => setTab("content")}>📈 أداء المحتوى</button>
-        <button className={`btn ${tab === "timing" ? "" : "ghost"}`} onClick={() => setTab("timing")}>⏰ التوقيت</button>
-        <button className={`btn ${tab === "compare" ? "" : "ghost"}`} onClick={() => setTab("compare")}>⚖️ المقارنة</button>
-        <button className={`btn ${tab === "alerts" ? "" : "ghost"}`} onClick={() => setTab("alerts")}>🚨 التنبيهات</button>
-        <button className={`btn ${tab === "report" ? "" : "ghost"}`} onClick={() => setTab("report")}>📄 التقرير</button>
-        <button className={`btn ${tab === "page" ? "" : "ghost"}`} onClick={() => setTab("page")}>🔎 صفحة محدّدة</button>
-      </div>
+      <PageHeader
+        title="استخبارات فيسبوك"
+        sub="فيسبوك مكان الجمهور العراقي الحقيقي — مو مجرّد منشورات، بل طبقة استخبارات: مين يهمّ، شنو يصير، شنو يقول الناس."
+        actions={
+          <Button aria-pressed={demo} onClick={() => setDemo(!demo)}>
+            <Icon name="flask" size={14} />
+            وضع العرض{demo ? " · مفعّل" : ""}
+          </Button>
+        }
+      />
+      {demo && (
+        <div className="u-fine" style={{ marginBottom: "var(--s-4)", color: "var(--info)", display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+          <Icon name="flask" size={13} />
+          وضع العرض مفعّل — بيانات تجريبية تمرّ عبر المحرّك الحقيقي.
+        </div>
+      )}
+      <Tabs tabs={FB_TABS} value={tab} onChange={setTab} />
       {tab === "dashboard" ? <DashboardView demo={demo} />
         : tab === "national" ? <NationalView Bar={Bar} demo={demo} />
         : tab === "viral" ? <ViralView demo={demo} />
@@ -689,7 +709,7 @@ function DashboardView({ demo }: { demo: boolean }) {
       {d.reaction_breakdown?.mix && (
         <div className="grid" style={{ marginBottom: 14 }}>
           <div className="cbox">
-            <h4>😊 توزيع التفاعلات (كل المنشورات)</h4>
+            <h4>توزيع التفاعلات (كل المنشورات)</h4>
             {d.reaction_breakdown.mix.filter((r: any) => r.count > 0).map((r: any) => (
               <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
                 <span style={{ width: 70, fontSize: 13 }}>{r.emoji} {r.label}</span>
@@ -701,7 +721,7 @@ function DashboardView({ demo }: { demo: boolean }) {
             ))}
           </div>
           <div className="cbox" style={{ textAlign: "center" }}>
-            <h4>🎭 مزاج التفاعلات</h4>
+            <h4>مزاج التفاعلات</h4>
             {d.reaction_breakdown.mood_score != null
               ? <><div style={{ fontSize: 44, fontWeight: 900, color: appColor(d.reaction_breakdown.mood_score) }}>{d.reaction_breakdown.mood_score}</div>
                   <div className="muted" style={{ fontSize: 12 }}>0–100 (إيجابي مقابل سلبي)</div>
@@ -715,7 +735,7 @@ function DashboardView({ demo }: { demo: boolean }) {
       {(d.most_influential_pages?.length > 0 || d.most_active_pages?.length > 0) && (
         <div className="grid" style={{ marginBottom: 14 }}>
           {d.most_influential_pages?.length > 0 && (
-            <div className="cbox"><h4>🏆 الأكثر تأثيراً (بالتفاعل)</h4>
+            <div className="cbox"><h4>الأكثر تأثيراً (بالتفاعل)</h4>
               {d.most_influential_pages.map((p: any, i: number) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
                   <span>{i + 1}. {p.page}</span><span className="muted">{fmt(p.engagement)} تفاعل · {p.posts} منشور</span>
@@ -723,7 +743,7 @@ function DashboardView({ demo }: { demo: boolean }) {
               ))}</div>
           )}
           {d.most_active_pages?.length > 0 && (
-            <div className="cbox"><h4>⚡ الأكثر نشاطاً (بالمنشورات)</h4>
+            <div className="cbox"><h4>الأكثر نشاطاً (بالمنشورات)</h4>
               {d.most_active_pages.map((p: any, i: number) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
                   <span>{i + 1}. {p.page}</span><span className="muted">{p.posts} منشور · {fmt(p.engagement)}</span>
@@ -736,12 +756,12 @@ function DashboardView({ demo }: { demo: boolean }) {
       {/* most viral posts */}
       {d.viral_posts?.length > 0 && (
         <div className="cbox" style={{ marginBottom: 14 }}>
-          <h4>🔥 الأكثر انتشاراً</h4>
+          <h4>الأكثر انتشاراً</h4>
           {d.viral_posts.slice(0, 8).map((p: any, i: number) => (
             <div key={i} style={{ padding: "8px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
               <div style={{ fontSize: 13, marginBottom: 4 }}>{p.text || "—"}</div>
               <div className="muted" style={{ fontSize: 11.5, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <span>{p.page}</span><span>👍 {fmt(p.reactions)}</span><span>💬 {fmt(p.comments)}</span><span>🔁 {fmt(p.shares)}</span>
+                <span>{p.page}</span><span>{fmt(p.reactions)}</span><span>{fmt(p.comments)}</span><span>{fmt(p.shares)}</span>
                 {p.mood_score != null && <span style={{ color: appColor(p.mood_score) }}>مزاج {p.mood_score}</span>}
                 {p.url && <a href={p.url} target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>↗ المصدر</a>}
               </div>
@@ -754,7 +774,7 @@ function DashboardView({ demo }: { demo: boolean }) {
       {(d.top_topics?.length > 0 || d.top_entities?.length > 0) && (
         <div className="grid" style={{ marginBottom: 14 }}>
           {d.top_topics?.length > 0 && (
-            <div className="cbox"><h4>📌 أبرز القضايا على فيسبوك</h4>
+            <div className="cbox"><h4>أبرز القضايا على فيسبوك</h4>
               {d.top_topics.map((x: any, i: number) => (
                 <div key={i} style={{ fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
                   <b>{x.name}</b> {x.share != null && <span className="chip" style={{ fontSize: 10.5 }}>{typeof x.share === "number" ? x.share + "%" : x.share}</span>}
@@ -763,7 +783,7 @@ function DashboardView({ demo }: { demo: boolean }) {
               ))}</div>
           )}
           {d.top_entities?.length > 0 && (
-            <div className="cbox"><h4>👥 أبرز الشخصيات المذكورة</h4>
+            <div className="cbox"><h4>أبرز الشخصيات المذكورة</h4>
               {d.top_entities.map((e: any, i: number) => (
                 <div key={i} style={{ fontSize: 13, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0, display: "flex", justifyContent: "space-between" }}>
                   <span>{e.name} <span className="muted" style={{ fontSize: 11 }}>· {e.type}</span></span>
@@ -797,7 +817,7 @@ function NationalView({ Bar, demo }: { Bar: any; demo: boolean }) {
     <>
       {/* editable seed list */}
       <details className="card" style={{ marginBottom: 14 }}>
-        <summary style={{ cursor: "pointer", fontWeight: 700 }}>⚙️ الصفحات المرصودة (اضغط للتعديل) — أضِف slug صفحات عراقية حقيقية</summary>
+        <summary style={{ cursor: "pointer", fontWeight: 700 }}>الصفحات المرصودة (اضغط للتعديل) — أضِف slug صفحات عراقية حقيقية</summary>
         <textarea value={pages} onChange={(e) => setPages(e.target.value)} rows={8}
           style={{ width: "100%", marginTop: 8, fontFamily: "monospace", fontSize: 13, resize: "vertical" }}
           placeholder="صفحة بكل سطر — مثلاً: alsumaria.tv" />
@@ -834,8 +854,8 @@ function NationalView({ Bar, demo }: { Bar: any; demo: boolean }) {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
             <Kpi label="صفحة مرصودة" value={fmt(d.pages_ok)} color="#3b82f6" />
             <Kpi label="إجمالي التفاعل" value={fmt(d.total_engagement)} />
-            <Kpi label="👍 تأييد" value={fmt(d.total_positive)} color="#22c55e" />
-            <Kpi label="😠😢 رفض" value={fmt(d.total_negative)} color="#f43f5e" />
+            <Kpi label="تأييد" value={fmt(d.total_positive)} color="#22c55e" />
+            <Kpi label="رفض" value={fmt(d.total_negative)} color="#f43f5e" />
             {d.comments_analyzed > 0 && <Kpi label="تعليق محلَّل" value={fmt(d.comments_analyzed)} sub="بمصنّف واعٍ للسخرية" color="#3b82f6" />}
           </div>
 
@@ -848,7 +868,7 @@ function NationalView({ Bar, demo }: { Bar: any; demo: boolean }) {
           {/* per-page table */}
           {d.pages?.length > 0 && (
             <div className="cbox" style={{ marginBottom: 14 }}>
-              <h4>📊 الصفحات (مرتّبة بالتفاعل)</h4>
+              <h4>الصفحات (مرتّبة بالتفاعل)</h4>
               {d.pages.map((p: any, i: number) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
                   <span style={{ minWidth: 130, fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.page}</span>
@@ -863,17 +883,17 @@ function NationalView({ Bar, demo }: { Bar: any; demo: boolean }) {
           {/* most rejected nationally */}
           {d.most_rejected?.length > 0 && (
             <div className="cbox" style={{ marginBottom: 14 }}>
-              <h4 style={{ color: "#f43f5e" }}>🔴 أكثر ما يثير الرفض وطنياً</h4>
+              <h4 style={{ color: "#f43f5e" }}>أكثر ما يثير الرفض وطنياً</h4>
               {d.most_rejected.map((p: any, i: number) => (
                 <div key={i} style={{ padding: "8px 0", borderTop: i ? "1px solid var(--line)" : 0, fontSize: 13 }}>
-                  <span className="chip" style={{ color: "#f43f5e" }}>{p.rejection}% رفض</span> <span className="muted" style={{ fontSize: 11 }}>{p.page} · 😠😢 {fmt(p.neg)}</span>
+                  <span className="chip" style={{ color: "#f43f5e" }}>{p.rejection}% رفض</span> <span className="muted" style={{ fontSize: 11 }}>{p.page} · {fmt(p.neg)}</span>
                   <div style={{ marginTop: 4 }}>«{p.text}»</div>
                 </div>
               ))}
             </div>
           )}
 
-          {d.pages_failed?.length > 0 && <p className="muted" style={{ fontSize: 11.5 }}>⚠️ صفحات تعذّر جلبها (slug غير صحيح؟): {d.pages_failed.join("، ")}</p>}
+          {d.pages_failed?.length > 0 && <p className="muted" style={{ fontSize: 11.5 }}>صفحات تعذّر جلبها (slug غير صحيح؟): {d.pages_failed.join("، ")}</p>}
           <p className="muted" style={{ fontSize: 11 }}>{d.note}</p>
         </>
       )}
@@ -924,12 +944,12 @@ function PageView({ Bar, demo }: { Bar: any; demo: boolean }) {
               <div style={{ flex: 1, minWidth: 220 }}>
                 <div style={{ fontSize: 24, fontWeight: 900 }}><span style={{ color: "#22c55e" }}>{d.approval}% تأييد</span> · <span style={{ color: "#f43f5e" }}>{d.rejection}% رفض</span></div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 12.5, marginTop: 8 }}>
-                  <span className="chip" style={{ color: "#22c55e" }}>👍 {fmt(d.total_positive)}</span>
-                  <span className="chip" style={{ color: "#f43f5e" }}>😠😢 {fmt(d.total_negative)}</span>
-                  <span className="chip">💬 {fmt(d.total_comments)}</span>
-                  <span className="chip">🔁 {fmt(d.total_shares)}</span>
+                  <span className="chip" style={{ color: "#22c55e" }}>{fmt(d.total_positive)}</span>
+                  <span className="chip" style={{ color: "#f43f5e" }}>{fmt(d.total_negative)}</span>
+                  <span className="chip">{fmt(d.total_comments)}</span>
+                  <span className="chip">{fmt(d.total_shares)}</span>
                 </div>
-                {d.comment_sentiment && <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>📊 تفاعلات {d.reaction_approval}% · تعليقات {d.comment_sentiment.approval}% → مدمَج {d.approval}%</div>}
+                {d.comment_sentiment && <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>تفاعلات {d.reaction_approval}% · تعليقات {d.comment_sentiment.approval}% → مدمَج {d.approval}%</div>}
                 {d.summary && <p style={{ fontSize: 14, lineHeight: 1.9, marginTop: 8 }}>{d.summary}</p>}
               </div>
             </div>
@@ -951,7 +971,7 @@ function PageView({ Bar, demo }: { Bar: any; demo: boolean }) {
           {d.reactions?.length > 0 && (
             <div className="grid" style={{ marginBottom: 14 }}>
               <div className="cbox">
-                <h4>😊 توزيع التفاعلات</h4>
+                <h4>توزيع التفاعلات</h4>
                 {d.reactions.filter((r: any) => r.count > 0).map((r: any) => (
                   <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
                     <span style={{ width: 70, fontSize: 13 }}>{r.emoji} {r.label}</span>
@@ -963,7 +983,7 @@ function PageView({ Bar, demo }: { Bar: any; demo: boolean }) {
                 ))}
               </div>
               <div className="cbox">
-                <h4>📊 إحصاءات</h4>
+                <h4>إحصاءات</h4>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   {[["متوسط التفاعلات/منشور", d.stats?.avg_reactions], ["متوسط التعليقات", d.stats?.avg_comments],
                     ["متوسط المشاركات", d.stats?.avg_shares], ["إجمالي التفاعلات", d.stats?.total_reactions]].map(([l, v]: any) => (
@@ -979,7 +999,7 @@ function PageView({ Bar, demo }: { Bar: any; demo: boolean }) {
 
           {d.comment_sentiment && (
             <div className="cbox" style={{ marginBottom: 14 }}>
-              <h4>💬 مشاعر التعليقات ({d.comment_sentiment.analyzed} تعليق)</h4>
+              <h4>مشاعر التعليقات ({d.comment_sentiment.analyzed} تعليق)</h4>
               <div style={{ display: "flex", height: 14, borderRadius: 999, overflow: "hidden", marginBottom: 8 }}>
                 <span style={{ width: `${(d.comment_sentiment.pos / d.comment_sentiment.analyzed) * 100}%`, background: "#22c55e" }} />
                 <span style={{ width: `${(d.comment_sentiment.neu / d.comment_sentiment.analyzed) * 100}%`, background: "#8a97ad" }} />
@@ -1001,14 +1021,14 @@ function PageView({ Bar, demo }: { Bar: any; demo: boolean }) {
 
           {d.posts?.length > 0 && (
             <div className="cbox" style={{ marginBottom: 14 }}>
-              <h4>📋 المنشورات</h4>
+              <h4>المنشورات</h4>
               {d.posts.map((p: any, i: number) => (
                 <div key={i} style={{ padding: "9px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>
                   <div style={{ fontSize: 13, marginBottom: 5 }}>{p.text || "—"}</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ color: "#22c55e", fontSize: 12, minWidth: 38 }}>{p.approval ?? "—"}%</span><Bar p={p} /><span style={{ color: "#f43f5e", fontSize: 12, minWidth: 38, textAlign: "left" }}>{p.rejection ?? "—"}%</span>
                   </div>
-                  <div className="muted" style={{ fontSize: 11, marginTop: 3 }}>👍 {fmt(p.pos)} · 😠😢 {fmt(p.neg)} · 💬 {fmt(p.comments)}</div>
+                  <div className="muted" style={{ fontSize: 11, marginTop: 3 }}>{fmt(p.pos)} · {fmt(p.neg)} · {fmt(p.comments)}</div>
                 </div>
               ))}
             </div>

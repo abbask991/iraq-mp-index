@@ -185,6 +185,36 @@
   .u-grid[data-cols="2"] { grid-template-columns: repeat(2, 1fr); }
   @media (max-width: 860px) { .u-grid[data-cols="2"] { grid-template-columns: 1fr; } }
 
+  /* ---------- tabs ---------- */
+  /* One scrollable row with labelled runs. The old 13 flat .btn tabs wrapped
+     onto three ragged rows, which reads as a pile rather than a structure. */
+  .u-tabs {
+    display: flex; align-items: flex-end; gap: var(--s-5);
+    border-bottom: 1px solid var(--line); margin-bottom: var(--s-5);
+    overflow-x: auto; overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .u-tabs::-webkit-scrollbar { display: none; }
+  .u-tabs-run { display: flex; flex-direction: column; gap: 2px; flex: none; }
+  .u-tabs-group {
+    font-size: 10px; color: var(--muted); font-weight: var(--w-bold);
+    letter-spacing: .6px; padding-inline-start: var(--s-2);
+    text-transform: uppercase; opacity: .75;
+  }
+  .u-tabs-items { display: flex; gap: 2px; }
+  .u-tab {
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    font: inherit; font-size: var(--t-sm); font-weight: var(--w-med);
+    color: var(--muted); background: none; border: 0;
+    border-bottom: 2px solid transparent;
+    padding: var(--s-2) var(--s-3); cursor: pointer;
+    transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+  }
+  .u-tab:hover { color: var(--text); }
+  .u-tab[aria-selected="true"] {
+    color: var(--accent); border-bottom-color: var(--accent); font-weight: var(--w-bold);
+  }
+
   /* ---------- charts ---------- */
   /* Thin marks, rounded data-ends, recessive track. Bars are divs, not SVG, so
      they inherit RTL direction for free. */
