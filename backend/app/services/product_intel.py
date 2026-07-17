@@ -19,7 +19,7 @@ async def survey(brand: str, products: list | None = None, demo: bool = False) -
         from app.services.facebook import comment_analyzer as ca
         d = await fb.analyze_page(brand, limit=12, comments=True)
         if d.get("error"):
-            return {"brand": brand, "empty": True, "note": "أضِف صفحة البراند + أسماء المنتجات، أو جرّب وضع العرض."}
+            return {"brand": brand, "empty": True, "note": "اربط صفحة البراند وحدّد أسماء المنتجات لبدء المسح."}
         comments = [c.get("text") for c in (d.get("sample_comments") or []) if c.get("text")]
         names = products or []
         rows = []
@@ -39,7 +39,7 @@ async def survey(brand: str, products: list | None = None, demo: bool = False) -
                 "note": "بيانات محدودة — أضِف مصادر أوسع (فيسبوك/ريفيوات) لدقة أعلى.",
                 "disclaimer": "مؤشرات احتمالية — تتطلّب مراجعة بشرية."}
     except Exception:
-        return {"brand": brand, "empty": True, "note": "تعذّر — جرّب وضع العرض."}
+        return {"brand": brand, "empty": True, "note": "تعذّر مسح منتجات هذه العلامة حالياً."}
 
 
 def _demo() -> dict:

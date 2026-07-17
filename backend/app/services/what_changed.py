@@ -80,7 +80,7 @@ async def build(period: str = "last_24h", demo: bool = False, owner: str | None 
 
     return {"demo": False, "period": period, "period_label": _PERIODS.get(period, period),
             "changes": changes[:20], "count": len(changes),
-            "note": None if changes else "لا تغيّرات ملحوظة — أو لا بيانات كافية بعد. جرّب وضع العرض (?demo=1).",
+            "note": None if changes else "لا تغيّرات ملحوظة في هذه المدة.",
             "history_note": ("المقارنة الحالية ≈ مقابل الدورة السابقة. المقارنة الدقيقة لأيام متعددة تتطلّب أرشيف لقطات يومي (قيد الإنشاء)."
                              if period != "last_24h" else None),
             "disclaimer": "مؤشرات احتمالية آلية — تتطلّب مراجعة بشرية."}

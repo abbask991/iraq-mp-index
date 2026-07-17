@@ -40,7 +40,7 @@ async def search(image_url: str | None = None, image_bytes: bytes | None = None)
     prov = configured()
     if not prov:
         return {"configured": False, "provider": None, "results": [],
-                "note": "لا مزوّد بحث عكسي مهيّأ — أضِف SERPAPI_KEY أو TINEYE_API_KEY أو BING_VISUAL_KEY لتفعيل البحث العكسي."}
+                "note": "البحث العكسي عن الصور غير مفعّل لهذا الحساب."}
     try:
         if prov == "serpapi" and image_url:
             async with httpx.AsyncClient() as c:

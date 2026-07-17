@@ -47,8 +47,10 @@ async def fetch(place: str, demo: bool = False) -> dict:
         return _demo(place)
     prov = configured()
     if not prov:
-        return {"configured": False, "place": place, "note":
-                "أضِف SERPAPI_KEY أو GOOGLE_PLACES_KEY لجلب ريفيوات Google الحقيقية."}
+        # client-facing: never name a provider key. Our billing state is not the
+        # reader's business — say what is unavailable, not what we have not paid for.
+        return {"configured": False, "place": place,
+                "note": "ريفيوات Google غير مفعّلة لهذا الحساب."}
     try:
         if prov == "serpapi":
             async with httpx.AsyncClient() as c:

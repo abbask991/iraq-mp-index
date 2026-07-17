@@ -92,7 +92,7 @@ async def response_center(brand: str, demo: bool = False) -> dict:
         from app.services import facebook as fb
         d = await fb.analyze_page(brand, limit=10, comments=True)
         if d.get("error"):
-            return {"brand": brand, "empty": True, "note": "أضِف صفحة الشركة أو جرّب وضع العرض."}
+            return {"brand": brand, "empty": True, "note": "اربط صفحة الشركة على فيسبوك لبدء الرصد."}
         neg = [c for c in (d.get("sample_comments") or []) if c.get("sentiment") == "سلبي"]
         tickets = [{
             "id": f"T{1000 + i}", "text": c.get("text"), "channel": "facebook",
@@ -104,7 +104,7 @@ async def response_center(brand: str, demo: bool = False) -> dict:
                            "critical": 0},
                 "disclaimer": "ردود مقترحة آلية — راجعها بشرياً قبل الإرسال."}
     except Exception:
-        return {"brand": brand, "empty": True, "note": "تعذّر — جرّب وضع العرض."}
+        return {"brand": brand, "empty": True, "note": "تعذّر جلب البيانات لهذه العلامة حالياً."}
 
 
 # ── Brand Crisis Radar + Alerts ──────────────────────────────────────────────
@@ -128,7 +128,7 @@ async def crisis_radar(brand: str, demo: bool = False) -> dict:
                 "highest": "حرج", "disclaimer": "مؤشرات إنذار احتمالية — تتطلّب مراجعة بشرية فورية."}
     # real: derive from the FB snapshot + reputation signals (best-effort)
     return {"demo": False, "brand": brand, "crises": [], "count": 0,
-            "note": "رادار الأزمات يعمل عند تفعيل مصادر الرصد (فيسبوك/ريفيوات). جرّب وضع العرض."}
+            "note": "رادار الأزمات يبدأ بالعمل بعد ربط مصادر الرصد لهذه العلامة."}
 
 
 # ── 1. Brand Reputation ──────────────────────────────────────────────────────
@@ -138,11 +138,16 @@ async def brand_reputation(name: str, demo: bool = False) -> dict:
             "demo": True, "brand": "آسياسيل", "reputation_score": 54, "risk_score": 58,
             "sentiment": {"positive": 31, "negative": 52, "neutral": 17},
             "reaction_comment_gap": 34, "gap_note": "تفاعلات إيجابية ظاهرياً لكن التعليقات ناقدة بقوة.",
-            "trend": [62, 60, 57, 55, 54], "trend_note": "-8 نقاط خلال أسبوعين",
             "drivers_negative": ["ضعف خدمة العملاء", "غلاء الباقات", "انقطاع الخدمة في مناطق"],
             "drivers_positive": ["تغطية واسعة", "عروض المناسبات"],
-            "top_mentions": [{"text": "خدمة العملاء ما ترد بالمرة", "sentiment": "سلبي", "reach": 12000},
-                             {"text": "الشبكة ممتازة بالمحافظة", "sentiment": "إيجابي", "reach": 4300}],
+            # REMOVED under the demo-is-a-contract rule. The real path below reuses
+            # the Facebook engine, which computes no history and surfaces no ranked
+            # mentions:
+            #   trend / trend_note → need stored post history (migration 011)
+            #   top_mentions       → analyze_page does not return it today
+            # They drew a reputation curve and quoted mentions that the pipeline
+            # cannot produce, so real data could never match this demo. Put each
+            # back only once its real source exists.
             "recommended_action": "إطلاق حملة تحسين خدمة العملاء + ردّ استباقي على الشكاوى المتكررة.",
             "disclaimer": "مؤشرات احتمالية آلية — تتطلّب مراجعة بشرية.",
         }
@@ -151,7 +156,7 @@ async def brand_reputation(name: str, demo: bool = False) -> dict:
         from app.services import facebook as fb
         d = await fb.analyze_page(name, limit=12, comments=True)
         if d.get("error"):
-            return {"brand": name, "empty": True, "note": "أضِف رابط صفحة الشركة على فيسبوك أو جرّب وضع العرض."}
+            return {"brand": name, "empty": True, "note": "اربط صفحة الشركة على فيسبوك لبدء تحليل السمعة."}
         gap = d.get("comment_reaction_gap") or {}
         ins = d.get("insights") or {}
         cs = d.get("comment_sentiment") or {}
@@ -169,7 +174,7 @@ async def brand_reputation(name: str, demo: bool = False) -> dict:
             "disclaimer": "مؤشرات احتمالية آلية — تتطلّب مراجعة بشرية.",
         }
     except Exception:
-        return {"brand": name, "empty": True, "note": "تعذّر التحليل — جرّب وضع العرض."}
+        return {"brand": name, "empty": True, "note": "تعذّر تحليل هذه العلامة حالياً."}
 
 
 # ── 2. Customer Complaints ───────────────────────────────────────────────────
@@ -198,7 +203,7 @@ async def complaints(name: str, demo: bool = False) -> dict:
         from app.services.facebook import comment_analyzer as ca
         d = await fb.analyze_page(name, limit=12, comments=True)
         if d.get("error"):
-            return {"brand": name, "empty": True, "note": "أضِف صفحة الشركة أو جرّب وضع العرض."}
+            return {"brand": name, "empty": True, "note": "اربط صفحة الشركة على فيسبوك لبدء الرصد."}
         ci = d.get("comment_intel") or {}
         ins = d.get("insights") or {}
         return {
@@ -213,7 +218,7 @@ async def complaints(name: str, demo: bool = False) -> dict:
             "disclaimer": "تصنيف آلي — يتطلّب مراجعة بشرية.",
         }
     except Exception:
-        return {"brand": name, "empty": True, "note": "تعذّر — جرّب وضع العرض."}
+        return {"brand": name, "empty": True, "note": "تعذّر جلب البيانات لهذه العلامة حالياً."}
 
 
 # ── 3. Competitor Monitoring ─────────────────────────────────────────────────
@@ -233,7 +238,7 @@ async def competitors(name: str, demo: bool = False) -> dict:
             "disclaimer": "مؤشرات احتمالية — تتطلّب مراجعة بشرية.",
         }
     return {"brand": name, "empty": True,
-            "note": "مقارنة المنافسين تتطلّب تحديد أسماء المنافسين + بيانات مرصودة. جرّب وضع العرض للمعاينة."}
+            "note": "حدّد أسماء المنافسين لبدء المقارنة."}
 
 
 # ── 4. Fraud / Fake Pages ────────────────────────────────────────────────────
@@ -255,7 +260,7 @@ async def fraud_pages(name: str, demo: bool = False) -> dict:
             "disclaimer": "مؤشرات تشابه احتمالية — لا تُثبت احتيالاً؛ تتطلّب تحقّقاً بشرياً وقانونياً.",
         }
     return {"brand": name, "empty": True,
-            "note": "كشف الصفحات المزيفة يتطلّب بحثاً عبر المنصّات + بصمات بصرية (يتكامل مع «كشف الصور»). جرّب وضع العرض."}
+            "note": "كشف الصفحات المزيفة يبدأ بعد ربط مصادر الرصد لهذه العلامة."}
 
 
 # ── 5. Corporate Risk Index ──────────────────────────────────────────────────
@@ -274,4 +279,4 @@ async def risk_index(name: str, demo: bool = False) -> dict:
                                     "حملة خدمة عملاء", "مراقبة يومية للمزاج"],
             "disclaimer": "مؤشر مركّب احتمالي — يتطلّب مراجعة بشرية.",
         }
-    return {"brand": name, "empty": True, "note": "يجمّع المؤشر إشارات السمعة/الشكاوى/الاحتيال — جرّب وضع العرض."}
+    return {"brand": name, "empty": True, "note": "يُحتسب المؤشر من إشارات السمعة والشكاوى والاحتيال بعد توفّرها."}

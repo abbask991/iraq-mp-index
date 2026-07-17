@@ -110,7 +110,7 @@ async def build(entity_id: str, demo: bool = False) -> dict:
         twin = {}
     if not twin.get("data_points"):
         return {"demo": False, "id": entity_id, "name": entity_id, "empty": True,
-                "note": "لا بيانات مرصودة لهذا الكيان بعد — شغّل الجمع أو جرّب وضع العرض (?demo=1).",
+                "note": "لا بيانات مرصودة لهذا الكيان بعد.",
                 "scores": {}, "recommendations": []}
     sc = {"reputation": twin["reputation"]["score"], "risk": twin["risk"]["score"],
           "influence": twin["influence"]["score"],

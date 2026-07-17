@@ -36,7 +36,7 @@ async def top_commenters(target: str = "", demo: bool = False) -> dict:
                 "note": "تحديد الهوية من فيسبوك محدود — النتائج تقريبية وتتطلّب مراجعة بشرية.",
                 "disclaimer": "مؤشرات احتمالية — «تنسيق محتمل» لا يُثبت شيئاً قاطعاً."}
     return {"page": target, "empty": True,
-            "note": "تحليل المعلّقين يتطلّب سحب تعليقات مع هوية المؤلّف (محدود على فيسبوك). جرّب وضع العرض."}
+            "note": "تحليل المعلّقين يتطلّب تعليقات تحمل هوية المؤلّف — غير متاحة لهذه الصفحة."}
 
 
 # ── 2. Content performance ───────────────────────────────────────────────────
@@ -61,7 +61,7 @@ async def content_performance(target: str = "", demo: bool = False) -> dict:
                              "«العروض» أفضل مزيج تفاعل+مشاعر إيجابية."],
                 "recommendation": "ركّز على فيديوهات العروض، وحوّل منشورات خدمة العملاء لردود استباقية بدل إعلانات.",
                 "disclaimer": "مؤشرات احتمالية — تتطلّب مراجعة بشرية."}
-    return {"page": target, "empty": True, "note": "يتطلّب سحب منشورات الصفحة. جرّب وضع العرض."}
+    return {"page": target, "empty": True, "note": "يتطلّب رصد منشورات هذه الصفحة أولاً."}
 
 
 # ── 3. Page alerts (early warning) ───────────────────────────────────────────
@@ -81,7 +81,7 @@ async def alerts(target: str = "", demo: bool = False) -> dict:
         return {"demo": True, "page": "آسياسيل (تجريبي)", "alerts": al, "count": len(al), "highest": "حرج",
                 "disclaimer": "إنذارات احتمالية — تتطلّب مراجعة بشرية فورية."}
     return {"page": target, "alerts": [], "count": 0,
-            "note": "تنبيهات فيسبوك تعمل عند تفعيل الجمع المستمر. جرّب وضع العرض."}
+            "note": "تنبيهات فيسبوك تبدأ بعد تفعيل الرصد المستمر لهذه الصفحة."}
 
 
 # ── 4. Compare pages ─────────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ async def compare(pages: list | None = None, demo: bool = False) -> dict:
                              "كورك الأضعف — فرصة لكسب عملائه."],
                 "recommendation": "قلّص فجوة التأييد عبر تحسين خدمة العملاء لتقترب من زين.",
                 "disclaimer": "مؤشرات احتمالية — تتطلّب مراجعة بشرية."}
-    return {"pages": [], "empty": True, "note": "أضِف أسماء الصفحات للمقارنة. جرّب وضع العرض."}
+    return {"pages": [], "empty": True, "note": "أضِف أسماء الصفحات لبدء المقارنة."}
 
 
 # ── 5. Posting / timing analysis ─────────────────────────────────────────────
@@ -120,4 +120,4 @@ async def posting_analysis(target: str = "", demo: bool = False) -> dict:
                                        {"date": "الأسبوع 3", "approval": 49}, {"date": "الأسبوع 4", "approval": 44}],
                 "recommendation": "انشر مساءً (8–10 مساءً) ويومَي الخميس/الجمعة لأعلى وصول.",
                 "disclaimer": "مؤشرات احتمالية — تتطلّب مراجعة بشرية."}
-    return {"page": target, "empty": True, "note": "يتطلّب سحب منشورات مع طوابع زمنية. جرّب وضع العرض."}
+    return {"page": target, "empty": True, "note": "يتطلّب رصد منشورات هذه الصفحة مع طوابعها الزمنية."}

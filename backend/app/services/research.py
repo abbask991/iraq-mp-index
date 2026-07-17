@@ -29,7 +29,7 @@ async def studies(demo: bool = False) -> dict:
              "headline": "سردية «فشل الخدمات» الأسرع نمواً، تليها «الفساد»."},
         ]}
     return {"demo": False, "studies": [],
-            "note": "لا دراسات محفوظة بعد — ولّد دراسة على موضوع، أو جرّب وضع العرض."}
+            "note": "لا دراسات محفوظة بعد — ولّد دراسة على موضوع."}
 
 
 async def study(topic: str, demo: bool = False) -> dict:
@@ -62,7 +62,7 @@ async def study(topic: str, demo: bool = False) -> dict:
         }
     # real path (best-effort) would gather + analyze mentions of the topic
     return {"demo": False, "topic": topic, "empty": True,
-            "note": "توليد الدراسة الحقيقية يتطلّب مصادر مفعّلة (فيسبوك/X/أخبار). جرّب وضع العرض."}
+            "note": "توليد الدراسة يتطلّب مصادر رصد مفعّلة لهذا الموضوع."}
 
 
 # ── Opinion Polls (passive) ──────────────────────────────────────────────────
@@ -76,7 +76,7 @@ async def polls(demo: bool = False) -> dict:
             {"id": "p3", "question": "هل تحسّنت الخدمات خلال آخر سنة؟", "sample": 6100,
              "result": {"support": 22, "oppose": 66, "neutral": 12}},
         ]}
-    return {"demo": False, "polls": [], "note": "لا استطلاعات بعد — أنشئ سؤالاً، أو جرّب وضع العرض."}
+    return {"demo": False, "polls": [], "note": "لا استطلاعات بعد — أنشئ سؤالاً للبدء."}
 
 
 async def poll(question: str, demo: bool = False) -> dict:
@@ -114,4 +114,4 @@ async def poll(question: str, demo: bool = False) -> dict:
             "disclaimer": "تقدير احتمالي من إشارات عامة — لا يُعادل استطلاعاً ميدانياً بعيّنة ممثّلة.",
         }
     return {"demo": False, "question": question, "empty": True,
-            "note": "الاستطلاع الحقيقي يتطلّب مصادر مفعّلة. جرّب وضع العرض."}
+            "note": "الاستطلاع يتطلّب مصادر رصد مفعّلة لهذا السؤال."}

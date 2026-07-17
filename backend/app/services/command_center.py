@@ -155,7 +155,9 @@ async def build(demo: bool = False, owner: str | None = None) -> dict:
         "is_urgent": is_urgent,
         "recommended_actions": (_actions_for(top_risk[0]) if top_risk else ["مراقبة روتينية"]),
         "empty": not ents,
-        "note": None if ents else "لا توجد بيانات مرصودة بعد — شغّل الجمع أو جرّب وضع العرض (?demo=1).",
+        # client-facing: no ops instructions, no query params, and never "go look at
+        # the fake data" as the answer to having none.
+        "note": None if ents else "لا توجد كيانات في قائمة المتابعة — أضف كياناً لبدء الرصد.",
         "disclaimer": "مؤشرات احتمالية آلية — تتطلّب مراجعة بشرية. لا تُثبت تنسيقاً أو انتماءً كحقيقة.",
     }
 
