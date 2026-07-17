@@ -103,6 +103,7 @@ async def build_digest(now_ts: float | None = None, owner: str | None = None):
             "emotions": emo,
             "data_points": twin.get("data_points", 0),
             "data_points_capped": twin.get("data_points_capped", False),
+            "sentiment_counts": twin.get("sentiment_counts") or {},
             "rep_delta": rep - p.get("reputation", rep),
             "risk_delta": risk - p.get("risk", risk),
         })
@@ -125,10 +126,23 @@ async def build_digest(now_ts: float | None = None, owner: str | None = None):
         key=lambda r: -(r["posts"] * (1 + r["national_trend_probability"])))[:8]
     heatmap = sorted(heatmap, key=lambda h: -sum(h["emotions"].values()))[:8]
 
-    # trending / campaigns / geo / sentiment from the overview's STABLE extract.
-    # (The overview cache key depends on coverage, which the digest can't know, so
-    # the overview publishes this decoupled `intel:overview_extract` for us.)
-    trending, campaigns, geo, national_sentiment = [], [], None, {}
+    # Sentiment is computed HERE, from this tenant's own entities. It used to come
+    # from intel:overview_extract — a single global Redis key written only when
+    # somebody opened /monitor/overview. So a tenant who never visited that page had
+    # an empty mood forever, and if they had visited, the number was another
+    # tenant's. mentions.sentiment is already tallied per entity by the twin.
+    national_sentiment = {"pos": 0, "neg": 0, "neu": 0}
+    for e in entities:
+        sc = e.get("sentiment_counts") or {}
+        for kk in ("pos", "neg", "neu"):
+            national_sentiment[kk] += int(sc.get(kk) or 0)
+    if not any(national_sentiment.values()):
+        national_sentiment = {}          # nothing measured → omit, never show zeros
+
+    # trending / campaigns / geo still come from the overview's extract, which has
+    # the same page-load dependency and is still global. Documented, not yet fixed:
+    # they need the same treatment as sentiment.
+    trending, campaigns, geo = [], [], None
     raw_ov = await redis_client.get("intel:overview_extract")
     if raw_ov:
         try:
@@ -136,7 +150,6 @@ async def build_digest(now_ts: float | None = None, owner: str | None = None):
             trending = (ov.get("trending") or [])[:8]
             campaigns = (ov.get("campaigns") or [])[:5]
             geo = ov.get("geo")
-            national_sentiment = ov.get("sentiment") or {}
         except Exception:
             pass
 

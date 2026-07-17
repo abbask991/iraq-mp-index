@@ -173,8 +173,16 @@ def _demo_payload() -> dict:
         # Consistent with the demo story above: electricity-driven negativity,
         # Facebook-heavy, anger concentrated on the service ministries.
         "national_sentiment": {"pos": 412, "neg": 1985, "neu": 733},
+        # THE RULE FOR EVERY DEMO FIXTURE: only fields the real pipeline can
+        # actually produce. Otherwise "real will look like demo once the data is
+        # connected" is false, and the demo becomes a promise the product cannot
+        # keep.
+        #   signals/sample/platforms/sources/engagement/latest → mentions table ✔
+        #   comments → facebook_comments, created by migration 011, NOT APPLIED.
+        #     Removed rather than faked: no collector can fill it today, so showing
+        #     8,420 here would advertise a number that can never arrive.
         "coverage": {"signals": 3130, "sample": 3130, "platforms": 4, "sources": 86,
-                     "engagement": 412_800, "latest": "2026-07-17T09:20:00Z", "comments": 8420},
+                     "engagement": 412_800, "latest": "2026-07-17T09:20:00Z"},
         "platform_activity": [
             {"platform": "facebook", "count": 1840, "pct": 59},
             {"platform": "x", "count": 742, "pct": 24},

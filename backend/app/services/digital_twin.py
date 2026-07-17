@@ -123,4 +123,10 @@ async def build(entity_id: str, days: int = 30) -> dict:
     # as an evidence count overstates thin coverage and understates deep coverage.
     # Callers must render a saturated value as "300+", not "300".
     twin["data_points_capped"] = len(mentions) >= MENTION_CAP
+    # pos/neg/neu are computed above from mentions.sentiment but were only used
+    # internally. Surfacing them lets the digest aggregate a tenant's own mood
+    # instead of depending on intel:overview_extract — a global Redis key written
+    # ONLY when someone happens to open /monitor/overview, which meant a fresh
+    # tenant's sentiment stayed empty forever.
+    twin["sentiment_counts"] = {"pos": pos, "neg": neg, "neu": neu}
     return twin
