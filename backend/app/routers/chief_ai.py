@@ -1,6 +1,8 @@
 """AI Chief Intelligence Officer API. The heavy dashboard is cached (SWR) so it
 serves instantly and refreshes in the background (~every 30 min)."""
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from app.common_auth import current_user
 from pydantic import BaseModel
 
 from app.services import cache
@@ -22,8 +24,10 @@ class ReportReq(BaseModel):
 
 
 @router.get("/dashboard")
-async def dashboard():
-    return await cache.swr("chief:dashboard", 1800, lambda: chief_ai.build_dashboard())
+async def dashboard(user: dict = Depends(current_user)):
+    # Tenant-scoped — the digest beneath is per-owner, so the cache key must be too.
+    owner = user["id"]
+    return await cache.swr(f"chief:dashboard:{owner}", 1800, lambda: chief_ai.build_dashboard(owner=owner))
 
 
 @router.post("/ask")
@@ -32,14 +36,16 @@ async def ask(req: AskReq):
 
 
 @router.get("/recommendations")
-async def recommendations():
-    d = await cache.swr("chief:dashboard", 1800, lambda: chief_ai.build_dashboard())
+async def recommendations(user: dict = Depends(current_user)):
+    owner = user["id"]
+    d = await cache.swr(f"chief:dashboard:{owner}", 1800, lambda: chief_ai.build_dashboard(owner=owner))
     return {"recommendations": d.get("recommendations", []), "generated_at": d.get("generated_at")}
 
 
 @router.get("/forecast")
-async def forecast():
-    d = await cache.swr("chief:dashboard", 1800, lambda: chief_ai.build_dashboard())
+async def forecast(user: dict = Depends(current_user)):
+    owner = user["id"]
+    d = await cache.swr(f"chief:dashboard:{owner}", 1800, lambda: chief_ai.build_dashboard(owner=owner))
     return d.get("forecast", {})
 
 

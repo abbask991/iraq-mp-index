@@ -1,6 +1,8 @@
 """Monitoring endpoints — news / X / replies / summary. Same response shapes
 as the previous Next.js API routes, so the frontend swaps base URL only."""
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from app.common_auth import current_user
 from pydantic import BaseModel
 
 import asyncio
@@ -165,10 +167,10 @@ async def cron_alerts():
 
 
 @router.get("/alerts-feed")
-async def alerts_feed():
-    """Recent triggered alerts (for the in-app alerts view)."""
+async def alerts_feed(user: dict = Depends(current_user)):
+    """Recent triggered alerts (for the in-app alerts view) — the caller's own."""
     from app.services import alert_engine
-    return {"alerts": await alert_engine.feed()}
+    return {"alerts": await alert_engine.feed(user["id"])}
 
 
 @router.get("/cron/brief")
@@ -627,9 +629,14 @@ async def cron_digest(secret: str = "", ingest: int = 1):
                                      return_exceptions=True)
             except Exception:
                 pass
-    digest = await intel_digest.build_digest(_t.time())
-    return {"refreshed": refreshed, "entities": digest.get("count", 0),
-            "generated_at": digest.get("generated_at")}
+    # cron: build one digest per tenant (a digest derives from a watchlist, and
+    # watchlists are per-owner)
+    built, ents = 0, 0
+    for _o in await db.monitor_owners():
+        dg = await intel_digest.build_digest(_t.time(), owner=_o)
+        built += 1
+        ents += (dg or {}).get("count", 0)
+    return {"refreshed": refreshed, "tenants": built, "entities": ents}
 
 
 @router.post("/overview")

@@ -33,12 +33,12 @@ def _level(s):
     return "حرج" if s >= 70 else "مرتفع" if s >= 50 else "متوسط" if s >= 30 else "منخفض"
 
 
-async def build(period: str = "last_24h", demo: bool = False) -> dict:
+async def build(period: str = "last_24h", demo: bool = False, owner: str | None = None) -> dict:
     if demo:
         return _demo(period)
     changes = []
     from app.services import facebook as fb, intel_digest
-    dg = await intel_digest.get_digest() or {}
+    dg = await intel_digest.get_digest(owner) or {}
     ents = dg.get("entities", [])
 
     for e in sorted(ents, key=lambda e: -(abs(e.get("rep_delta", 0)) + abs(e.get("risk_delta", 0)))):

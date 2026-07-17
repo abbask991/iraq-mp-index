@@ -26,10 +26,10 @@ def _threat(risk: int) -> dict:
     return {"level": "هادئ — تحت السيطرة", "code": "ALERT 4", "color": "#22c55e"}
 
 
-async def build_brief(now_ts: float | None = None) -> dict:
-    dg = await intel_digest.get_digest() or {}
+async def build_brief(now_ts: float | None = None, owner: str | None = None) -> dict:
+    dg = await intel_digest.get_digest(owner) or {}
     try:
-        alerts = await alert_engine.feed()
+        alerts = await alert_engine.feed(owner)
     except Exception:
         alerts = []
     rs = dg.get("risk_summary", {})
@@ -77,13 +77,13 @@ async def build_brief(now_ts: float | None = None) -> dict:
     }
 
 
-async def executive_brief(demo: bool = False) -> dict:
+async def executive_brief(demo: bool = False, owner: str | None = None) -> dict:
     """Phase 8 — the 10-section executive morning brief (≤3-minute read), assembled
     by REUSING Command Center + What-Changed + the Facebook snapshot. Each item
     carries confidence + evidence + recommendation. Demo-ready."""
     from app.services import command_center, what_changed
-    cc = await command_center.build(demo=demo)
-    wc = await what_changed.build("last_24h", demo=demo)
+    cc = await command_center.build(demo=demo, owner=owner)
+    wc = await what_changed.build("last_24h", demo=demo, owner=owner)
 
     # opportunities = positive movers + supportive signals
     opportunities = []

@@ -4,7 +4,9 @@ call computes, repeats are instant, refresh happens in the background.
 The {entity_id}/{campaign_id}/{narrative_id} path params are the name / hashtag /
 narrative term to centre the battlefield on.
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from app.common_auth import current_user
 
 from app.services import cache
 from app.services import media_battlefield as bf
@@ -13,8 +15,12 @@ router = APIRouter(prefix="/api/battlefield", tags=["battlefield"])
 
 
 @router.get("/national")
-async def national():
-    return await cache.swr("bf:national", 1800, lambda: bf.build_national())
+async def national(user: dict = Depends(current_user)):
+    # Tenant-scoped: the digest beneath this is per-owner, so identity comes
+    # from the session and the cache key carries the owner. A global key here
+    # would serve one tenant's picture to another.
+    owner = user["id"]
+    return await cache.swr(f"bf:national:{owner}", 1800, lambda: bf.build_national(owner=owner))
 
 
 @router.get("/entity/{entity_id}")

@@ -41,8 +41,11 @@ async def _tick():
 
     # CHEAP jobs only (no X fetch) — alerts/digest read stored data + Redis.
     if await _won("alerts", 28 * 60):                   # evaluate + push alerts (~30 min)
-        from app.services import alert_engine
-        await _safe(alert_engine.evaluate_and_notify)
+        from app.services import alert_engine, db
+        # per tenant: an alert is derived from a tenant's digest and lands in
+        # that tenant's feed
+        for _o in await db.monitor_owners():
+            await _safe(lambda o=_o: alert_engine.evaluate_and_notify(owner=o))
 
     if await _won("digest", 350 * 60):                  # rebuild ready-made digest (~6h, no fetch)
         from app.services import db, intel_digest
@@ -51,11 +54,7 @@ async def _tick():
         # render another's entities. Cheap — stored data + rule engines, no AI/fetch.
         for _owner in await db.monitor_owners():
             await _safe(lambda o=_owner: intel_digest.build_digest(time.time(), owner=o))
-        # TRANSITIONAL: brief, war room, chief, predictive, analyst and the alert
-        # engine still read the un-scoped digest. Dropping this build would empty
-        # them once the 24h TTL lapsed. Remove it only once those seven are
-        # owner-scoped too.
-        await _safe(lambda: intel_digest.build_digest(time.time()))
+        # The un-scoped build is gone: every consumer is owner-scoped now.
 
     # EXPENSIVE warm (15k national X fetch) runs at most ONCE/day, before the
     # brief — NOT every 15 min (that drained the X budget). Pages otherwise warm

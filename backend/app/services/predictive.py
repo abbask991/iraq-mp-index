@@ -51,8 +51,8 @@ def _narrative_forecast(n: dict):
             "confidence": min(90, 35 + posts // 6)}
 
 
-async def outlook():
-    dg = await intel_digest.get_digest() or {}
+async def outlook(owner: str | None = None):
+    dg = await intel_digest.get_digest(owner) or {}
     ents = dg.get("entities", [])
     narrs = dg.get("rising_narratives", [])
     rs = dg.get("risk_summary", {})

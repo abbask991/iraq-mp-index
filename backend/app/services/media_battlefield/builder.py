@@ -126,10 +126,10 @@ async def _fb_snapshot():
         return None
 
 
-async def build_national():
+async def build_national(owner: str | None = None):
     """National battlefield from the precomputed digest (fast, no new X cost)."""
     from app.services import intel_digest
-    dg = await intel_digest.get_digest() or {}
+    dg = await intel_digest.get_digest(owner) or {}
     ents = dg.get("entities", [])
     rs = dg.get("risk_summary", {})
 

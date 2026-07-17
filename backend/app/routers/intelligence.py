@@ -8,7 +8,9 @@ has no data rather than fall back on the model's general knowledge.
 import json
 
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from app.common_auth import current_user
 from pydantic import BaseModel
 
 from app.config import ANTHROPIC_API_KEY, SUMMARY_MODEL
@@ -151,13 +153,14 @@ async def ask(req: AskReq):
 
 
 @router.get("/digest")
-async def digest():
-    """Ready-made intelligence digest — served INSTANTLY from cache (no live fetch,
-    no AI). Refreshed every ~3h by the cron. Builds once from stored data if cold."""
+async def digest(user: dict = Depends(current_user)):
+    """Ready-made intelligence digest — the CALLER'S, served instantly from cache
+    (no live fetch, no AI). Refreshed per tenant by the cron; builds once if cold."""
     import time
-    d = await intel_digest.get_digest()
+    owner = user["id"]
+    d = await intel_digest.get_digest(owner)
     if d is None:
-        d = await intel_digest.build_digest(time.time())   # cheap: stored data only
+        d = await intel_digest.build_digest(time.time(), owner=owner)   # cheap: stored data only
     age = int(time.time() - d.get("generated_at", 0))
     return {**d, "age_seconds": age, "stale": age > 4 * 3600}
 

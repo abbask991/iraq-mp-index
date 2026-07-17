@@ -49,8 +49,8 @@ def _facts(dg: dict) -> str:
     )
 
 
-async def build_dashboard() -> dict:
-    dg = await intel_digest.get_digest() or {}
+async def build_dashboard(owner: str | None = None) -> dict:
+    dg = await intel_digest.get_digest(owner) or {}
     events = priority_engine.rank_events(dg)
     forecast = forecast_engine.multi_horizon(dg)
     advisor = await recommendation_engine.generate(_facts(dg))

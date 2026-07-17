@@ -12,6 +12,12 @@ import time
 from app.services import notify, redis_client, settings
 
 _FEED_KEY = "alerts:recent"
+
+
+def _feed_key(owner: str | None) -> str:
+    """Alerts derive from a tenant's digest, so the feed they land in is that
+    tenant's. One global key would show every client another client's alerts."""
+    return f"{_FEED_KEY}:{owner}" if owner else _FEED_KEY
 _COOLDOWN = 6 * 3600                       # don't repeat the same alert within 6h
 
 _SEV_ICON = {"red": "🔴", "orange": "🟠", "yellow": "🟡", "watch": "🟦"}
@@ -24,9 +30,9 @@ async def _thr(key, default):
         return default
 
 
-async def evaluate() -> list[dict]:
+async def evaluate(owner: str | None = None) -> list[dict]:
     from app.services import intel_digest
-    dg = await intel_digest.get_digest() or {}
+    dg = await intel_digest.get_digest(owner) or {}
     triggered: list[dict] = []
 
     min_risk = await _thr("min_risk_score", 60)
@@ -88,8 +94,8 @@ async def evaluate() -> list[dict]:
     return triggered
 
 
-async def evaluate_and_notify() -> dict:
-    triggered = await evaluate()
+async def evaluate_and_notify(owner: str | None = None) -> dict:
+    triggered = await evaluate(owner)
     enabled = True
     try:
         enabled = bool(await settings.get("alerts", "enabled", True))
@@ -115,17 +121,17 @@ async def evaluate_and_notify() -> dict:
 
     if sent:                                                 # prepend to the recent feed
         try:
-            cur = json.loads(await redis_client.get(_FEED_KEY) or "[]")
+            cur = json.loads(await redis_client.get(_feed_key(owner)) or "[]")
         except Exception:
             cur = []
         feed = (sent + cur)[:40]
-        await redis_client.set(_FEED_KEY, json.dumps(feed, ensure_ascii=False), ex=14 * 86400)
+        await redis_client.set(_feed_key(owner), json.dumps(feed, ensure_ascii=False), ex=14 * 86400)
 
     return {"checked": len(triggered), "sent": len(sent), "pushed": bool(chat), "alerts": sent}
 
 
-async def feed() -> list[dict]:
+async def feed(owner: str | None = None) -> list[dict]:
     try:
-        return json.loads(await redis_client.get(_FEED_KEY) or "[]")
+        return json.loads(await redis_client.get(_feed_key(owner)) or "[]")
     except Exception:
         return []

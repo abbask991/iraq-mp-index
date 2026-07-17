@@ -57,17 +57,17 @@ def _match_entity(question: str, dg: dict):
     return best
 
 
-async def ask(question: str) -> dict:
+async def ask(question: str, owner: str | None = None) -> dict:
     question = (question or "").strip()
     if not question:
         return {"answer": "اكتب سؤالك.", "entity": None}
     if not ANTHROPIC_API_KEY:
         return {"answer": "خدمة الذكاء الاصطناعي غير مفعّلة حالياً.", "entity": None}
 
-    dg = await intel_digest.get_digest() or {}
+    dg = await intel_digest.get_digest(owner) or {}
     ent = _match_entity(question, dg)
     try:
-        alerts = (await alert_engine.feed())[:8]
+        alerts = (await alert_engine.feed(owner))[:8]
     except Exception:
         alerts = []
 
