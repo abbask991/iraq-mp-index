@@ -28,22 +28,29 @@ export default function WarGraph({ data }: { data: any }) {
   if (!nodes.length)
     return <div className="muted" style={{ padding: 30, textAlign: "center" }}>لا بيانات شبكة بعد.</div>;
 
-  // Radar-blip layout: distribute nodes on concentric rings INSIDE the radar
-  // (centered), so they sit within the circles instead of scattering to corners.
-  const ringR = [0.17, 0.29, 0.40].map((f) => f * H);
+  // Position comes from the backend's force-directed layout (Fruchterman-Reingold
+  // in services/bigdata/influence.py: connected nodes attract, unconnected repel,
+  // seeded so it is stable across rebuilds). It ships x/y in [0,1] per node.
+  //
+  // This component used to DISCARD those and place nodes by their array index —
+  // ring = i % 3, angle = k / ring.length. On a radar, that is a lie the picture
+  // tells for you: concentric rings read as "closer to centre = more central",
+  // and an analyst reads a structure that is really just insertion order. Adding
+  // one entity also reshuffled everything, which reads as the situation changing.
   const _pos = new Map<string, [number, number]>();
-  const ringed: any[][] = [[], [], []];
-  let ri = 0;
-  nodes.forEach((n) => {
+  const PAD = 46; // keep orbs and their labels inside the frame
+  const hasLayout = nodes.some((n) => typeof n.x === "number" && typeof n.y === "number");
+  nodes.forEach((n, i) => {
     if (n.is_center) { _pos.set(n.id, [cx, cy]); return; }
-    ringed[ri % 3].push(n); ri++;
-  });
-  ringed.forEach((ring, idx) => {
-    const r = ringR[idx];
-    ring.forEach((n, k) => {
-      const ang = -Math.PI / 2 + (k / Math.max(1, ring.length)) * 2 * Math.PI + idx * 0.6;
+    if (typeof n.x === "number" && typeof n.y === "number") {
+      _pos.set(n.id, [PAD + n.x * (W - 2 * PAD), PAD + n.y * (H - 2 * PAD)]);
+    } else {
+      // no layout from the backend — fall back to an even ring, and say so in the
+      // caption rather than implying the placement means something
+      const r = 0.32 * H;
+      const ang = -Math.PI / 2 + (i / Math.max(1, nodes.length)) * 2 * Math.PI;
       _pos.set(n.id, [cx + r * Math.cos(ang), cy + r * Math.sin(ang)]);
-    });
+    }
   });
   const px = (n: any) => (_pos.get(n.id) || [cx, cy])[0];
   const py = (n: any) => (_pos.get(n.id) || [cx, cy])[1];
@@ -132,7 +139,14 @@ export default function WarGraph({ data }: { data: any }) {
         {[["كيان", "#facc15"], ["سردية", "#fb923c"], ["حملة", "#f43f5e"], ["مؤثّر", "#38bdf8"], ["إعلام", "#a855f7"]].map(([l, c]) => (
           <span key={l}><i style={{ background: c as string }} /> {l}</span>
         ))}
-        <span className="muted" style={{ marginInlineStart: "auto" }}>● النبض الأحمر = خطر مرتفع</span>
+        <span className="muted">● النبض الأحمر = خطر مرتفع</span>
+        {/* State the encoding. An unexplained position on a radar invites the
+            reader to invent a meaning for it — usually "closer = worse". */}
+        <span className="muted" style={{ marginInlineStart: "auto" }}>
+          {hasLayout
+            ? "الموقع = بنية الشبكة (المترابطون يتقاربون) · الحجم = التأثير"
+            : "الموقع توزيع بصري فقط · الحجم = التأثير"}
+        </span>
       </div>
     </div>
   );
