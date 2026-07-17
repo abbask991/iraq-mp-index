@@ -18,7 +18,9 @@ async def command_center_ep(demo: int = 0, user: dict = Depends(current_user)):
     fixed: identity comes from the session, and the cache key carries the owner.
     """
     if demo:
-        # demo is fabricated fixture data — identical for everyone, safe to share
+        # Fabricated fixture — identical for every tenant, so one shared cache key.
+        # Still behind the session dependency above: the console requires login
+        # anyway, and there is no reason to serve it to the open internet.
         return await cache.swr("cc:demo", 86400, lambda: command_center.build(demo=True))
     owner = user["id"]
     return await cache.swr(f"cc:{owner}", 1800, lambda: command_center.build(owner=owner))
