@@ -15,12 +15,13 @@ export default function GoogleReviews() {
   const load = async (real = false) => {
     setLoading(true);
     const r = await apiGet(`/api/corporate/reviews?place=${encodeURIComponent(place)}${real ? "" : "&demo=1"}`).catch(() => null);
-    // if a real lookup isn't configured, keep showing the sample so charts stay populated
     if (real && r && r.configured === false) { setD({ ...r, _needsKey: true }); }
     else setD(r);
     setLoading(false);
   };
-  useEffect(() => { load(false); /* auto-load sample so results appear immediately */ /* eslint-disable-next-line */ }, []);
+  // honours the central switch (this page's helper is `load`, and takes `real` —
+  // which is why the earlier sweep for `run(` missed it)
+  useEffect(() => { load(!demo); /* eslint-disable-next-line */ }, [demo]);
 
   const dist = d?.distribution || {};
   const distData = ["5", "4", "3", "2", "1"].map((k) => ({ label: `${k} ★`, value: dist[k] || 0, color: Number(k) >= 4 ? "#22c55e" : Number(k) === 3 ? "#f59e0b" : "#f43f5e" }));
@@ -38,8 +39,11 @@ export default function GoogleReviews() {
       {loading && <SkelCards count={3} />}
       {!loading && d && (
         <>
-          {d._needsKey && <div className="cbox" style={{ marginBottom: 12, borderInlineStart: "4px solid #f59e0b" }}>ℹ️ {d.note} — تُعرض بيانات تجريبية أدناه للتوضيح.</div>}
-          {(d.demo || d._needsKey) && <p className="muted" style={{ fontSize: 11.5, color: "#6366f1" }}>🧪 عيّنة توضيحية — تُستبدل بريفيوات حقيقية عند إضافة مفتاح المزوّد.</p>}
+          {/* The old copy claimed sample data was shown below. It was not: load()
+              stores the real (empty) response here, so nothing followed. Say what
+              is true, and do not name a provider key to the client. */}
+          {d._needsKey && <div className="cbox" style={{ marginBottom: 12, borderInlineStart: "4px solid var(--warn)" }}>{d.note}</div>}
+
 
           {/* header stats */}
           <div className="grid" style={{ marginBottom: 14 }}>
