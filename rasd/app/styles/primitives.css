@@ -185,6 +185,30 @@
   .u-grid[data-cols="2"] { grid-template-columns: repeat(2, 1fr); }
   @media (max-width: 860px) { .u-grid[data-cols="2"] { grid-template-columns: 1fr; } }
 
+  /* ---------- demo banner ---------- */
+  /* Deliberately loud and sticky: this is the one thing on screen that must not
+     be mistaken for the client's own data. */
+  .u-demo {
+    position: sticky; top: 0; z-index: var(--z-nav);
+    display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
+    padding: var(--s-3) var(--s-4); margin-bottom: var(--s-5);
+    border-radius: var(--r-md);
+    color: var(--info);
+    background: linear-gradient(135deg, var(--info-bg), color-mix(in srgb, var(--info) 4%, var(--panel)));
+    border: 1px solid color-mix(in srgb, var(--info) 40%, transparent);
+    box-shadow: var(--sh-2);
+    font-size: var(--t-sm); line-height: var(--lh-base);
+  }
+  .u-demo-t { flex: 1; min-width: 220px; color: var(--text); }
+  .u-demo-t b { color: var(--info); }
+  .u-demo-x {
+    font: inherit; font-size: var(--t-xs); font-weight: var(--w-bold);
+    color: var(--info); background: transparent; cursor: pointer;
+    border: 1px solid color-mix(in srgb, var(--info) 45%, transparent);
+    border-radius: var(--r-sm); padding: 5px var(--s-3); white-space: nowrap;
+  }
+  .u-demo-x:hover { background: var(--info-bg); }
+
   /* ---------- tabs ---------- */
   /* One scrollable row with labelled runs. The old 13 flat .btn tabs wrapped
      onto three ragged rows, which reads as a pile rather than a structure. */

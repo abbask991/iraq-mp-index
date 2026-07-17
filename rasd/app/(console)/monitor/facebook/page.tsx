@@ -7,7 +7,7 @@ import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
 import { Bars as MBars } from "@/components/MiniCharts";
-import { PageHeader, Button, Icon } from "@/components/ui";
+import { PageHeader, Button, Icon, DemoBanner } from "@/components/ui";
 import Tabs, { type TabDef } from "@/components/ui/Tabs";
 
 const appColor = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
@@ -655,16 +655,11 @@ export default function Facebook() {
         actions={
           <Button aria-pressed={demo} onClick={() => setDemo(!demo)}>
             <Icon name="flask" size={14} />
-            وضع العرض{demo ? " · مفعّل" : ""}
+            {demo ? "عرض بياناتي" : "بيانات توضيحية"}
           </Button>
         }
       />
-      {demo && (
-        <div className="u-fine" style={{ marginBottom: "var(--s-4)", color: "var(--info)", display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-          <Icon name="flask" size={13} />
-          وضع العرض مفعّل — بيانات تجريبية تمرّ عبر المحرّك الحقيقي.
-        </div>
-      )}
+      {demo && <DemoBanner onExit={() => setDemo(false)} />}
       <Tabs tabs={FB_TABS} value={tab} onChange={setTab} />
       {tab === "dashboard" ? <DashboardView demo={demo} />
         : tab === "national" ? <NationalView Bar={Bar} demo={demo} />

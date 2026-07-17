@@ -96,6 +96,31 @@ export function Button({ variant, children, ...rest }: { variant?: "primary" | "
   );
 }
 
+/**
+ * Demo mode has to announce itself.
+ *
+ * The demo payload is curated fiction written to look good; live data is
+ * whatever the pipeline actually collected. The demo therefore always looks
+ * better, and a small muted line saying "وضع العرض" is not enough to stop a
+ * viewer — or a prospect being shown the screen — from reading it as real
+ * monitoring. Anything that could be mistaken for a client's own data has to
+ * say plainly that it is not.
+ */
+export function DemoBanner({ onExit }: { onExit?: () => void }) {
+  return (
+    <div className="u-demo" role="status">
+      <Icon name="flask" size={15} />
+      <span className="u-demo-t">
+        <b>بيانات توضيحية — ليست رصداً فعلياً.</b>{" "}
+        كل الأرقام في هذه الشاشة أمثلة لعرض إمكانات النظام، ولا تعكس بياناتك.
+      </span>
+      {onExit && (
+        <button className="u-demo-x" onClick={onExit}>عرض البيانات الحقيقية</button>
+      )}
+    </div>
+  );
+}
+
 export function Meter({ value, t }: { value: number; t?: Tone }) {
   return (
     <div className="u-meter" {...tone(t)} role="meter" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>

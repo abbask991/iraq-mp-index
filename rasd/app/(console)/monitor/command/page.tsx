@@ -4,7 +4,7 @@ import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
-import { PageHeader, Section, Card, CardHead, Callout, Stat, Badge, Button, Meter, Grid, Row, Icon, type Tone, type IconName } from "@/components/ui";
+import { PageHeader, Section, Card, CardHead, Callout, Stat, Badge, Button, Meter, Grid, Row, Icon, DemoBanner, type Tone, type IconName } from "@/components/ui";
 import { RankBars, DeltaBars, DonutChart, riskColor } from "@/components/ui/charts";
 import EmotionHeatmap from "@/components/EmotionHeatmap";
 import Gauge from "@/components/Gauge";
@@ -81,7 +81,7 @@ export default function CommandCenter() {
             })()}
             <Button aria-pressed={demo} onClick={() => setDemo(!demo)}>
               <Icon name="flask" size={14} />
-              وضع العرض{demo ? " · مفعّل" : ""}
+              {demo ? "عرض بياناتي" : "بيانات توضيحية"}
             </Button>
           </>
         }
@@ -89,17 +89,12 @@ export default function CommandCenter() {
 
       {loading && <SkelCards count={4} />}
       {!loading && d?.empty && !demo && (
-        <EmptyState title="لا بيانات مرصودة بعد" subtitle={d?.note} action={{ label: "وضع العرض", onClick: () => setDemo(true) }} />
+        <EmptyState title="لا بيانات مرصودة بعد" subtitle={d?.note} action={{ label: "عرض بيانات توضيحية", onClick: () => setDemo(true) }} />
       )}
 
       {!loading && d && (!d.empty || demo) && (
         <>
-          {demo && (
-            <div className="u-fine" style={{ marginBottom: "var(--s-4)", color: "var(--info)", display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-              <Icon name="flask" size={13} />
-              {d.note}
-            </div>
-          )}
+          {demo && <DemoBanner onExit={() => setDemo(false)} />}
 
           {/* Coverage — "based on what?". Every score below is an unbacked claim
               without it. Figures that are unavailable are omitted, never zeroed. */}
