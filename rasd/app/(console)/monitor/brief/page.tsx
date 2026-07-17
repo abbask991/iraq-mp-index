@@ -2,10 +2,12 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import Logo from "@/components/Logo";
+import { PageHeader, Button, Icon, DemoBanner } from "@/components/ui";
 import { SkelCards } from "@/components/Skeleton";
 
 const riskColor = (v: number) => (v >= 70 ? "#f43f5e" : v >= 50 ? "#fb923c" : v >= 30 ? "#f59e0b" : "#22c55e");
-const sevIcon = (s: string) => (s === "red" ? "🔴" : s === "orange" ? "🟠" : "🟡");
+/** Severity → colour for a drawn dot (was 🔴/🟠/🟡). */
+const sevColor = (s: string) => (s === "red" ? "#f43f5e" : s === "orange" ? "#fb923c" : "#eab308");
 const traj = (t: string) => (t === "rising" || t === "escalating" ? "متصاعد ▲" : t === "declining" || t === "cooling" ? "متراجع ▼" : "مستقر ▬");
 
 const lvlColor = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : /متوسط/.test(l || "") ? "#f59e0b" : "#22c55e");
@@ -19,8 +21,7 @@ function ExecBrief({ demo }: { demo: boolean }) {
   const Block = ({ n, title, children }: any) => <section className="brief-sec"><h3>{n} {title}</h3>{children}</section>;
   return (
     <div className="brief-doc">
-      {demo && <p className="muted" style={{ fontSize: 11.5, color: "#6366f1" }}>🧪 {d?.note} · قراءة {d?.read_time}</p>}
-      {d?.urgent && <div className="cbox" style={{ borderInlineStart: "4px solid #f43f5e", marginBottom: 12 }}>🚨 <b>الأولوية الآن:</b> {d.urgent}</div>}
+      {d?.urgent && <div className="cbox" style={{ borderInlineStart: "4px solid #f43f5e", marginBottom: 12 }}><b>الأولوية الآن:</b> {d.urgent}</div>}
 
       <Block n="①" title="الموجز التنفيذي"><p style={{ fontSize: 14.5, lineHeight: 2 }}>{s["1_executive_summary"]}</p></Block>
 
@@ -29,7 +30,7 @@ function ExecBrief({ demo }: { demo: boolean }) {
           <div key={i} className="brief-row" style={{ alignItems: "flex-start" }}>
             <span className="brief-dot" style={{ background: lvlColor(r.level), marginTop: 6 }} />
             <div style={{ flex: 1 }}><b>{r.entity}</b> <span className="chip" style={{ fontSize: 10.5, color: lvlColor(r.level) }}>{r.level} · {r.risk}</span>
-              <div className="muted" style={{ fontSize: 12 }}>{r.reason} · 📎 {r.evidence_count} · ثقة عالية</div>
+              <div className="muted" style={{ fontSize: 12 }}>{r.reason} · {r.evidence_count} · ثقة عالية</div>
               <div style={{ fontSize: 12.5 }}>▸ {r.recommended_action}</div></div>
           </div>
         ))}
@@ -44,7 +45,7 @@ function ExecBrief({ demo }: { demo: boolean }) {
 
       <Block n="④" title="ما الذي تغيّر منذ الأمس">
         {(s["4_what_changed"] || []).map((c: any, i: number) => (
-          <div key={i} className="brief-row"><span>{c.icon}</span><span style={{ flex: 1 }}>{c.entity} — {c.change} <span className="muted">({c.reason})</span></span></div>
+          <div key={i} className="brief-row"><span className="brief-dot" style={{ background: lvlColor(c.risk_level), marginTop: 7 }} /><span style={{ flex: 1 }}>{c.label ? <span className="muted">{c.label} · </span> : null}<b>{c.entity}</b> — {c.change} <span className="muted">({c.reason})</span></span></div>
         ))}
       </Block>
 
@@ -105,7 +106,7 @@ export default function DailyBrief() {
     setSending(true); setSent("");
     const r = await apiGet("/monitor/cron/brief").catch(() => null);
     setSending(false);
-    setSent(r?.pushed ? "تم الإرسال إلى تيليغرام ✅" : r?.chat_configured === false ? "لم يُضبط ALERT_TELEGRAM_CHAT" : "تعذّر الإرسال");
+    setSent(r?.pushed ? "تم الإرسال إلى تيليغرام " : r?.chat_configured === false ? "لم يُضبط ALERT_TELEGRAM_CHAT" : "تعذّر الإرسال");
   };
 
   const th = d?.threat || {}; const k = d?.kpis || {}; const s = k.sentiment || {};
@@ -114,16 +115,28 @@ export default function DailyBrief() {
   return (
     <div className="brief-wrap">
       {/* toolbar (hidden in print) */}
-      <div className="brief-bar no-print">
-        <h2 style={{ margin: 0 }}>📊 التقرير الاستخباراتي اليومي</h2>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className={`btn ${mode === "exec" ? "" : "ghost"}`} onClick={() => setMode("exec")}>الموجز التنفيذي</button>
-          <button className={`btn ${mode === "classic" ? "" : "ghost"}`} onClick={() => setMode("classic")}>التقرير الكامل</button>
-          <button className={`btn ghost`} onClick={() => setDemo(!demo)} style={demo ? { background: "#6366f1" } : {}}>🧪 عرض</button>
-          <button className="btn ghost" onClick={sendTg} disabled={sending}>{sending ? "…" : "✈️ تيليغرام"}</button>
-          <button className="btn" onClick={() => window.print()}>⬇️ PDF</button>
-        </div>
+      <div className="no-print">
+        <PageHeader
+          title="التقرير الاستخباراتي اليومي"
+          sub="مستند يُقرأ ويُرسل — موجز الصباح جاهز للطباعة أو الإرسال."
+          actions={
+            <>
+              <Button aria-pressed={mode === "exec"} onClick={() => setMode("exec")}>الموجز التنفيذي</Button>
+              <Button aria-pressed={mode === "classic"} onClick={() => setMode("classic")}>التقرير الكامل</Button>
+              <Button aria-pressed={demo} onClick={() => setDemo(!demo)}>
+                <Icon name="flask" size={14} /> {demo ? "بياناتي" : "توضيحية"}
+              </Button>
+              <Button onClick={sendTg} disabled={sending}>
+                <Icon name="megaphone" size={14} /> {sending ? "…" : "تيليغرام"}
+              </Button>
+              <Button variant="primary" onClick={() => window.print()}>
+                <Icon name="clip" size={14} /> PDF
+              </Button>
+            </>
+          }
+        />
       </div>
+      {demo && <div className="no-print"><DemoBanner onExit={() => setDemo(false)} /></div>}
       {sent && <p className="muted no-print" style={{ fontSize: 13 }}>{sent}</p>}
 
       {mode === "exec" && <ExecBrief demo={demo} />}
@@ -233,7 +246,7 @@ export default function DailyBrief() {
             <section className="brief-sec">
               <h3>⑥ التنبيهات النشطة</h3>
               {d.alerts.map((a: any, i: number) => (
-                <div key={i} className="brief-row"><span>{sevIcon(a.severity)}</span><span style={{ flex: 1 }}>{a.message}</span></div>
+                <div key={i} className="brief-row"><span className="brief-dot" style={{ background: sevColor(a.severity), marginTop: 7 }} /><span style={{ flex: 1 }}>{a.message}</span></div>
               ))}
             </section>
           )}

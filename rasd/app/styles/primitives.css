@@ -312,6 +312,37 @@
     border-radius: var(--r-sm); transition: width .7s var(--ease);
   }
 
+  /* ---------- daily brief: a DOCUMENT, not a dashboard ----------
+     This page's job differs from every other surface: it is printed and sent,
+     not scanned. So it deliberately does NOT get the command centre's
+     treatment — no gauges, no tone rails, no KPI tiles. What a document needs
+     instead is a reading measure, generous leading, and a hierarchy carried by
+     type rather than by colour. Same design language, different dialect. */
+  .brief-doc {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--r-lg); box-shadow: var(--sh-1);
+    padding: var(--s-10) var(--s-8);
+    max-width: 68rem; margin-inline: auto;   /* a measure, not full bleed */
+    line-height: var(--lh-relaxed);
+  }
+  @media (max-width: 700px) { .brief-doc { padding: var(--s-5) var(--s-4); } }
+  .brief-sec { margin-bottom: var(--s-8); }
+  .brief-sec h3 {
+    font-size: var(--t-lg); font-weight: var(--w-bold); letter-spacing: -.2px;
+    margin: 0 0 var(--s-3); padding-inline-start: var(--s-3);
+    border-inline-start: 2px solid var(--accent); line-height: var(--lh-tight);
+  }
+  .brief-doc p, .brief-doc li { line-height: var(--lh-relaxed); }
+  .brief-row { padding-block: var(--s-2); line-height: var(--lh-base); }
+  .brief-recs li { margin-bottom: var(--s-2); }
+  .brief-head { padding-bottom: var(--s-5); margin-bottom: var(--s-6); border-bottom: 2px solid var(--line); }
+  /* figures in a document are quiet: a plain figure row, not tiles */
+  .brief-kpi {
+    text-align: start; border: 0; background: none; padding: 0;
+    border-inline-start: 1px solid var(--line); padding-inline-start: var(--s-3);
+  }
+  .brief-kpis { gap: var(--s-4); }
+
   /* ---------- war room: align to the design system ----------
      The war room predates the token layer and carries 59 of its own .wr-*
      classes with hardcoded radii, type sizes and spacing — so it reads as a
