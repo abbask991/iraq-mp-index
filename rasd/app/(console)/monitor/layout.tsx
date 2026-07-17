@@ -7,6 +7,32 @@ import { getMySub, isActive, daysLeft, PLAN_LABEL, Sub } from "@/lib/subscriptio
 import { getLang, setLang, applyDir, tr, Lang, getTheme, setTheme, applyTheme, Theme } from "@/lib/i18n";
 import CommandPalette from "@/components/CommandPalette";
 import Logo from "@/components/Logo";
+import { DemoProvider, useDemo } from "@/components/ui/DemoContext";
+import { DemoBanner, Icon } from "@/components/ui";
+
+/** The one demo switch for the console. Lives in the top bar so it is reachable
+ *  from every page, and so it is obvious what state you are presenting in. */
+function DemoSwitch() {
+  const { demo, setDemo } = useDemo();
+  return (
+    <button
+      className="cb-btn cb-demo"
+      aria-pressed={demo}
+      onClick={() => setDemo(!demo)}
+      title={demo ? "أنت تعرض بيانات توضيحية — اضغط للعودة لبياناتك" : "عرض بيانات توضيحية"}
+      style={{ width: "auto", padding: "0 10px", gap: 6, display: "inline-flex", alignItems: "center" }}
+    >
+      <Icon name="flask" size={13} />
+      <span style={{ fontSize: 11.5, fontWeight: 700 }}>{demo ? "توضيحية" : "بياناتي"}</span>
+    </button>
+  );
+}
+
+function DemoNotice() {
+  const { demo, setDemo } = useDemo();
+  if (!demo) return null;
+  return <DemoBanner onExit={() => setDemo(false)} />;
+}
 import { NAV_GROUPS, isAdminEmail, type NavItem } from "@/lib/nav";
 import { apiGet } from "@/lib/api";
 
@@ -35,6 +61,12 @@ const T = {
 };
 
 export default function DashLayout({ children }: { children: React.ReactNode }) {
+  // DemoSwitch/DemoNotice below read this context, so the provider has to wrap
+  // the whole shell, not just {children}.
+  return <DemoProvider><DashShell>{children}</DashShell></DemoProvider>;
+}
+
+function DashShell({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<"loading" | "guest" | "locked" | "ok">("loading");
   const [sub, setSub] = useState<Sub | null>(null);
   const [lang, setLangState] = useState<Lang>("ar");
@@ -152,6 +184,7 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
  </div>
  <div className="cb-right">
  <CommandPalette items={paletteItems} />
+ <DemoSwitch />
  <span className="cb-clock"><span className="cb-dot" />{clock}</span>
  <button className="cb-btn" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>{lang === "ar" ? "EN" : "ع"}</button>
  <button className="cb-btn" onClick={toggleTheme}>{theme === "dark" ? "☀" : "☾"}</button>
@@ -222,6 +255,9 @@ export default function DashLayout({ children }: { children: React.ReactNode }) 
         {/* Tabs read ?tab= via useSearchParams, which opts a route out of static
             rendering unless it sits under a Suspense boundary — the failure only
             shows at build time, not in dev. One boundary here covers every page. */}
+        {/* One banner for the whole console, not one per page: demo is now a
+            single global switch, so the warning belongs where the switch lives. */}
+        <DemoNotice />
         <Suspense fallback={<p className="muted" style={{ padding: 30 }}>…</p>}>
           {children}
         </Suspense>

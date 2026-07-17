@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { Donut, Spark } from "@/components/MiniCharts";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const col = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
@@ -11,7 +12,7 @@ export default function BrandReputation() {
   const [brand, setBrand] = useState("");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [demo, setDemo] = useState(true);
+  const { demo, setDemo } = useDemo();
   const run = async (dm = demo) => {
     setLoading(true); setD(null);
     const r = await apiGet(`/api/corporate/reputation?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);

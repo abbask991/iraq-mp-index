@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { apiGet, apiSend } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const lvlColor = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : /متوسط/.test(l || "") ? "#f59e0b" : "#22c55e");
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
@@ -11,7 +12,7 @@ export default function VisualVerification() {
   const [claim, setClaim] = useState("");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [demo, setDemo] = useState(false);
+  const { demo, setDemo } = useDemo();
 
   const runUrl = async () => {
     if (!url.trim()) return;

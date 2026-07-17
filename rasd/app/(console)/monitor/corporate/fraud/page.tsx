@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const risk = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : "#f59e0b");
 
@@ -9,7 +10,7 @@ export default function FraudPages() {
   const [brand, setBrand] = useState("");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [demo, setDemo] = useState(true);
+  const { demo, setDemo } = useDemo();
   const run = async (dm = demo) => {
     setLoading(true); setD(null);
     const r = await apiGet(`/api/corporate/fraud?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);

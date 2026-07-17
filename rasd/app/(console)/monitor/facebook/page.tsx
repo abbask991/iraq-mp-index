@@ -9,6 +9,7 @@ import EvidenceExplorer from "@/components/EvidenceExplorer";
 import { Bars as MBars } from "@/components/MiniCharts";
 import { PageHeader, Button, Icon, DemoBanner } from "@/components/ui";
 import Tabs, { type TabDef } from "@/components/ui/Tabs";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const appColor = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
@@ -646,20 +647,13 @@ export default function Facebook() {
   const urlTab = search?.get("tab") || "";
   const [tab, setTab] = useState<string>(FB_KEYS.includes(urlTab) ? urlTab : "dashboard");
   useEffect(() => { if (FB_KEYS.includes(urlTab)) setTab(urlTab); }, [urlTab]);
-  const [demo, setDemo] = useState(false);
+  const { demo, setDemo } = useDemo();
   return (
     <div>
       <PageHeader
         title="استخبارات فيسبوك"
         sub="فيسبوك مكان الجمهور العراقي الحقيقي — مو مجرّد منشورات، بل طبقة استخبارات: مين يهمّ، شنو يصير، شنو يقول الناس."
-        actions={
-          <Button aria-pressed={demo} onClick={() => setDemo(!demo)}>
-            <Icon name="flask" size={14} />
-            {demo ? "عرض بياناتي" : "بيانات توضيحية"}
-          </Button>
-        }
       />
-      {demo && <DemoBanner onExit={() => setDemo(false)} />}
       <Tabs tabs={FB_TABS} value={tab} onChange={setTab} />
       {tab === "dashboard" ? <DashboardView demo={demo} />
         : tab === "national" ? <NationalView Bar={Bar} demo={demo} />

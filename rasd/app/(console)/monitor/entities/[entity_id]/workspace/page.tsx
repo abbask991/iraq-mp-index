@@ -5,6 +5,7 @@ import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 const lvlColor = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : /متوسط/.test(l || "") ? "#f59e0b" : "#22c55e");
@@ -23,7 +24,7 @@ export default function EntityWorkspace() {
   const id = decodeURIComponent((params?.entity_id as string) || "");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [demo, setDemo] = useState(false);
+  const { demo, setDemo } = useDemo();
   const [demoEnts, setDemoEnts] = useState<string[]>([]);
 
   const load = () => { setLoading(true); apiGet(`/api/entity-workspace?id=${encodeURIComponent(id)}${demo ? "&demo=1" : ""}`).then(setD).finally(() => setLoading(false)); };

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { Bars } from "@/components/MiniCharts";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const sev = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : "#f59e0b");
 
@@ -10,7 +11,7 @@ export default function Complaints() {
   const [brand, setBrand] = useState("");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [demo, setDemo] = useState(true);
+  const { demo, setDemo } = useDemo();
   const run = async (dm = demo) => {
     setLoading(true); setD(null);
     const r = await apiGet(`/api/corporate/complaints?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);

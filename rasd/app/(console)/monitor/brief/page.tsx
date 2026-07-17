@@ -4,6 +4,7 @@ import { apiGet } from "@/lib/api";
 import Logo from "@/components/Logo";
 import { PageHeader, Button, Icon, DemoBanner } from "@/components/ui";
 import { SkelCards } from "@/components/Skeleton";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const riskColor = (v: number) => (v >= 70 ? "#f43f5e" : v >= 50 ? "#fb923c" : v >= 30 ? "#f59e0b" : "#22c55e");
 /** Severity → colour for a drawn dot (was 🔴/🟠/🟡). */
@@ -98,7 +99,7 @@ export default function DailyBrief() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState<string>("");
   const [mode, setMode] = useState<"exec" | "classic">("exec");
-  const [demo, setDemo] = useState(false);
+  const { demo, setDemo } = useDemo();
 
   useEffect(() => { apiGet("/api/brief").then(setD).finally(() => setLoading(false)); }, []);
 
@@ -123,9 +124,6 @@ export default function DailyBrief() {
             <>
               <Button aria-pressed={mode === "exec"} onClick={() => setMode("exec")}>الموجز التنفيذي</Button>
               <Button aria-pressed={mode === "classic"} onClick={() => setMode("classic")}>التقرير الكامل</Button>
-              <Button aria-pressed={demo} onClick={() => setDemo(!demo)}>
-                <Icon name="flask" size={14} /> {demo ? "بياناتي" : "توضيحية"}
-              </Button>
               <Button onClick={sendTg} disabled={sending}>
                 <Icon name="megaphone" size={14} /> {sending ? "…" : "تيليغرام"}
               </Button>
@@ -136,7 +134,6 @@ export default function DailyBrief() {
           }
         />
       </div>
-      {demo && <div className="no-print"><DemoBanner onExit={() => setDemo(false)} /></div>}
       {sent && <p className="muted no-print" style={{ fontSize: 13 }}>{sent}</p>}
 
       {mode === "exec" && <ExecBrief demo={demo} />}

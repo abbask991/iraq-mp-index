@@ -4,6 +4,7 @@ import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 const lvlColor = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : /متوسط/.test(l || "") ? "#f59e0b" : "#22c55e");
@@ -12,7 +13,7 @@ const PERIODS = [["last_24h", "24 ساعة"], ["last_7d", "7 أيام"], ["custo
 export default function WhatChanged() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [demo, setDemo] = useState(false);
+  const { demo, setDemo } = useDemo();
   const [period, setPeriod] = useState("last_24h");
   const load = () => { setLoading(true); apiGet(`/api/what-changed?period=${period}${demo ? "&demo=1" : ""}`).then(setD).finally(() => setLoading(false)); };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [demo, period]);

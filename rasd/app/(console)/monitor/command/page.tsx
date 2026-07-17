@@ -9,6 +9,7 @@ import { RankBars, DeltaBars, DonutChart, riskColor } from "@/components/ui/char
 import EmotionHeatmap from "@/components/EmotionHeatmap";
 import Gauge from "@/components/Gauge";
 import RadarChart from "@/components/RadarChart";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const PLATFORM_AR: Record<string, string> = {
   facebook: "فيسبوك", x: "إكس", telegram: "تيليجرام", tiktok: "تيك توك",
@@ -57,7 +58,7 @@ const RISK_LABELS: [string, string, IconName][] = [
 export default function CommandCenter() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [demo, setDemo] = useState(false);
+  const { demo, setDemo } = useDemo();
   const load = () => { setLoading(true); apiGet("/api/command-center" + (demo ? "?demo=1" : "")).then(setD).finally(() => setLoading(false)); };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [demo]);
 
@@ -79,10 +80,6 @@ export default function CommandCenter() {
                 </span>
               );
             })()}
-            <Button aria-pressed={demo} onClick={() => setDemo(!demo)}>
-              <Icon name="flask" size={14} />
-              {demo ? "عرض بياناتي" : "بيانات توضيحية"}
-            </Button>
           </>
         }
       />
@@ -94,8 +91,6 @@ export default function CommandCenter() {
 
       {!loading && d && (!d.empty || demo) && (
         <>
-          {demo && <DemoBanner onExit={() => setDemo(false)} />}
-
           {/* Coverage — "based on what?". Every score below is an unbacked claim
               without it. Figures that are unavailable are omitted, never zeroed. */}
           {(d.coverage?.signals != null || d.coverage?.platforms) && (

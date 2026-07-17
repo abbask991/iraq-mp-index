@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const lvlColor = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : /متوسط/.test(l || "") ? "#f59e0b" : "#22c55e");
 const COMP_AR: Record<string, string> = { reputation_risk: "خطر السمعة", complaint_pressure: "ضغط الشكاوى", sentiment_risk: "خطر المشاعر", fraud_exposure: "التعرّض للاحتيال", crisis_signal: "إشارة أزمة" };
@@ -10,7 +11,7 @@ export default function RiskIndex() {
   const [brand, setBrand] = useState("");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [demo, setDemo] = useState(true);
+  const { demo, setDemo } = useDemo();
   const run = async (dm = demo) => {
     setLoading(true); setD(null);
     const r = await apiGet(`/api/corporate/risk-index?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);

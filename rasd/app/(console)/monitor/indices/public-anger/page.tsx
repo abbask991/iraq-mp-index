@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { HBars, Bars, Spark } from "@/components/MiniCharts";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const COMP_AR: Record<string, string> = {
   negative_sentiment: "السلبية العامة",
@@ -24,7 +25,7 @@ export default function PublicAnger() {
   const [scopeType, setScopeType] = useState("entity");
   const [scopeName, setScopeName] = useState("وزارة الكهرباء");
   const [period, setPeriod] = useState("week");
-  const [demo, setDemo] = useState(true);
+  const { demo, setDemo } = useDemo();
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
