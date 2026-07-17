@@ -17,7 +17,7 @@ export default function Complaints() {
     const r = await apiGet(`/api/corporate/complaints?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);
     setD(r); setLoading(false);
   };
-  useEffect(() => { run(true); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { run(demo); /* eslint-disable-next-line */ }, [demo]);
 
   return (
     <div>

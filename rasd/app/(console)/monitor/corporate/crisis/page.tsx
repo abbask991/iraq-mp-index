@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 const sevC = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : /متوسط/.test(l || "") ? "#f59e0b" : "#22c55e");
@@ -9,6 +10,7 @@ const icon: Record<string, string> = { complaint_spike: "📈", fake_page: "🎭
 
 export default function CrisisRadar() {
   const [brand, setBrand] = useState("");
+  const { demo } = useDemo();
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const run = async (real = false) => {
@@ -16,7 +18,7 @@ export default function CrisisRadar() {
     const r = await apiGet(`/api/corporate/crisis?brand=${encodeURIComponent(brand)}${real ? "" : "&demo=1"}`).catch(() => null);
     setD(r); setLoading(false);
   };
-  useEffect(() => { run(false); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { run(!demo); /* eslint-disable-next-line */ }, [demo]);
   const crises = d?.crises || [];
 
   return (

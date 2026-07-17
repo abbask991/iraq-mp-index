@@ -4,6 +4,7 @@ import { apiGet } from "@/lib/api";
 import Logo from "@/components/Logo";
 import { SkelCards } from "@/components/Skeleton";
 import { Bars, Donut, Stars } from "@/components/MiniCharts";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 const healthC = (s: number) => (s >= 55 ? "#22c55e" : s >= 40 ? "#f59e0b" : "#f43f5e");
@@ -14,12 +15,13 @@ export default function BrandReport() {
   const [brand, setBrand] = useState("");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { demo } = useDemo();
   const run = async (real = false) => {
     setLoading(true);
     const r = await apiGet(`/api/corporate/dashboard?brand=${encodeURIComponent(brand)}${real ? "" : "&demo=1"}`).catch(() => null);
     setD(r); setLoading(false);
   };
-  useEffect(() => { run(false); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { run(!demo); /* eslint-disable-next-line */ }, [demo]);
 
   const k = d?.kpis || {}; const s = d?.sentiment || {};
   const today = new Date().toLocaleDateString("ar-IQ", { year: "numeric", month: "long", day: "numeric" });

@@ -18,7 +18,7 @@ export default function BrandReputation() {
     const r = await apiGet(`/api/corporate/reputation?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);
     setD(r); setLoading(false);
   };
-  useEffect(() => { run(true); /* auto-load sample immediately */ /* eslint-disable-next-line */ }, []);
+  useEffect(() => { run(demo); /* eslint-disable-next-line */ }, [demo]);
   const s = d?.sentiment || {};
 
   return (

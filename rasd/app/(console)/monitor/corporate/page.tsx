@@ -4,6 +4,7 @@ import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { Bars, Donut, HBars, Spark, Stars } from "@/components/MiniCharts";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 const healthC = (s: number) => (s >= 55 ? "#22c55e" : s >= 40 ? "#f59e0b" : "#f43f5e");
@@ -14,13 +15,17 @@ export default function CompanyDashboard() {
   const [brand, setBrand] = useState("");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { demo } = useDemo();
+  // NB: this page's param is `real`; sibling corporate pages take `dm` (demo).
+  // Same-looking call, opposite meaning — which is why all 11 ended up
+  // auto-loading demo on mount and nobody noticed.
   const run = async (real = false, b?: string) => {
     const q = (b ?? brand).trim();
     setLoading(true); setD(null);
     const r = await apiGet(`/api/corporate/dashboard?brand=${encodeURIComponent(q)}${real ? "" : "&demo=1"}`).catch(() => null);
     setD(r); setLoading(false);
   };
-  useEffect(() => { run(false); /* auto-load */ /* eslint-disable-next-line */ }, []);
+  useEffect(() => { run(!demo); /* eslint-disable-next-line */ }, [demo]);
 
   const k = d?.kpis || {};
   const s = d?.sentiment || {};

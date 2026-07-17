@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const prC = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : /متوسط/.test(l || "") ? "#f59e0b" : "#22c55e");
 const chIcon: Record<string, string> = { facebook: "📘", google: "🔍", x: "✖️", instagram: "📷" };
@@ -12,6 +13,7 @@ export default function ResponseCenter() {
   const [loading, setLoading] = useState(true);
   const [handled, setHandled] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<"all" | "pending" | "critical">("all");
+  const { demo } = useDemo();
   const [copied, setCopied] = useState("");
 
   const run = async (real = false) => {
@@ -19,7 +21,7 @@ export default function ResponseCenter() {
     const r = await apiGet(`/api/corporate/response?brand=${encodeURIComponent(brand)}${real ? "" : "&demo=1"}`).catch(() => null);
     setD(r); setLoading(false);
   };
-  useEffect(() => { run(false); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { run(!demo); /* eslint-disable-next-line */ }, [demo]);
 
   const copy = (id: string, text: string) => { navigator.clipboard?.writeText(text); setCopied(id); setTimeout(() => setCopied(""), 1500); };
   const toggle = (id: string) => { const n = new Set(handled); n.has(id) ? n.delete(id) : n.add(id); setHandled(n); };

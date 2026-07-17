@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { Bars } from "@/components/MiniCharts";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 const lvlColor = (s: number) => (s >= 55 ? "#22c55e" : s >= 35 ? "#f59e0b" : "#f43f5e");
@@ -11,13 +12,14 @@ export default function ProductSurvey() {
   const [brand, setBrand] = useState("");
   const [items, setItems] = useState("");
   const [d, setD] = useState<any>(null);
+  const { demo } = useDemo();
   const [loading, setLoading] = useState(true);
   const run = async (real = false) => {
     setLoading(true); setD(null);
     const r = await apiGet(`/api/corporate/products?brand=${encodeURIComponent(brand)}&items=${encodeURIComponent(items)}${real ? "" : "&demo=1"}`).catch(() => null);
     setD(r); setLoading(false);
   };
-  useEffect(() => { run(false); /* auto-load sample */ /* eslint-disable-next-line */ }, []);
+  useEffect(() => { run(!demo); /* eslint-disable-next-line */ }, [demo]);
 
   const prods = d?.products || [];
   return (

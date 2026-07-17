@@ -3,11 +3,13 @@ import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { HBars, Donut, Stars } from "@/components/MiniCharts";
+import { useDemo } from "@/components/ui/DemoContext";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 
 export default function GoogleReviews() {
   const [place, setPlace] = useState("");
+  const { demo } = useDemo();
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const load = async (real = false) => {
