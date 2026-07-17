@@ -59,8 +59,14 @@ export default function CommandCenter() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { demo, setDemo } = useDemo();
+  const [health, setHealth] = useState<any>(null);
   const load = () => { setLoading(true); apiGet("/api/command-center" + (demo ? "?demo=1" : "")).then(setD).finally(() => setLoading(false)); };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [demo]);
+  // "Why is my dashboard empty?" was answerable only from a settings panel that
+  // showed all-green while collection had been stopped for three weeks. Put the
+  // answer where the emptiness is noticed.
+  useEffect(() => { apiGet("/api/settings/health").then(setHealth).catch(() => {}); }, []);
+  const blockers = (health?.blockers || []).filter((b: any) => b.severity === "crit");
 
   return (
     <div>
@@ -83,6 +89,26 @@ export default function CommandCenter() {
           </>
         }
       />
+
+      {/* Nothing is arriving and here is exactly why — shown above the data, not
+          buried three menus away. Hidden in demo: these are live-collection facts. */}
+      {!demo && blockers.length > 0 && (
+        <div className="u-blockers">
+          <div className="u-blockers-h">
+            <Icon name="siren" size={15} />
+            <b>الرصد متوقف — لا تصل بيانات جديدة</b>
+          </div>
+          {blockers.map((b: any) => (
+            <div className="u-blocker" key={b.key}>
+              <span className="u-badge-dot" style={{ background: "var(--danger)", marginTop: 7 }} />
+              <div>
+                <div style={{ fontWeight: "var(--w-med)" }}>{b.label}</div>
+                <div className="u-fine">الحل: {b.fix}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {loading && <SkelCards count={4} />}
       {!loading && d?.empty && !demo && (

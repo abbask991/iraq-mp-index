@@ -312,6 +312,27 @@
     border-radius: var(--r-sm); transition: width .7s var(--ease);
   }
 
+  /* ---------- collection blockers ----------
+     Deliberately the loudest thing on the page when it appears: an empty
+     dashboard with no explanation is the single most damaging state this
+     product can be in — it reads as "the product does not work". */
+  .u-blockers {
+    border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+    background: linear-gradient(135deg, var(--danger-bg), color-mix(in srgb, var(--danger) 4%, var(--panel)));
+    border-radius: var(--r-md); padding: var(--s-4);
+    margin-bottom: var(--s-5); box-shadow: var(--sh-2);
+  }
+  .u-blockers-h {
+    display: flex; align-items: center; gap: var(--s-2);
+    color: var(--danger); font-size: var(--t-base); margin-bottom: var(--s-3);
+  }
+  .u-blocker {
+    display: flex; align-items: flex-start; gap: var(--s-3);
+    font-size: var(--t-sm); padding: var(--s-2) 0;
+    border-top: 1px solid color-mix(in srgb, var(--danger) 15%, transparent);
+  }
+  .u-blocker:first-of-type { border-top: 0; }
+
   /* ---------- daily brief: a DOCUMENT, not a dashboard ----------
      This page's job differs from every other surface: it is printed and sent,
      not scanned. So it deliberately does NOT get the command centre's

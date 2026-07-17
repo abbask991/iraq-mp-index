@@ -1,6 +1,7 @@
 """System Settings API. Schema + values for the admin settings center, plus
 system health, connection tests, and the audit log. Secrets are masked in
 get_view(); the frontend never receives full keys."""
+import os
 import time
 
 from fastapi import APIRouter, Request
@@ -93,6 +94,12 @@ async def health():
             redis_ok = False
 
     from app.services.providers import twitterapi_io
+    # `bool(KEY)` only proves a string is set in the environment. It does NOT prove
+    # the provider works: an Anthropic key with no credit, an expired X token, and a
+    # topped-up Apify account all report the same green. That is how collection sat
+    # stopped for three weeks behind an emergency switch while this panel showed
+    # every subsystem healthy. Configured and working are different facts — report
+    # both, and never let "configured" render as "up".
     services = {
         "backend": True,
         "database": db.enabled(),
@@ -117,8 +124,54 @@ async def health():
         except Exception:
             pass
 
+    # What is actually stopping data from arriving, named plainly. A kill switch or
+    # a stale collector is invisible in `services` above, yet it is the whole answer
+    # to "why is my dashboard empty".
+    blockers = []
+    try:
+        from app.services import cost_center
+        ctl = await cost_center.get_controls()
+        if ctl.get("emergency_stop"):
+            blockers.append({"key": "emergency_stop", "severity": "crit",
+                             "label": "الإيقاف الطارئ مفعّل — كل الجمع متوقف",
+                             "fix": "مركز التكلفة ← أطفئ «إيقاف طارئ لكل الجمع»"})
+        if ctl.get("pause_facebook"):
+            blockers.append({"key": "pause_facebook", "severity": "crit",
+                             "label": "رصد فيسبوك موقوف",
+                             "fix": "مركز التكلفة ← أطفئ «إيقاف رصد فيسبوك»"})
+        if int(ctl.get("daily_cap") or 0) > 0:
+            blockers.append({"key": "daily_cap", "severity": "warn",
+                             "label": f"سقف يومي مفعّل ({ctl['daily_cap']})",
+                             "fix": "مركز التكلفة ← راجع السقف اليومي"})
+    except Exception:
+        pass
+
+    if not os.getenv("APIFY_TOKEN"):
+        blockers.append({"key": "apify", "severity": "warn",
+                         "label": "رصد فيسبوك غير مهيّأ", "fix": "أضف APIFY_TOKEN في إعدادات الخادم"})
+
+    # a collector that last ran days ago is stopped in every way that matters,
+    # however green its key looks
+    last = metrics.get("last_collection")
+    if last:
+        try:
+            from datetime import datetime, timezone
+            age_h = (datetime.now(timezone.utc) - datetime.fromisoformat(str(last).replace("Z", "+00:00"))).total_seconds() / 3600
+            metrics["last_collection_age_hours"] = round(age_h, 1)
+            if age_h > 48:
+                blockers.append({"key": "stale_collection", "severity": "crit",
+                                 "label": f"آخر جمع قبل {round(age_h / 24)} يوم — لا بيانات جديدة تصل",
+                                 "fix": "افحص الإيقاف الطارئ ومفاتيح المزوّدين"})
+        except Exception:
+            pass
+    else:
+        blockers.append({"key": "never_collected", "severity": "crit",
+                         "label": "لم يُسجَّل أي جمع بعد", "fix": "أضف كياناً لقائمة المتابعة وشغّل الجمع"})
+
     return {"services": services, "data_provider": data_provider,
-            "metrics": metrics, "checked_at": int(time.time())}
+            "metrics": metrics, "blockers": blockers,
+            "healthy": not any(b["severity"] == "crit" for b in blockers),
+            "checked_at": int(time.time())}
 
 
 @router.post("/test/{service}")
