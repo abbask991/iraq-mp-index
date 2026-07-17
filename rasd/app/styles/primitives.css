@@ -312,6 +312,50 @@
     border-radius: var(--r-sm); transition: width .7s var(--ease);
   }
 
+  /* ---------- war room: align to the design system ----------
+     The war room predates the token layer and carries 59 of its own .wr-*
+     classes with hardcoded radii, type sizes and spacing — so it reads as a
+     different product next to the command centre. Rather than rewrite a working
+     300-line page, restate its structural classes here in @layer ui, which wins
+     over @layer legacy without editing one rule in globals.css.
+     Its identity (DEFCON banner, live sweep, ticker, fullscreen) is deliberately
+     left alone: it is a wall display, not a second command centre. */
+  .wr-panel, .wr-graph, .wr-viz {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: var(--s-4);
+    box-shadow: var(--sh-1);
+  }
+  /* section captions → the card title scale used everywhere else */
+  .wr-cap {
+    display: flex; align-items: center; gap: var(--s-2);
+    font-size: var(--t-base); font-weight: var(--w-bold);
+    letter-spacing: -.1px; text-transform: none;
+    color: var(--text); margin-bottom: var(--s-3);
+  }
+  /* KPI tiles → the Stat treatment: left-aligned, tone rail on top */
+  .wr-kpis { gap: var(--s-3); }
+  .wr-kpi {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--r-md); padding: var(--s-4);
+    text-align: start; position: relative; overflow: hidden;
+    box-shadow: var(--sh-1);
+  }
+  .wr-kpi::after {
+    content: ""; position: absolute; inset-block-start: 0; inset-inline-start: 0;
+    width: 100%; height: 2px; background: var(--line); opacity: .8;
+  }
+  .wr-kpi .wr-v {
+    font-size: var(--t-2xl); font-weight: var(--w-black); line-height: 1;
+    letter-spacing: -1px; font-variant-numeric: tabular-nums;
+  }
+  .wr-kpi .wr-l {
+    font-size: var(--t-xs); color: var(--muted); font-weight: var(--w-med);
+    letter-spacing: .3px; margin-top: var(--s-2);
+  }
+  .wr-kpi .wr-g { justify-content: flex-start; }
+  .wr-badge { border-radius: var(--r-full); font-size: var(--t-xs); font-weight: var(--w-bold); }
+  .wr-posture { border-radius: var(--r-lg); padding: var(--s-4) var(--s-5); }
+
   /* ---------- icon ---------- */
   .u-icon { flex: none; display: inline-block; vertical-align: -.125em; }
 

@@ -9,6 +9,7 @@ import RadarChart from "@/components/RadarChart";
 import EmotionHeatmap from "@/components/EmotionHeatmap";
 import IraqMap from "@/components/IraqMap";
 import Icon from "@/components/ui/Icon";
+import { PageHeader, Button } from "@/components/ui";
 
 const TRAJ = (t: string) => (t === "rising" || t === "escalating" ? "▲" : t === "declining" || t === "cooling" ? "▼" : "▬");
 
@@ -116,28 +117,32 @@ export default function WarRoom() {
     <div ref={ref} className={`wr ${pos.crit ? "wr-crit" : ""}`}>
       {flash && <div className="wr-flash" />}
 
-      {/* command bar */}
-      <div className="wr-top">
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span className="wr-live"><span className="wr-dot" />LIVE</span>
-          <b style={{ fontSize: 18, letterSpacing: "1px" }}>SENTINEL · غرفة الحرب</b>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ textAlign: "left", lineHeight: 1.2 }}>
-            <div className="wr-clock">{clock}</div>
-            <div style={{ fontSize: 11, color: "var(--muted)" }}>{date}</div>
-          </div>
-          <span className="wr-ring" title="التحديث القادم"><svg viewBox="0 0 36 36" width="34" height="34">
-            <circle cx="18" cy="18" r="15" fill="none" stroke="var(--line)" strokeWidth="3" />
-            <circle cx="18" cy="18" r="15" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 15} strokeDashoffset={2 * Math.PI * 15 * (1 - countdown / REFRESH)}
-              transform="rotate(-90 18 18)" style={{ transition: "stroke-dashoffset 1s linear" }} />
-          </svg><span className="wr-ring-n">{countdown}</span></span>
-          <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => setSound((s) => !s)} title="تنبيه صوتي">
-            {sound ? <Icon name="bell" size={14} /> : <Icon name="bellOff" size={14} />}</button>
-          <button className="btn ghost" style={{ fontSize: 12 }} onClick={fs}><Icon name="expand" size={13} /> ملء الشاشة</button>
-        </div>
-      </div>
+      {/* Same PageHeader as every other surface, so this reads as one product.
+          The live controls (clock, refresh ring, sound, fullscreen) stay — they
+          are what makes this a wall display rather than a second command centre. */}
+      <PageHeader
+        title="غرفة الحرب"
+        sub="الصورة الوطنية الحيّة — تتحدّث تلقائياً كل ٤٥ ثانية."
+        actions={
+          <>
+            <span className="wr-live"><span className="wr-dot" />LIVE</span>
+            <div style={{ textAlign: "left", lineHeight: 1.2 }}>
+              <div className="wr-clock">{clock}</div>
+              <div className="u-fine">{date}</div>
+            </div>
+            <span className="wr-ring" title="التحديث القادم"><svg viewBox="0 0 36 36" width="34" height="34">
+              <circle cx="18" cy="18" r="15" fill="none" stroke="var(--line)" strokeWidth="3" />
+              <circle cx="18" cy="18" r="15" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 15} strokeDashoffset={2 * Math.PI * 15 * (1 - countdown / REFRESH)}
+                transform="rotate(-90 18 18)" style={{ transition: "stroke-dashoffset 1s linear" }} />
+            </svg><span className="wr-ring-n">{countdown}</span></span>
+            <Button onClick={() => setSound((s) => !s)} aria-pressed={sound} title="تنبيه صوتي">
+              {sound ? <Icon name="bell" size={14} /> : <Icon name="bellOff" size={14} />}
+            </Button>
+            <Button onClick={fs}><Icon name="expand" size={13} /> ملء الشاشة</Button>
+          </>
+        }
+      />
 
       {!d && <div style={{ padding: 40, textAlign: "center" }}><span className="spinner" /> تهيئة غرفة الحرب…</div>}
 
