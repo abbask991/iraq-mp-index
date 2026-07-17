@@ -59,11 +59,26 @@ def _rule_brief(top_risk: list, changes: list, campaigns: list) -> str:
     return " ".join(parts)
 
 
-async def build(demo: bool = False) -> dict:
+async def build(demo: bool = False, owner: str | None = None) -> dict:
+    """Assemble the command-centre payload for ONE tenant.
+
+    owner is required for real data — it selects the tenant's digest. Passing None
+    reads the cross-tenant digest, which is only correct for a single-tenant
+    deployment, never for serving a signed-in user.
+    """
     if demo:
         return _demo_payload()
     from app.services import intel_digest
-    dg = await intel_digest.get_digest() or {}
+    dg = await intel_digest.get_digest(owner) or {}
+    if not dg and owner:
+        # Cold tenant: the cron builds a digest per owner, but a newly added
+        # watchlist has none until the next run. Build once on demand rather than
+        # showing an empty dashboard for hours. Cheap — stored data, no AI, no fetch.
+        import time as _t
+        try:
+            dg = await intel_digest.build_digest(_t.time(), owner=owner) or {}
+        except Exception:
+            dg = {}
     ents = dg.get("entities", [])
     ex = dg.get("executive") or {}
 

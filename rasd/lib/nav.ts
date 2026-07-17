@@ -21,9 +21,12 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "ops", ar: "مركز العمليات", en: "Operations Center", defaultOpen: true,
     items: [
+      // The single watchlist for the whole system. It was called "الإعلام التقليدي"
+      // (traditional media) and buried under Media Monitoring, while the entry
+      // NAMED "watchlist" (/monitor/workspace) fed one page and nothing else.
+      { ar: "قائمة المتابعة — الكيانات المرصودة", en: "Watchlist — Monitored Entities", href: "/monitor" },
       { ar: "غرفة الحرب (مباشر)", en: "Live War Room", href: "/monitor/warroom", danger: true },
       { ar: "مركز القيادة (ابدأ هنا)", en: "Command Center (start here)", href: "/monitor/command" },
-      { ar: "مساحة العمل — قائمة المراقبة", en: "My Workspace — Watchlist", href: "/monitor/workspace" },
       { ar: "لوحة القيادة التنفيذية", en: "Executive Dashboard", href: "/monitor/overview" },
       { ar: "ماذا تغيّر خلال 24 ساعة؟", en: "What Changed in 24h?", href: "/monitor/changes" },
       { ar: "التقرير اليومي", en: "Daily Brief", href: "/monitor/brief" },
@@ -35,13 +38,11 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "media", ar: "الرصد الإعلامي", en: "Media Monitoring",
     items: [
-      { ar: "الإعلام التقليدي", en: "Traditional Media", href: "/monitor" },
       { ar: "الإعلام الرقمي", en: "Digital Media", href: "/monitor/targets" },
       { ar: "الرصد عبر المنصّات", en: "Cross-Platform", href: "/monitor/cross-platform" },
       { ar: "الصورة الاستخباراتية الموحّدة", en: "Unified Intelligence Picture", href: "/monitor/fusion" },
       { ar: "استخبارات فيسبوك", en: "Facebook Intelligence", href: "/monitor/facebook" },
       { ar: "أرشيف X (يكبر يومياً)", en: "X Archive (grows daily)", href: "/monitor/archive" },
-      { ar: "الإعدادات: قائمة المتابعة", en: "Settings: Watchlist", href: "/monitor/settings" },
     ],
   },
   {
@@ -134,7 +135,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { ar: "الحساب واشتراكي", en: "Account & Subscription", href: "/monitor/account" },
       { ar: "الباقة الحالية", en: "Current Plan", plan: true },
-      { ar: "الإعدادات: قائمة المتابعة", en: "Settings: Watchlist", href: "/monitor/settings" },
+      { ar: "الإعدادات: المصادر والتصنيفات", en: "Settings: Sources & Categories", href: "/monitor/settings" },
       { ar: "المؤسسات (العملاء)", en: "Organizations (Clients)", href: "/monitor/system/organizations", adminOnly: true },
       { ar: "إدارة الباقات والصلاحيات", en: "Packages & Entitlements", href: "/monitor/system/packages", adminOnly: true },
       { ar: "مركز التحكّم بالتكلفة", en: "Cost Control Center", href: "/monitor/system/cost-center" },

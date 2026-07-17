@@ -45,7 +45,16 @@ async def _tick():
         await _safe(alert_engine.evaluate_and_notify)
 
     if await _won("digest", 350 * 60):                  # rebuild ready-made digest (~6h, no fetch)
-        from app.services import intel_digest
+        from app.services import db, intel_digest
+        # One digest PER TENANT: the digest derives from a watchlist, and watchlists
+        # are per-owner. A single global build is what let one account's dashboard
+        # render another's entities. Cheap — stored data + rule engines, no AI/fetch.
+        for _owner in await db.monitor_owners():
+            await _safe(lambda o=_owner: intel_digest.build_digest(time.time(), owner=o))
+        # TRANSITIONAL: brief, war room, chief, predictive, analyst and the alert
+        # engine still read the un-scoped digest. Dropping this build would empty
+        # them once the 24h TTL lapsed. Remove it only once those seven are
+        # owner-scoped too.
         await _safe(lambda: intel_digest.build_digest(time.time()))
 
     # EXPENSIVE warm (15k national X fetch) runs at most ONCE/day, before the

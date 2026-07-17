@@ -14,13 +14,36 @@ def enabled() -> bool:
     return bool(SUPABASE_URL and SUPABASE_SERVICE_KEY)
 
 
-async def get_monitors(limit: int = 40):
+async def get_monitors(limit: int = 40, owner: str | None = None):
+    """Monitors for ONE owner, or every owner when owner is None.
+
+    This client uses the service key and therefore bypasses RLS. Without an owner
+    filter it returns every tenant's watchlist — which is how the national picture
+    came to be built from other accounts' entities while the signed-in user's own
+    watchlist was empty. Callers that serve a specific user MUST pass owner.
+    owner=None is for genuinely cross-tenant jobs only (e.g. enumerating work).
+    """
+    if not enabled():
+        return []
+    q = f"select=id,owner,name,keywords&order=created_at.desc&limit={limit}"
+    if owner:
+        q += f"&owner=eq.{owner}"
+    async with httpx.AsyncClient() as c:
+        r = await c.get(f"{SUPABASE_URL}/rest/v1/monitors?{q}", headers=_h(), timeout=15)
+        return r.json() if r.status_code == 200 else []
+
+
+async def monitor_owners(limit: int = 500) -> list[str]:
+    """Distinct owners that have at least one monitor — the tenants the cron must
+    build a digest for."""
     if not enabled():
         return []
     async with httpx.AsyncClient() as c:
-        r = await c.get(f"{SUPABASE_URL}/rest/v1/monitors?select=id,owner,name,keywords&order=created_at.desc&limit={limit}",
+        r = await c.get(f"{SUPABASE_URL}/rest/v1/monitors?select=owner&limit={limit}",
                         headers=_h(), timeout=15)
-        return r.json() if r.status_code == 200 else []
+        if r.status_code != 200:
+            return []
+        return sorted({row["owner"] for row in r.json() if row.get("owner")})
 
 
 async def last_snapshot(monitor_id):

@@ -21,10 +21,25 @@ _TTL = 86400          # survive a day; refreshed every ~3h by the cron
 _SB_KEY = "intel.digest_snapshot"
 
 
-async def get_digest():
-    """Return the latest digest. Redis first (fast); on miss/outage fall back to the
-    DURABLE copy in Supabase so the national picture survives a Redis limit/outage."""
-    raw = await redis_client.get(DIGEST_KEY)
+def _keys(owner: str | None) -> tuple[str, str]:
+    """Cache keys for a tenant's digest.
+
+    The digest is derived from a watchlist, and watchlists belong to tenants — so
+    the cache must be keyed by tenant too. A single global key is what let one
+    account's dashboard render another account's entities.
+
+    owner=None keeps the legacy global keys, for the cross-tenant national view.
+    """
+    if not owner:
+        return DIGEST_KEY, _SB_KEY
+    return f"{DIGEST_KEY}:{owner}", f"{_SB_KEY}.{owner}"
+
+
+async def get_digest(owner: str | None = None):
+    """Return a tenant's latest digest. Redis first (fast); on miss/outage fall back
+    to the DURABLE copy in Supabase so the picture survives a Redis outage."""
+    rkey, skey = _keys(owner)
+    raw = await redis_client.get(rkey)
     if raw:
         try:
             return json.loads(raw)
@@ -32,7 +47,7 @@ async def get_digest():
             pass
     try:
         if db.enabled():
-            rows = await db.select("system_settings", f"select=value_json&key=eq.{_SB_KEY}&limit=1")
+            rows = await db.select("system_settings", f"select=value_json&key=eq.{skey}&limit=1")
             if rows:
                 return (rows[0].get("value_json") or {}).get("v")
     except Exception:
@@ -40,11 +55,18 @@ async def get_digest():
     return None
 
 
-async def build_digest(now_ts: float | None = None):
-    """Build twins for every monitored entity from stored data, rank them into a
-    digest, and cache it. now_ts is passed in (callers stamp the time)."""
-    monitors = await db.get_monitors(30)
-    prev = await get_digest()
+async def build_digest(now_ts: float | None = None, owner: str | None = None):
+    """Build twins for one tenant's monitored entities from stored data, rank them
+    into a digest, and cache it under that tenant's key. now_ts is passed in.
+
+    owner=None builds the cross-tenant view (every watchlist) — only legitimate for
+    a single-tenant deployment or an explicit national roll-up, never for serving a
+    signed-in user.
+    """
+    monitors = await db.get_monitors(30, owner=owner)
+    # the tenant's OWN previous digest — deltas ("+11 خطر") are computed against it,
+    # so reading the global one would diff this tenant against another's numbers
+    prev = await get_digest(owner)
     prev_by_id = {e["id"]: e for e in (prev or {}).get("entities", [])}
 
     from collections import defaultdict
@@ -182,12 +204,13 @@ async def build_digest(now_ts: float | None = None):
         "coverage": coverage,
         "count": len(entities),
     }
-    await redis_client.set(DIGEST_KEY, json.dumps(digest, ensure_ascii=False), ex=_TTL)
-    # durable copy → national picture survives Redis outages/limits (reuses system_settings)
+    rkey, skey = _keys(owner)
+    await redis_client.set(rkey, json.dumps(digest, ensure_ascii=False), ex=_TTL)
+    # durable copy → the picture survives Redis outages/limits (reuses system_settings)
     try:
         if db.enabled():
             await db.insert("system_settings",
-                            {"key": _SB_KEY, "value_json": {"v": digest}, "category": "internal"},
+                            {"key": skey, "value_json": {"v": digest}, "category": "internal"},
                             upsert=True, on_conflict="key")
     except Exception:
         pass
