@@ -9,6 +9,7 @@ import { RankBars, DeltaBars, DonutChart, riskColor } from "@/components/ui/char
 import EmotionHeatmap from "@/components/EmotionHeatmap";
 import Gauge from "@/components/Gauge";
 import RadarChart from "@/components/RadarChart";
+import IraqMap from "@/components/IraqMap";
 import { useDemo } from "@/components/ui/DemoContext";
 
 const PLATFORM_AR: Record<string, string> = {
@@ -402,6 +403,14 @@ export default function CommandCenter() {
               <Card>
                 <EmotionHeatmap data={d.emotion_heatmap} />
               </Card>
+            </Section>
+          )}
+
+          {/* Geography — the one thing the old /overview showed that this page did
+              not. Moved here so overview can be removed as a pure duplicate. */}
+          {d.geo?.located > 0 && (
+            <Section title="التوزيع الجغرافي عبر المحافظات" icon="map">
+              <Card><IraqMap geo={d.geo} /></Card>
             </Section>
           )}
 

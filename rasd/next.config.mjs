@@ -8,6 +8,9 @@ const nextConfig = {
   // new IA is settled.
   async redirects() {
     return [
+      // overview showed the same ~10 items as command in older styling; its one
+      // unique piece (Iraq geo map) moved into command.
+      { source: "/monitor/overview", destination: "/monitor/command", permanent: false },
       // corporate/report was the same endpoint as the dashboard — now its print view
       { source: "/monitor/corporate/report", destination: "/monitor/corporate", permanent: false },
       // 9 corporate sub-pages → tabs over one brand. Old routes land on their tab.
