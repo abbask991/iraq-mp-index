@@ -107,15 +107,6 @@ export const NAV_GROUPS: NavGroup[] = [
     key: "corporate", ar: "استخبارات الشركات والمؤسسات", en: "Corporate Intelligence",
     items: [
       { ar: "لوحة الشركة الموحّدة", en: "Company Dashboard", href: "/monitor/corporate" },
-      { ar: "رادار الأزمات", en: "Crisis Radar", href: "/monitor/corporate/crisis" },
-      { ar: "مركز الاستجابة", en: "Response Center", href: "/monitor/corporate/response" },
-      { ar: "سمعة الشركة", en: "Brand Reputation", href: "/monitor/corporate/reputation" },
-      { ar: "ريفيوات Google", en: "Google Reviews", href: "/monitor/corporate/reviews" },
-      { ar: "استطلاع المنتجات (الطلب والمشاكل)", en: "Product Survey", href: "/monitor/corporate/products" },
-      { ar: "شكاوى العملاء", en: "Customer Complaints", href: "/monitor/corporate/complaints" },
-      { ar: "مراقبة المنافسين", en: "Competitor Monitoring", href: "/monitor/corporate/competitors" },
-      { ar: "مراقبة الاحتيال والصفحات المزيفة", en: "Fraud & Fake Pages", href: "/monitor/corporate/fraud" },
-      { ar: "مؤشر المخاطر المؤسسية", en: "Corporate Risk Index", href: "/monitor/corporate/risk-index" },
     ],
   },
   {

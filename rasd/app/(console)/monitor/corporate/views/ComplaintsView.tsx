@@ -1,36 +1,18 @@
 "use client";
-import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { Bars } from "@/components/MiniCharts";
-import { useDemo } from "@/components/ui/DemoContext";
+import { useBrand } from "../useBrand";
 
 const sev = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : "#f59e0b");
 
-export default function Complaints() {
-  const [brand, setBrand] = useState("");
-  const [d, setD] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const { demo, setDemo } = useDemo();
-  const run = async (dm = demo) => {
-    setLoading(true); setD(null);
-    const r = await apiGet(`/api/corporate/complaints?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);
-    setD(r); setLoading(false);
-  };
-  useEffect(() => { run(demo); /* eslint-disable-next-line */ }, [demo]);
-
+/** Moved verbatim from /corporate/complaints. Host owns brand + demo + fetch. */
+export default function ComplaintsView({ brand, demo }: { brand: string; demo: boolean }) {
+  const { d, loading } = useBrand("complaints", brand, demo);
+  if (loading) return <SkelCards count={3} />;
+  if (d?.empty) return <div className="cbox">{d.note}</div>;
+  if (!d) return null;
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <h2 style={{ margin: 0 }}>شكاوى العملاء</h2>
-        <button className={`btn ${demo ? "" : "ghost"}`} onClick={() => setDemo(!demo)} style={demo ? { background: "#6366f1" } : {}}>🧪 وضع العرض</button>
-      </div>
-      <p className="muted">استخراج شكاوى العملاء من التعليقات: أبرز المشاكل مرتّبة بالحدّة، المطالب، والعبارات المتكرّرة.</p>
-      <div className="card" style={{ marginBottom: 14, display: "flex", gap: 8 }}>
-        <input placeholder="اسم/صفحة الشركة" value={brand} onChange={(e) => setBrand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && run(false)} style={{ flex: 1 }} />
-        <button className="btn" onClick={() => run(false)} disabled={loading}>{loading ? "…" : "حلّل"}</button>
-      </div>
-      {loading && <SkelCards count={3} />}
+    <>
       {d?.empty && <div className="cbox">{d.note}</div>}
       {d && !d.empty && (
         <>
@@ -64,6 +46,6 @@ export default function Complaints() {
           <p className="muted" style={{ fontSize: 11 }}>{d.disclaimer}</p>
         </>
       )}
-    </div>
+    </>
   );
 }

@@ -4,8 +4,40 @@ import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { Bars, Donut, HBars, Spark, Stars } from "@/components/MiniCharts";
+import { useSearchParams } from "next/navigation";
 import { useDemo } from "@/components/ui/DemoContext";
+import Tabs, { type TabDef } from "@/components/ui/Tabs";
 import BrandReportDoc from "./BrandReportDoc";
+import ReputationView from "./views/ReputationView";
+import ComplaintsView from "./views/ComplaintsView";
+import FraudView from "./views/FraudView";
+import CompetitorsView from "./views/CompetitorsView";
+import RiskIndexView from "./views/RiskIndexView";
+import CrisisView from "./views/CrisisView";
+import ProductsView from "./views/ProductsView";
+import ResponseView from "./views/ResponseView";
+import ReviewsView from "./views/ReviewsView";
+
+// One brand, many lenses. Was 11 separate routes each with its own brand input;
+// now tabs over a single brand typed once. Each view lazy-fetches its own endpoint.
+const CORP_TABS: TabDef[] = [
+  { key: "overview", label: "اللوحة", icon: "target" },
+  { key: "reputation", label: "السمعة", icon: "trendUp" },
+  { key: "reviews", label: "ريفيوات Google", icon: "brain" },
+  { key: "complaints", label: "الشكاوى", icon: "megaphone" },
+  { key: "products", label: "المنتجات", icon: "clip" },
+  { key: "competitors", label: "المنافسون", icon: "network" },
+  { key: "risk-index", label: "مؤشر المخاطر", icon: "alert" },
+  { key: "fraud", label: "الاحتيال", icon: "siren" },
+  { key: "crisis", label: "الأزمات", icon: "fire" },
+  { key: "response", label: "الاستجابة", icon: "refresh" },
+];
+const CORP_KEYS = CORP_TABS.map((t) => t.key);
+const VIEW: Record<string, any> = {
+  reputation: ReputationView, reviews: ReviewsView, complaints: ComplaintsView,
+  products: ProductsView, competitors: CompetitorsView, "risk-index": RiskIndexView,
+  fraud: FraudView, crisis: CrisisView, response: ResponseView,
+};
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 const healthC = (s: number) => (s >= 55 ? "#22c55e" : s >= 40 ? "#f59e0b" : "#f43f5e");
@@ -18,6 +50,15 @@ export default function CompanyDashboard() {
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState(false);
   const { demo } = useDemo();
+  const search = useSearchParams();
+  const urlTab = search?.get("tab") || "";
+  const [tab, setTab] = useState<string>(CORP_KEYS.includes(urlTab) ? urlTab : "overview");
+  useEffect(() => { if (CORP_KEYS.includes(urlTab)) setTab(urlTab); }, [urlTab]);
+  const ActiveView = VIEW[tab];
+  // `q` is the COMMITTED brand the views fetch on — not the input draft, so views
+  // don't refetch on every keystroke. Committed on Enter / analyse / shortcut.
+  const [q, setQ] = useState("");
+  const submit = (b?: string) => { const v = (b ?? brand).trim(); setQ(v); if (tab === "overview") run(true, v); };
   // NB: this page's param is `real`; sibling corporate pages take `dm` (demo).
   // Same-looking call, opposite meaning — which is why all 11 ended up
   // auto-loading demo on mount and nobody noticed.
@@ -38,19 +79,23 @@ export default function CompanyDashboard() {
       <h2 style={{ margin: 0 }}>لوحة الشركة الموحّدة</h2>
       <p className="muted" style={{ marginTop: 4 }}>كل شيء عن الشركة بشاشة واحدة: الصحة، السمعة، ريفيوات Google، الشكاوى، المخاطر، المنتجات، والأزمات النشطة.</p>
       <div className="card no-print" style={{ marginBottom: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <input placeholder="اسم الشركة (مثال: آسياسيل)" value={brand} onChange={(e) => setBrand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && run(true)} style={{ flex: 1, minWidth: 220 }} />
-        <button className="btn" onClick={() => run(true)} disabled={loading}>تحليل</button>
-        {["آسياسيل", "زين العراق", "مصرف الرافدين"].map((x) => <button key={x} className="btn ghost" style={{ fontSize: 12 }} onClick={() => { setBrand(x); run(true, x); }}>{x}</button>)}
-        {d && !d.empty && (
+        <input placeholder="اسم الشركة (مثال: آسياسيل)" value={brand} onChange={(e) => setBrand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} style={{ flex: 1, minWidth: 220 }} />
+        <button className="btn" onClick={() => submit()} disabled={loading}>تحليل</button>
+        {["آسياسيل", "زين العراق", "مصرف الرافدين"].map((x) => <button key={x} className="btn ghost" style={{ fontSize: 12 }} onClick={() => { setBrand(x); submit(x); }}>{x}</button>)}
+        {tab === "overview" && d && !d.empty && (
           <button className="btn ghost" style={{ marginInlineStart: "auto" }} onClick={() => setReport((v) => !v)}>
             {report ? "عرض اللوحة" : "التقرير التنفيذي"}
           </button>
         )}
-        {report && d && !d.empty && <button className="btn" onClick={() => window.print()}>طباعة / PDF</button>}
+        {tab === "overview" && report && d && !d.empty && <button className="btn" onClick={() => window.print()}>طباعة / PDF</button>}
       </div>
 
-      {/* The report was a separate route calling the SAME endpoint. It is now a
-          view of this page's already-loaded data — no second fetch, no duplicate. */}
+      <div className="no-print"><Tabs tabs={CORP_TABS} value={tab} onChange={(t) => { setReport(false); setTab(t); }} /></div>
+
+      {/* One brand, many lenses. Each non-overview tab is a lazy-fetched view. */}
+      {ActiveView ? <ActiveView brand={q} demo={demo} /> : (<>
+
+      {/* ── overview tab: the unified dashboard ── */}
       {report && d && !d.empty && !loading && <BrandReportDoc d={d} />}
 
       {loading && <SkelCards count={4} />}
@@ -134,6 +179,7 @@ export default function CompanyDashboard() {
           <p className="muted" style={{ fontSize: 11 }}>{d.disclaimer}</p>
         </>
       )}
+      </>)}
     </div>
   );
 }

@@ -1,36 +1,18 @@
 "use client";
-import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
-import { useDemo } from "@/components/ui/DemoContext";
+import { useBrand } from "../useBrand";
 
 const lvlColor = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : /متوسط/.test(l || "") ? "#f59e0b" : "#22c55e");
 const COMP_AR: Record<string, string> = { reputation_risk: "خطر السمعة", complaint_pressure: "ضغط الشكاوى", sentiment_risk: "خطر المشاعر", fraud_exposure: "التعرّض للاحتيال", crisis_signal: "إشارة أزمة" };
 
-export default function RiskIndex() {
-  const [brand, setBrand] = useState("");
-  const [d, setD] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const { demo, setDemo } = useDemo();
-  const run = async (dm = demo) => {
-    setLoading(true); setD(null);
-    const r = await apiGet(`/api/corporate/risk-index?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);
-    setD(r); setLoading(false);
-  };
-  useEffect(() => { run(demo); /* eslint-disable-next-line */ }, [demo]);
-
+/** Moved verbatim from /corporate/risk-index. Host owns brand + demo + fetch. */
+export default function RiskIndexView({ brand, demo }: { brand: string; demo: boolean }) {
+  const { d, loading } = useBrand("risk-index", brand, demo);
+  if (loading) return <SkelCards count={3} />;
+  if (d?.empty) return <div className="cbox">{d.note}</div>;
+  if (!d) return null;
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <h2 style={{ margin: 0 }}>مؤشر المخاطر المؤسسية</h2>
-        <button className={`btn ${demo ? "" : "ghost"}`} onClick={() => setDemo(!demo)} style={demo ? { background: "#6366f1" } : {}}>🧪 وضع العرض</button>
-      </div>
-      <p className="muted">مؤشر مركّب يجمع خطر السمعة + ضغط الشكاوى + المشاعر + الاحتيال + إشارات الأزمة.</p>
-      <div className="card" style={{ marginBottom: 14, display: "flex", gap: 8 }}>
-        <input placeholder="اسم الشركة" value={brand} onChange={(e) => setBrand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && run(false)} style={{ flex: 1 }} />
-        <button className="btn" onClick={() => run(false)} disabled={loading}>{loading ? "…" : "احسب"}</button>
-      </div>
-      {loading && <SkelCards count={3} />}
+    <>
       {d?.empty && <div className="cbox">{d.note}</div>}
       {d && !d.empty && (
         <>
@@ -54,6 +36,6 @@ export default function RiskIndex() {
           <p className="muted" style={{ fontSize: 11 }}>{d.disclaimer}</p>
         </>
       )}
-    </div>
+    </>
   );
 }

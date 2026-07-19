@@ -1,36 +1,18 @@
 "use client";
-import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { Bars } from "@/components/MiniCharts";
-import { useDemo } from "@/components/ui/DemoContext";
+import { useBrand } from "../useBrand";
 
 const col = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
 
-export default function Competitors() {
-  const [brand, setBrand] = useState("");
-  const [d, setD] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const { demo, setDemo } = useDemo();
-  const run = async (dm = demo) => {
-    setLoading(true); setD(null);
-    const r = await apiGet(`/api/corporate/competitors?brand=${encodeURIComponent(brand)}${dm ? "&demo=1" : ""}`).catch(() => null);
-    setD(r); setLoading(false);
-  };
-  useEffect(() => { run(demo); /* eslint-disable-next-line */ }, [demo]);
-
+/** Moved verbatim from /corporate/competitors. Host owns brand + demo + fetch. */
+export default function CompetitorsView({ brand, demo }: { brand: string; demo: boolean }) {
+  const { d, loading } = useBrand("competitors", brand, demo);
+  if (loading) return <SkelCards count={3} />;
+  if (d?.empty) return <div className="cbox">{d.note}</div>;
+  if (!d) return null;
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <h2 style={{ margin: 0 }}>مراقبة المنافسين</h2>
-        <button className={`btn ${demo ? "" : "ghost"}`} onClick={() => setDemo(!demo)} style={demo ? { background: "#6366f1" } : {}}>🧪 وضع العرض</button>
-      </div>
-      <p className="muted">مقارنة حصة الصوت والمشاعر والسمعة مقابل المنافسين، مع فرص وتوصيات.</p>
-      <div className="card" style={{ marginBottom: 14, display: "flex", gap: 8 }}>
-        <input placeholder="اسم شركتك" value={brand} onChange={(e) => setBrand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && run(false)} style={{ flex: 1 }} />
-        <button className="btn" onClick={() => run(false)} disabled={loading}>{loading ? "…" : "قارن"}</button>
-      </div>
-      {loading && <SkelCards count={3} />}
+    <>
       {d?.empty && <div className="cbox">{d.note}</div>}
       {d && !d.empty && (
         <>
@@ -61,6 +43,6 @@ export default function Competitors() {
           <p className="muted" style={{ fontSize: 11 }}>{d.disclaimer}</p>
         </>
       )}
-    </div>
+    </>
   );
 }

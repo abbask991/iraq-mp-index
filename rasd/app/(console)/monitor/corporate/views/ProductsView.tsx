@@ -1,42 +1,23 @@
 "use client";
-import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { Bars } from "@/components/MiniCharts";
-import { useDemo } from "@/components/ui/DemoContext";
+import { useBrand } from "../useBrand";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 const lvlColor = (s: number) => (s >= 55 ? "#22c55e" : s >= 35 ? "#f59e0b" : "#f43f5e");
 
-export default function ProductSurvey() {
-  const [brand, setBrand] = useState("");
-  const [items, setItems] = useState("");
-  const [d, setD] = useState<any>(null);
-  const { demo } = useDemo();
-  const [loading, setLoading] = useState(true);
-  const run = async (real = false) => {
-    setLoading(true); setD(null);
-    const r = await apiGet(`/api/corporate/products?brand=${encodeURIComponent(brand)}&items=${encodeURIComponent(items)}${real ? "" : "&demo=1"}`).catch(() => null);
-    setD(r); setLoading(false);
-  };
-  useEffect(() => { run(!demo); /* eslint-disable-next-line */ }, [demo]);
-
+/** Moved verbatim from /corporate/products. Host owns brand + demo + fetch. */
+export default function ProductsView({ brand, demo }: { brand: string; demo: boolean }) {
+  const { d, loading } = useBrand("products", brand, demo);
+  if (loading) return <SkelCards count={3} />;
+  if (d?.empty) return <div className="cbox">{d.note}</div>;
+  if (!d) return null;
   const prods = d?.products || [];
   return (
-    <div>
-      <h2 style={{ margin: 0 }}>استطلاع المنتجات (الطلب والمشاكل)</h2>
-      <p className="muted">أي منتج أكثر طلباً واستهلاكاً؟ ما مشاكل كل منتج؟ ليش بعض المنتجات مو مطلوبة؟ — يظهر تلقائياً.</p>
-      <div className="card" style={{ marginBottom: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <input placeholder="اسم البراند/الصفحة" value={brand} onChange={(e) => setBrand(e.target.value)} style={{ flex: "1 1 200px" }} />
-        <input placeholder="أسماء المنتجات مفصولة بفواصل (اختياري)" value={items} onChange={(e) => setItems(e.target.value)} onKeyDown={(e) => e.key === "Enter" && run(true)} style={{ flex: "1 1 200px" }} />
-        <button className="btn" onClick={() => run(true)} disabled={loading}>استطلع</button>
-      </div>
-
-      {loading && <SkelCards count={4} />}
+    <>
       {d?.empty && <div className="cbox">{d.note}</div>}
       {d && !d.empty && (
         <>
-          {d.demo && <p className="muted" style={{ fontSize: 11.5, color: "#6366f1" }}>🧪 عيّنة توضيحية ({d.brand}) — تُستبدل بالبيانات الحقيقية عند تفعيل المصادر.</p>}
 
           {/* demand ranking chart */}
           {prods.length > 0 && (
@@ -85,6 +66,6 @@ export default function ProductSurvey() {
           <p className="muted" style={{ fontSize: 11 }}>{d.disclaimer}</p>
         </>
       )}
-    </div>
+    </>
   );
 }

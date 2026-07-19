@@ -1,42 +1,20 @@
 "use client";
-import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { HBars, Donut, Stars } from "@/components/MiniCharts";
-import { useDemo } from "@/components/ui/DemoContext";
+import { useBrand } from "../useBrand";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 
-export default function GoogleReviews() {
-  const [place, setPlace] = useState("");
-  const { demo } = useDemo();
-  const [d, setD] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const load = async (real = false) => {
-    setLoading(true);
-    const r = await apiGet(`/api/corporate/reviews?place=${encodeURIComponent(place)}${real ? "" : "&demo=1"}`).catch(() => null);
-    if (real && r && r.configured === false) { setD({ ...r, _needsKey: true }); }
-    else setD(r);
-    setLoading(false);
-  };
-  // honours the central switch (this page's helper is `load`, and takes `real` —
-  // which is why the earlier sweep for `run(` missed it)
-  useEffect(() => { load(!demo); /* eslint-disable-next-line */ }, [demo]);
-
+/** Moved verbatim from /corporate/reviews. Host owns brand + demo + fetch. */
+export default function ReviewsView({ brand, demo }: { brand: string; demo: boolean }) {
+  const { d, loading } = useBrand("reviews", brand, demo, "place");
+  if (loading) return <SkelCards count={3} />;
+  if (d?.empty) return <div className="cbox">{d.note}</div>;
   const dist = d?.distribution || {};
   const distData = ["5", "4", "3", "2", "1"].map((k) => ({ label: `${k} ★`, value: dist[k] || 0, color: Number(k) >= 4 ? "#22c55e" : Number(k) === 3 ? "#f59e0b" : "#f43f5e" }));
   const s = d?.sentiment || {};
-
   return (
-    <div>
-      <h2 style={{ margin: 0 }}>ريفيوات Google</h2>
-      <p className="muted">تقييمات ومراجعات Google Maps: النجوم، توزيع التقييمات، مشاعر المراجعات، وأحدثها — تظهر تلقائياً.</p>
-      <div className="card" style={{ marginBottom: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <input placeholder="اسم المكان/الشركة على خرائط Google" value={place} onChange={(e) => setPlace(e.target.value)} onKeyDown={(e) => e.key === "Enter" && load(true)} style={{ flex: 1 }} />
-        <button className="btn" onClick={() => load(true)} disabled={loading}>جلب من Google</button>
-      </div>
-
-      {loading && <SkelCards count={3} />}
+    <>
       {!loading && d && (
         <>
           {/* The old copy claimed sample data was shown below. It was not: load()
@@ -82,6 +60,6 @@ export default function GoogleReviews() {
           <p className="muted" style={{ fontSize: 11 }}>{d.disclaimer}</p>
         </>
       )}
-    </div>
+    </>
   );
 }
