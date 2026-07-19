@@ -5,6 +5,7 @@ import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { Bars, Donut, HBars, Spark, Stars } from "@/components/MiniCharts";
 import { useDemo } from "@/components/ui/DemoContext";
+import BrandReportDoc from "./BrandReportDoc";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 const healthC = (s: number) => (s >= 55 ? "#22c55e" : s >= 40 ? "#f59e0b" : "#f43f5e");
@@ -15,6 +16,7 @@ export default function CompanyDashboard() {
   const [brand, setBrand] = useState("");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [report, setReport] = useState(false);
   const { demo } = useDemo();
   // NB: this page's param is `real`; sibling corporate pages take `dm` (demo).
   // Same-looking call, opposite meaning — which is why all 11 ended up
@@ -35,15 +37,25 @@ export default function CompanyDashboard() {
     <div>
       <h2 style={{ margin: 0 }}>لوحة الشركة الموحّدة</h2>
       <p className="muted" style={{ marginTop: 4 }}>كل شيء عن الشركة بشاشة واحدة: الصحة، السمعة، ريفيوات Google، الشكاوى، المخاطر، المنتجات، والأزمات النشطة.</p>
-      <div className="card" style={{ marginBottom: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div className="card no-print" style={{ marginBottom: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
         <input placeholder="اسم الشركة (مثال: آسياسيل)" value={brand} onChange={(e) => setBrand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && run(true)} style={{ flex: 1, minWidth: 220 }} />
         <button className="btn" onClick={() => run(true)} disabled={loading}>تحليل</button>
         {["آسياسيل", "زين العراق", "مصرف الرافدين"].map((x) => <button key={x} className="btn ghost" style={{ fontSize: 12 }} onClick={() => { setBrand(x); run(true, x); }}>{x}</button>)}
+        {d && !d.empty && (
+          <button className="btn ghost" style={{ marginInlineStart: "auto" }} onClick={() => setReport((v) => !v)}>
+            {report ? "عرض اللوحة" : "التقرير التنفيذي"}
+          </button>
+        )}
+        {report && d && !d.empty && <button className="btn" onClick={() => window.print()}>طباعة / PDF</button>}
       </div>
+
+      {/* The report was a separate route calling the SAME endpoint. It is now a
+          view of this page's already-loaded data — no second fetch, no duplicate. */}
+      {report && d && !d.empty && !loading && <BrandReportDoc d={d} />}
 
       {loading && <SkelCards count={4} />}
       {d?.empty && <div className="cbox">{d.note}</div>}
-      {d && !d.empty && (
+      {!report && d && !d.empty && (
         <>
           {d.demo && <p className="muted" style={{ fontSize: 11.5, color: "#6366f1" }}>🧪 عيّنة توضيحية ({d.brand}) — تُستبدل بالبيانات الحقيقية عند تفعيل المصادر.</p>}
 

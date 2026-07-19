@@ -109,7 +109,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { ar: "لوحة الشركة الموحّدة", en: "Company Dashboard", href: "/monitor/corporate" },
       { ar: "رادار الأزمات", en: "Crisis Radar", href: "/monitor/corporate/crisis" },
       { ar: "مركز الاستجابة", en: "Response Center", href: "/monitor/corporate/response" },
-      { ar: "تقرير البراند التنفيذي", en: "Executive Brand Report", href: "/monitor/corporate/report" },
       { ar: "سمعة الشركة", en: "Brand Reputation", href: "/monitor/corporate/reputation" },
       { ar: "ريفيوات Google", en: "Google Reviews", href: "/monitor/corporate/reviews" },
       { ar: "استطلاع المنتجات (الطلب والمشاكل)", en: "Product Survey", href: "/monitor/corporate/products" },
