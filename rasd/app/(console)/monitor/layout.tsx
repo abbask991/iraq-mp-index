@@ -200,6 +200,20 @@ function DashShell({ children }: { children: React.ReactNode }) {
           if (!vis.length) return null;
           const isOpen = !!openGroups[g.key];
           const grpActive = vis.some(itemActive);
+          // A module group is a single direct link (label === the module). Render it
+          // as a top-level link, not a collapsible header hiding one item — that is
+          // what makes the sidebar read as 11 executive modules rather than nested
+          // menus. Groups with real sub-items (Operations, System) still collapse.
+          const single = vis.length === 1 && vis[0].href && !vis[0].soon;
+          if (single) {
+            const it = vis[0];
+            return (
+              <Link key={g.key} href={it.href!}
+                className={"nav-module" + (itemActive(it) ? " active" : "") + (it.danger ? " danger" : "")}>
+                {t(g)}
+              </Link>
+            );
+          }
           return (
  <div key={g.key} className={"nav-group" + (grpActive ? " on" : "")}>
  <button className={"nav-grp-h" + (grpActive ? " on" : "")}

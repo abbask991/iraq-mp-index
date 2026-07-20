@@ -312,6 +312,20 @@
     border-radius: var(--r-sm); transition: width .7s var(--ease);
   }
 
+  /* ---------- sidebar module link (single-item groups) ---------- */
+  .nav-module {
+    display: block; padding: 10px 12px; border-radius: var(--r-sm);
+    color: var(--text); font-size: var(--t-sm); font-weight: var(--w-med);
+    letter-spacing: .2px; transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  }
+  .nav-module:hover { background: var(--hover); }
+  .nav-module.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #04121a; font-weight: var(--w-bold);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 32%, transparent);
+  }
+  .nav-module.danger:not(.active) { color: color-mix(in srgb, var(--danger) 80%, var(--text)); }
+
   /* ---------- collection blockers ----------
      Deliberately the loudest thing on the page when it appears: an empty
      dashboard with no explanation is the single most damaging state this
