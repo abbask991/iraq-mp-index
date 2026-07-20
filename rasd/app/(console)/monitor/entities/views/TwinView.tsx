@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { apiPost, intelGet, intelPost } from "@/lib/api";
+import EvidenceChainDrawer from "@/components/EvidenceChainDrawer";
 import Gauge from "@/components/Gauge";
 
 const C = { neg: "#f43f5e", neu: "#8a97ad", pos: "#22c55e", warn: "#f59e0b" };
@@ -250,7 +251,10 @@ export default function TwinView() {
               <div className="mon-hero" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20 }}>
                 <div>
                   <div className="cc-live"><span className="cc-dot" /> ملف استخباراتي حيّ</div>
-                  <h2 style={{ margin: "6px 0 4px", fontSize: 26 }}>{twin.identity?.name}</h2>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "6px 0 4px" }}>
+                    <h2 style={{ margin: 0, fontSize: 26 }}>{twin.identity?.name}</h2>
+                    <EvidenceChainDrawer subject={twin.identity?.name || term} context="كيان" />
+                  </div>
                   <div className="muted" style={{ fontSize: 13 }}>
                     {{ politician: "سياسي", party: "حزب", ministry: "وزارة", coalition: "تحالف",
                        body: "جهة", institution: "مؤسسة" }[twin.identity?.type as string] || "كيان"}

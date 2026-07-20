@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { apiPost } from "@/lib/api";
+import EvidenceChainDrawer from "@/components/EvidenceChainDrawer";
 import RangeSelect, { Range } from "@/components/RangeSelect";
 
 const LEVEL = {
@@ -110,6 +111,7 @@ export default function AlertsView() {
  <div>
  <b> {m.name}</b>
  <div className="muted" style={{ fontSize: 12 }}>{(m.keywords || []).join(" · ")}</div>
+ <div style={{ marginTop: 4 }}><EvidenceChainDrawer subject={m.name} context="إنذار مبكر" compact /></div>
  </div>
               {r === "loading" ? <span className="muted">جارٍ الفحص…</span>
                 : r ? (

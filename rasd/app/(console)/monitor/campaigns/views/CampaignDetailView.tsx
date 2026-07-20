@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiPost } from "@/lib/api";
 import { getTargets, primaryKeyword } from "@/lib/targets";
 import { useDemo } from "@/components/ui/DemoContext";
+import EvidenceChainDrawer from "@/components/EvidenceChainDrawer";
 import RangeSelect, { Range } from "@/components/RangeSelect";
 
 const LV: Record<string, { c: string; bg: string }> = {
@@ -81,6 +82,7 @@ export default function CampaignDetailView() {
  <div style={{ fontSize: 46, fontWeight: 800, color: a.c }}>{res.coordination_score}<span style={{ fontSize: 18 }}>/100</span></div>
  <h3 style={{ margin: "4px 0", color: a.c }}>{res.alert_level.label}</h3>
  <p className="muted" style={{ fontSize: 13 }}>سردية: <b>{res.main_narrative}</b> · {res.total_posts} منشور · {res.unique_accounts} حساب</p>
+ <div style={{ marginTop: 6 }}><EvidenceChainDrawer subject={term} context="حملة" /></div>
  </div>
 
  <div className="stat-grid" style={{ marginBottom: 14 }}>

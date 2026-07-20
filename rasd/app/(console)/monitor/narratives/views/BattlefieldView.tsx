@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { getTargets, primaryKeyword, Target } from "@/lib/targets";
 import { useDemo } from "@/components/ui/DemoContext";
+import EvidenceChainDrawer from "@/components/EvidenceChainDrawer";
 import Gauge from "@/components/Gauge";
 import { SkelCards } from "@/components/Skeleton";
 import EvolutionChart from "@/components/EvolutionChart";
@@ -69,6 +70,7 @@ export default function BattlefieldView() {
             {d.summary && <p style={{ fontSize: 14, lineHeight: 2, marginTop: 8 }}>{d.summary}</p>}
             <div className="muted" style={{ fontSize: 12 }}>
               {d.totals?.attackers} مهاجم · {d.totals?.supporters} داعم · {d.totals?.posts} منشور · {d.totals?.news} خبر</div>
+            <div style={{ marginTop: 8 }}><EvidenceChainDrawer subject={term} context="ساحة المعركة" /></div>
           </div>
 
           {/* battlefield scores */}

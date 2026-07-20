@@ -1,6 +1,7 @@
 "use client";
 import { SkelCards } from "@/components/Skeleton";
 import { Donut, Spark } from "@/components/MiniCharts";
+import EvidenceChainDrawer from "@/components/EvidenceChainDrawer";
 import { useBrand } from "../useBrand";
 
 const col = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
@@ -17,6 +18,9 @@ export default function ReputationView({ brand, demo }: { brand: string; demo: b
 
   return (
     <>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <EvidenceChainDrawer subject={brand} context="سمعة العلامة" />
+      </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
         {[["السمعة", d.reputation_score], ["الخطر", d.risk_score], ["فجوة التفاعل/التعليق", d.reaction_comment_gap]].map(([l, v]: any) => (
           <div key={l} style={{ flex: "1 1 130px", textAlign: "center", padding: "12px 8px", border: "1px solid var(--line)", borderRadius: 12, background: "var(--input)" }}>
