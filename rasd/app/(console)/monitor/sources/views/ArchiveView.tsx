@@ -42,7 +42,7 @@ function Timeline({ rows }: { rows: any[] }) {
   );
 }
 
-export default function Archive() {
+export default function ArchiveView() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [term, setTerm] = useState("");
   const [range, setRange] = useState<Range>("month");

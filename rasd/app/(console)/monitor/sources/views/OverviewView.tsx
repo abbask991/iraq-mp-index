@@ -10,7 +10,7 @@ function Stat({ l, v, c }: { l: string; v: any; c?: string }) {
   return <div style={{ textAlign: "center" }}><div style={{ fontWeight: 800, fontSize: 18, color: c }}>{v}</div><div className="muted" style={{ fontSize: 11 }}>{l}</div></div>;
 }
 
-export default function Fusion() {
+export default function OverviewView() {
   const [entity, setEntity] = useState("");
   const [d, setD] = useState<any>(null);
   const [busy, setBusy] = useState(false);

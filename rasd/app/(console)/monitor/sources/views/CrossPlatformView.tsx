@@ -9,7 +9,7 @@ const LS = "rasd_social_sources";
 function load(): Source[] { try { return JSON.parse(localStorage.getItem(LS) || "[]"); } catch { return []; } }
 function save(s: Source[]) { try { localStorage.setItem(LS, JSON.stringify(s)); } catch { /* ignore */ } }
 
-export default function CrossPlatform() {
+export default function CrossPlatformView() {
   const [status, setStatus] = useState<any>(null);
   const [sources, setSources] = useState<Source[]>([]);
   const [platform, setPlatform] = useState("instagram");

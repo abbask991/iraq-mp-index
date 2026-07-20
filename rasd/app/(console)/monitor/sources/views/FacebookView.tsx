@@ -642,7 +642,7 @@ const FB_TABS: TabDef[] = [
 ];
 const FB_KEYS = FB_TABS.map((t) => t.key);
 
-export default function Facebook() {
+export default function FacebookView() {
   const search = useSearchParams();
   const urlTab = search?.get("tab") || "";
   const [tab, setTab] = useState<string>(FB_KEYS.includes(urlTab) ? urlTab : "dashboard");

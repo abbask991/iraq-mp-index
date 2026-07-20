@@ -21,7 +21,7 @@ function donut(parts: { v: number; c: string }[], unit = "ذِكر", size = 168)
   return `<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:${size}px;display:block;margin:0 auto">${g}<text x="${cx}" y="${cy - 2}" fill="#e8eef9" font-size="26" font-weight="800" text-anchor="middle">${tot}</text><text x="${cx}" y="${cy + 16}" fill="#8a97ad" font-size="11" text-anchor="middle">${unit}</text></svg>`;
 }
 
-export default function AdminX() {
+export default function XView() {
   const [targets, setTargets] = useState<string[]>([]);
   const [val, setVal] = useState("");
   const [msg, setMsg] = useState("");

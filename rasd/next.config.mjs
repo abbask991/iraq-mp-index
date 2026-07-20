@@ -11,6 +11,12 @@ const nextConfig = {
       // overview showed the same ~10 items as command in older styling; its one
       // unique piece (Iraq geo map) moved into command.
       { source: "/monitor/overview", destination: "/monitor/command", permanent: false },
+      // Monitoring Hub — source-level coverage. Uses ?src= for module tabs.
+      { source: "/monitor/facebook", destination: "/monitor/sources?src=facebook", permanent: false },
+      { source: "/monitor/fusion", destination: "/monitor/sources?src=overview", permanent: false },
+      { source: "/monitor/targets", destination: "/monitor/sources?src=x", permanent: false },
+      { source: "/monitor/cross-platform", destination: "/monitor/sources?src=cross-platform", permanent: false },
+      { source: "/monitor/archive", destination: "/monitor/sources?src=archive", permanent: false },
       // Narratives & Battlefield — 4 tools folded into one tabbed module.
       { source: "/monitor/battlefield", destination: "/monitor/narratives?tab=battlefield", permanent: false },
       { source: "/monitor/regional-influence", destination: "/monitor/narratives?tab=regional", permanent: false },

@@ -32,13 +32,9 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "media", ar: "الرصد الإعلامي", en: "Media Monitoring",
+    key: "media", ar: "مركز الرصد", en: "Monitoring Hub",
     items: [
-      { ar: "الإعلام الرقمي", en: "Digital Media", href: "/monitor/targets" },
-      { ar: "الرصد عبر المنصّات", en: "Cross-Platform", href: "/monitor/cross-platform" },
-      { ar: "الصورة الاستخباراتية الموحّدة", en: "Unified Intelligence Picture", href: "/monitor/fusion" },
-      { ar: "استخبارات فيسبوك", en: "Facebook Intelligence", href: "/monitor/facebook" },
-      { ar: "أرشيف X (يكبر يومياً)", en: "X Archive (grows daily)", href: "/monitor/archive" },
+      { ar: "مركز الرصد", en: "Monitoring Hub", href: "/monitor/sources" },
     ],
   },
   {
