@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import Tabs, { type TabDef } from "@/components/ui/Tabs";
+import BeneficiaryAnalysisPanel from "@/components/BeneficiaryAnalysisPanel";
 import WarRoomView from "./views/WarRoomView";
 import BattlefieldView from "./views/BattlefieldView";
 import RegionalView from "./views/RegionalView";
@@ -30,6 +31,9 @@ export default function NarrativesModule() {
   return (
     <div>
       <PageHeader title="السرديات والمعركة الإعلامية" sub="استخبارات السرديات وتحليل ساحة المعركة الإعلامية — من يقود الحكاية، ومن يقاومها." />
+      <div style={{ marginBottom: "var(--s-3)" }}>
+        <BeneficiaryAnalysisPanel />
+      </div>
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       {Active ? <Active /> : null}
     </div>

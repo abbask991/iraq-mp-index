@@ -10,6 +10,8 @@ import RecommendedActions, { type Reco, type RecoType } from "@/components/Recom
 import ReportGenerationButtons from "@/components/ReportGenerationButtons";
 import PlatformContributionCard from "@/components/PlatformContributionCard";
 import PilotMode from "@/components/PilotMode";
+import IntelligenceTaskingPanel from "@/components/IntelligenceTaskingPanel";
+import ClientLanguageAdapter from "@/components/ClientLanguageAdapter";
 import { CLIENT_TYPES, TEMPLATES, clientType, getClientType, setClientType, type Template } from "@/lib/workspace";
 
 const FIELDS: [string, string, string][] = [
@@ -38,7 +40,7 @@ function recosFrom(d: any): Reco[] {
 
 export default function Workspace() {
   const { demo } = useDemo();
-  const [tab, setTab] = useState<"value" | "pilot" | "feed" | "list">("value");
+  const [tab, setTab] = useState<"value" | "tasks" | "pilot" | "feed" | "list">("value");
   const [d, setD] = useState<any>(null);
   const [wl, setWl] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -125,12 +127,14 @@ export default function Workspace() {
       {/* tabs */}
       <div className="auth-tabs" style={{ maxWidth: 560, margin: "12px 0" }}>
         <button className={tab === "value" ? "on" : ""} onClick={() => setTab("value")}>لوحة القيمة</button>
+        <button className={tab === "tasks" ? "on" : ""} onClick={() => setTab("tasks")}>المهام</button>
         <button className={tab === "pilot" ? "on" : ""} onClick={() => setTab("pilot")}>الوضع التجريبي</button>
         <button className={tab === "feed" ? "on" : ""} onClick={() => setTab("feed")}>بياناتي الحيّة</button>
         <button className={tab === "list" ? "on" : ""} onClick={() => setTab("list")}>قائمتي ({totalItems})</button>
       </div>
 
       {tab === "pilot" && <PilotMode cc={cc} anger={anger} />}
+      {tab === "tasks" && <IntelligenceTaskingPanel />}
 
       {applyMsg && <div className="cbox" style={{ marginBottom: 12, borderInlineStart: "4px solid var(--accent)", fontSize: 13 }}>{applyMsg}</div>}
 
@@ -159,6 +163,13 @@ export default function Workspace() {
 
           {cc && items.length > 0 && (
             <div style={{ marginBottom: 14 }}><WhatMattersNow items={items} /></div>
+          )}
+
+          {ct && items[0] && (
+            <div style={{ marginBottom: 14 }}>
+              <ClientLanguageAdapter clientKey={ct}
+                base={items[0].title + (items[0].explanation ? ` — ${items[0].explanation}` : "")} />
+            </div>
           )}
 
           {cfg && (

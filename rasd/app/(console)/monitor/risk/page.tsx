@@ -6,6 +6,7 @@ import Tabs, { type TabDef } from "@/components/ui/Tabs";
 import PlatformContributionCard from "@/components/PlatformContributionCard";
 import CrisisProbabilityMeter from "@/components/CrisisProbabilityMeter";
 import NarrativeToActionSignal from "@/components/NarrativeToActionSignal";
+import InfluenceLeveragePoints from "@/components/InfluenceLeveragePoints";
 import ReportGenerationButtons from "@/components/ReportGenerationButtons";
 import AlertsView from "./views/AlertsView";
 import DiscoverView from "./views/DiscoverView";
@@ -43,6 +44,9 @@ export default function RiskModule() {
       </div>
       <div style={{ marginBottom: "var(--s-4)" }}>
         <NarrativeToActionSignal />
+      </div>
+      <div style={{ marginBottom: "var(--s-4)" }}>
+        <InfluenceLeveragePoints />
       </div>
       <div style={{ marginBottom: "var(--s-4)" }}>
         <PlatformContributionCard title="المنصّات المساهمة في الخطر"

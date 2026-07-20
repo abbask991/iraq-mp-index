@@ -120,6 +120,7 @@ export const MODULES: ModuleDef[] = [
       { key: "anger", label: "تقرير الغضب العام" },
       { key: "crisis", label: "تقرير الأزمات" },
       { key: "board", label: "موجز المجلس" },
+      { key: "playbooks", label: "أدلّة الاستجابة" },
       { key: "export", label: "مركز التصدير" },
     ],
     related: ["command", "corporate", "ai-analyst"],

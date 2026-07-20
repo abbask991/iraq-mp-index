@@ -18,6 +18,8 @@ import NarrativeToActionSignal from "@/components/NarrativeToActionSignal";
 import SilentMajorityGap from "@/components/SilentMajorityGap";
 import OpportunityRadar from "@/components/OpportunityRadar";
 import IntelligenceMemoryRecall from "@/components/IntelligenceMemoryRecall";
+import IntelligenceReadinessScore from "@/components/IntelligenceReadinessScore";
+import BlindSpotsPanel from "@/components/BlindSpotsPanel";
 import SoWhatInsightBlock from "@/components/SoWhatInsightBlock";
 import RecommendedActions, { type Reco, type RecoType } from "@/components/RecommendedActions";
 import ReportGenerationButtons from "@/components/ReportGenerationButtons";
@@ -214,6 +216,8 @@ export default function CommandCenter() {
                     anger={anger?.score}
                     platforms={(d.platform_activity || []).map((p: any) => p.platform)}
                     compact />
+                  <IntelligenceReadinessScore d={d} anger={anger} compact />
+                  <BlindSpotsPanel compact />
                 </div>
               </div>
             );

@@ -8,6 +8,7 @@ import CampaignReportView from "./CampaignReportView";
 import AngerReportView from "./AngerReportView";
 import CrisisReportView from "./CrisisReportView";
 import BoardSummaryView from "./BoardSummaryView";
+import IntelligencePlaybooks from "@/components/IntelligencePlaybooks";
 import ExportCenterView from "./ExportCenterView";
 
 /**
@@ -27,6 +28,7 @@ const TABS: TabDef[] = [
   { key: "anger", label: "تقرير الغضب العام", icon: "alert" },
   { key: "crisis", label: "تقرير الأزمات", icon: "siren" },
   { key: "board", label: "موجز المجلس", icon: "target" },
+  { key: "playbooks", label: "أدلّة الاستجابة", icon: "check" },
   { key: "export", label: "مركز التصدير", icon: "expand" },
 ];
 const KEYS = TABS.map((t) => t.key);
@@ -46,6 +48,7 @@ export default function Reports() {
       {tab === "anger" && <AngerReportView />}
       {tab === "crisis" && <CrisisReportView />}
       {tab === "board" && <BoardSummaryView />}
+      {tab === "playbooks" && <IntelligencePlaybooks />}
       {tab === "export" && <ExportCenterView />}
     </div>
   );

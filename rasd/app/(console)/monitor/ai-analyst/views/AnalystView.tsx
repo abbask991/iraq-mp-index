@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { apiGet, apiSend } from "@/lib/api";
 import Logo from "@/components/Logo";
+import StrategicQuestionGenerator from "@/components/StrategicQuestionGenerator";
 
 type Msg = { role: "user" | "ai"; text: string; entity?: string | null; sources?: string[]; loading?: boolean };
 
@@ -65,6 +66,12 @@ export default function AnalystView() {
           {suggested.map((s) => (
             <button key={s} className="btn ghost" style={{ fontSize: 12.5, padding: "5px 11px" }} onClick={() => send(s)}>{s}</button>
           ))}
+        </div>
+      )}
+
+      {msgs.length === 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <StrategicQuestionGenerator onPick={(question) => setQ(question)} />
         </div>
       )}
 

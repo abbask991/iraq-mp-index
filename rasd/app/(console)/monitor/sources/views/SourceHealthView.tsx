@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { Card, Badge, Stat, Icon, Section, Row } from "@/components/ui";
+import BlindSpotsPanel from "@/components/BlindSpotsPanel";
 
 /**
  * Source Health — the operations & cost view for the Monitoring Hub.
@@ -78,6 +79,9 @@ export default function SourceHealthView() {
               ))}
             </div>
           )}
+
+          {/* blind spots — what we don't know yet */}
+          <div className="u-section"><BlindSpotsPanel /></div>
 
           {/* subsystem status grid */}
           <Section title="حالة المصادر والمزوّدين" icon="network">
