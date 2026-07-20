@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import Tabs, { type TabDef } from "@/components/ui/Tabs";
+import ReportGenerationButtons from "@/components/ReportGenerationButtons";
 import RadarView from "./views/RadarView";
 import CampaignDetailView from "./views/CampaignDetailView";
 import CoordinationView from "./views/CoordinationView";
@@ -39,6 +40,9 @@ export default function CampaignsModule() {
   return (
     <div>
       <PageHeader title="الحملات والتضليل" sub="كشف الحملات المنسّقة، التضليل، تزييف الصور، وتتبّع مصدر الانتشار." />
+      <div style={{ marginBottom: "var(--s-3)" }}>
+        <ReportGenerationButtons only={["board", "campaign", "executive"]} title="ولّد موجزاً" />
+      </div>
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       {Active ? <Active /> : null}
     </div>

@@ -13,6 +13,7 @@ import RadarChart from "@/components/RadarChart";
 import IraqMap from "@/components/IraqMap";
 import PlatformContributionCard from "@/components/PlatformContributionCard";
 import WhatMattersNow, { buildMattersItems } from "@/components/WhatMattersNow";
+import CrisisProbabilityMeter from "@/components/CrisisProbabilityMeter";
 import SoWhatInsightBlock from "@/components/SoWhatInsightBlock";
 import RecommendedActions, { type Reco, type RecoType } from "@/components/RecommendedActions";
 import ReportGenerationButtons from "@/components/ReportGenerationButtons";
@@ -194,7 +195,10 @@ export default function CommandCenter() {
               <div className="u-section">
                 <WhatMattersNow items={items} platformNote={note} />
                 <div style={{ marginTop: "var(--s-3)" }}>
-                  <ReportGenerationButtons only={["daily", "crisis", "anger", "campaign", "executive"]} />
+                  <ReportGenerationButtons only={["board", "daily", "crisis", "anger", "executive"]} />
+                </div>
+                <div style={{ marginTop: "var(--s-3)" }}>
+                  <CrisisProbabilityMeter d={d} anger={anger} compact />
                 </div>
               </div>
             );

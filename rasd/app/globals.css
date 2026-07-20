@@ -171,6 +171,31 @@ a.cb-crumb-link:hover { text-decoration: underline; }
 .rgb-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .rgb-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--accent) 6%, transparent); color: var(--text); font-size: 13px; font-weight: 600; text-decoration: none; transition: border-color .15s, background .15s; }
 .rgb-btn:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+
+/* EvidenceChainDrawer — right-side "show me why" panel */
+.ecd-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1100; display: flex; justify-content: flex-start; }
+.ecd { width: min(520px, 94vw); max-width: 520px; height: 100%; overflow-y: auto; background: var(--bg, #0b1220); border-inline-end: 1px solid var(--line); box-shadow: 2px 0 24px rgba(0,0,0,.4); padding: 16px 18px; animation: ecd-in .18s ease; }
+@keyframes ecd-in { from { transform: translateX(-16px); opacity: .6; } to { transform: translateX(0); opacity: 1; } }
+.ecd-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.ecd-body { font-size: 13px; }
+.ecd-conf { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.ecd-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.ecd-stats > div { text-align: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px 4px; }
+.ecd-stats b { display: block; font-size: 18px; }
+.ecd-stats span { font-size: 10.5px; color: var(--muted); }
+.ecd-item { border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; }
+
+/* Crisis Probability Meter */
+.cpm { border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; background: color-mix(in srgb, var(--pc, var(--accent)) 6%, transparent); border-inline-start: 4px solid var(--pc, var(--accent)); }
+.cpm-compact { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); transition: border-color .15s; }
+.cpm-compact:hover { border-color: var(--pc, var(--accent)); }
+.cpm-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.cpm-title { font-weight: 800; font-size: 15px; display: inline-flex; align-items: center; gap: 7px; }
+.cpm-lead { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.cpm-main { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.cpm-driver { display: flex; align-items: center; gap: 8px; font-size: 12.5px; padding: 3px 0; }
+.cpm-bar { flex: 0 0 120px; height: 7px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.cpm-bar i { display: block; height: 100%; }
 .cb-right { display: flex; align-items: center; gap: 8px; }
 .cb-clock { display: inline-flex; align-items: center; gap: 7px; font-variant-numeric: tabular-nums; font-size: 13px;
   background: var(--input); border: 1px solid var(--line); border-radius: 9px; padding: 6px 11px; }

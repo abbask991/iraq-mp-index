@@ -4,6 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import Tabs, { type TabDef } from "@/components/ui/Tabs";
 import PlatformContributionCard from "@/components/PlatformContributionCard";
+import CrisisProbabilityMeter from "@/components/CrisisProbabilityMeter";
+import ReportGenerationButtons from "@/components/ReportGenerationButtons";
 import AlertsView from "./views/AlertsView";
 import DiscoverView from "./views/DiscoverView";
 import TrendsView from "./views/TrendsView";
@@ -36,8 +38,14 @@ export default function RiskModule() {
     <div>
       <PageHeader title="المخاطر والإنذار المبكر" sub="اكتشاف الترندات، التنبيهات، التنبّؤ، والمؤشرات الاستراتيجية — قبل أن تتصاعد." />
       <div style={{ marginBottom: "var(--s-4)" }}>
+        <CrisisProbabilityMeter />
+      </div>
+      <div style={{ marginBottom: "var(--s-4)" }}>
         <PlatformContributionCard title="المنصّات المساهمة في الخطر"
           note="حصّة كل منصّة من الإشارات المرصودة. للتفصيل الكامل ومسار المصدر، افتح مركز الرصد." />
+      </div>
+      <div style={{ marginBottom: "var(--s-3)" }}>
+        <ReportGenerationButtons only={["board", "crisis", "anger", "executive"]} title="ولّد موجزاً" />
       </div>
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       {Active ? <Active /> : null}

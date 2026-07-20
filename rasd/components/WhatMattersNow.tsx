@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { Badge, Icon, type Tone, type IconName } from "@/components/ui";
+import EvidenceChainDrawer from "@/components/EvidenceChainDrawer";
 
 /**
  * "What Matters Now" — the top intelligence items a decision-maker should act on
@@ -106,6 +107,7 @@ export default function WhatMattersNow({ items, platformNote }: { items: Matters
                 {it.explanation && <div className="wmn-exp">{it.explanation}</div>}
                 <div className="wmn-meta">
                   {it.action && <span className="wmn-act"><Icon name="bolt" size={12} /> {it.action}</span>}
+                  <EvidenceChainDrawer subject={it.entity || it.title} context={m.label} compact />
                   <span className="wmn-conf" style={{ marginInlineStart: "auto" }}>
                     <Badge t={conf.tone}>{conf.label}</Badge>
                     {it.evidence != null && it.type !== "anger" && <span className="u-fine u-num"> · {(it.evidence || 0).toLocaleString("en-US")} دليل</span>}

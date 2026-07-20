@@ -7,6 +7,7 @@ import { Bars, Donut, HBars, Spark, Stars } from "@/components/MiniCharts";
 import { useSearchParams } from "next/navigation";
 import { useDemo } from "@/components/ui/DemoContext";
 import Tabs, { type TabDef } from "@/components/ui/Tabs";
+import ReportGenerationButtons from "@/components/ReportGenerationButtons";
 import BrandReportDoc from "./BrandReportDoc";
 import ReputationView from "./views/ReputationView";
 import ComplaintsView from "./views/ComplaintsView";
@@ -90,6 +91,9 @@ export default function CompanyDashboard() {
         {tab === "overview" && report && d && !d.empty && <button className="btn" onClick={() => window.print()}>طباعة / PDF</button>}
       </div>
 
+      <div className="no-print" style={{ marginBottom: "var(--s-3)" }}>
+        <ReportGenerationButtons only={["board", "corporate", "executive"]} title="ولّد موجزاً" />
+      </div>
       <div className="no-print"><Tabs tabs={CORP_TABS} value={tab} onChange={(t) => { setReport(false); setTab(t); }} /></div>
 
       {/* One brand, many lenses. Each non-overview tab is a lazy-fetched view. */}

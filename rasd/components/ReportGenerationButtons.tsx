@@ -8,9 +8,10 @@ import { Icon, type IconName } from "@/components/ui";
  * (the six Reports tabs + the Export Center for executive/research documents),
  * so nothing here is a dead button.
  */
-type Key = "daily" | "crisis" | "dossier" | "campaign" | "anger" | "corporate" | "executive" | "research";
+type Key = "daily" | "crisis" | "dossier" | "campaign" | "anger" | "corporate" | "executive" | "research" | "board";
 
 const REPORTS: Record<Key, { ar: string; href: string; icon: IconName }> = {
+  board: { ar: "موجز المجلس", href: "/monitor/reports?tab=board", icon: "target" },
   daily: { ar: "التقرير اليومي", href: "/monitor/reports?tab=daily", icon: "clip" },
   crisis: { ar: "تقرير الأزمات", href: "/monitor/reports?tab=crisis", icon: "siren" },
   dossier: { ar: "ملف كيان شامل", href: "/monitor/reports?tab=full", icon: "brain" },

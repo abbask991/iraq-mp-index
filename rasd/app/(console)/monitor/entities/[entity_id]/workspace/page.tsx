@@ -5,6 +5,7 @@ import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
+import DecisionSimulator from "@/components/DecisionSimulator";
 import { useDemo } from "@/components/ui/DemoContext";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
@@ -77,6 +78,11 @@ export default function EntityWorkspace() {
           <div className="cbox" style={{ marginBottom: 14, borderInlineStart: "4px solid #6366f1" }}>
             <h4 style={{ margin: "0 0 6px" }}>🧠 الموجز التنفيذي</h4>
             <p style={{ fontSize: 14, lineHeight: 1.9, margin: 0 }}>{d.executive_summary}</p>
+          </div>
+
+          {/* Decision Simulator — what-if projection for this entity */}
+          <div style={{ marginBottom: 14 }}>
+            <DecisionSimulator entityId={d.name || id} name={d.name || id} />
           </div>
 
           {/* Reputation & risk */}
