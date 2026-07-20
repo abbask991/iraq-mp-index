@@ -93,7 +93,8 @@ export default function CommandCenter() {
   // so a decision-maker sees the national anger level without leaving command.
   const [anger, setAnger] = useState<any>(null);
   useEffect(() => {
-    const q = `scope_type=country&scope_id=${encodeURIComponent("العراق")}&scope_name=${encodeURIComponent("العراق")}&period=week&demo=${demo ? 1 : ""}`;
+    // Only send demo when on — the backend rejects an empty `demo=` as a bad bool (422).
+    const q = `scope_type=country&scope_id=${encodeURIComponent("العراق")}&scope_name=${encodeURIComponent("العراق")}&period=week${demo ? "&demo=1" : ""}`;
     apiGet(`/api/indices/public-anger?${q}`).then(setAnger).catch(() => setAnger(null));
   }, [demo]);
 

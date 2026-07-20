@@ -31,7 +31,8 @@ export default function AngerView() {
 
   const load = () => {
     setLoading(true);
-    const q = `scope_type=${scopeType}&scope_id=${encodeURIComponent(scopeName)}&scope_name=${encodeURIComponent(scopeName)}&period=${period}&demo=${demo ? 1 : ""}`;
+    // Only send demo when on — the backend rejects an empty `demo=` as a bad bool (422).
+    const q = `scope_type=${scopeType}&scope_id=${encodeURIComponent(scopeName)}&scope_name=${encodeURIComponent(scopeName)}&period=${period}${demo ? "&demo=1" : ""}`;
     apiGet(`/api/indices/public-anger?${q}`).then(setD).catch(() => setD(null)).finally(() => setLoading(false));
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
