@@ -10,7 +10,7 @@ const PRI: Record<string, { c: string; t: string }> = {
 };
 const riskColor = (lv: string) => (lv === "حرج" ? "#f43f5e" : lv === "مرتفع" ? "#fb923c" : lv === "متوسط" ? "#f59e0b" : "#22c55e");
 
-export default function ChiefAI() {
+export default function ChiefView() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState(""); const [ans, setAns] = useState<any>(null);

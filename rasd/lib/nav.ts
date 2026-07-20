@@ -21,14 +21,10 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "ops", ar: "مركز العمليات", en: "Operations Center", defaultOpen: true,
     items: [
-      // The single watchlist for the whole system. It was called "الإعلام التقليدي"
-      // (traditional media) and buried under Media Monitoring, while the entry
-      // NAMED "watchlist" (/monitor/workspace) fed one page and nothing else.
-      { ar: "قائمة المتابعة — الكيانات المرصودة", en: "Watchlist — Monitored Entities", href: "/monitor" },
-      { ar: "غرفة الحرب (مباشر)", en: "Live War Room", href: "/monitor/warroom", danger: true },
       { ar: "مركز القيادة (ابدأ هنا)", en: "Command Center (start here)", href: "/monitor/command" },
-      { ar: "ضابط الاستخبارات", en: "Chief Intelligence", href: "/monitor/chief" },
-      { ar: "المحلّل الذكي (اسأل أي سؤال)", en: "AI Analyst", href: "/monitor/analyst" },
+      { ar: "غرفة الحرب (مباشر)", en: "Live War Room", href: "/monitor/warroom", danger: true },
+      { ar: "قائمة المتابعة", en: "Watchlist", href: "/monitor" },
+      { ar: "المحلّل الذكي", en: "AI Analyst", href: "/monitor/ai-analyst" },
     ],
   },
   {

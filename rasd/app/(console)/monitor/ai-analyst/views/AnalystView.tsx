@@ -5,7 +5,7 @@ import Logo from "@/components/Logo";
 
 type Msg = { role: "user" | "ai"; text: string; entity?: string | null; sources?: string[]; loading?: boolean };
 
-export default function Analyst() {
+export default function AnalystView() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [q, setQ] = useState("");
   const [suggested, setSuggested] = useState<string[]>([]);
