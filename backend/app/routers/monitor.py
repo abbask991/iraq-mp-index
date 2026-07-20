@@ -739,9 +739,32 @@ async def monitor_overview(req: KeywordReq = KeywordReq()):  # noqa: B008
     return await cache.swr(key, OVERVIEW_TTL, _build)
 
 
+def _discover_demo() -> dict:
+    """Curated demo for the trend discovery view (matches monitor_discover shape)."""
+    def it(name, key, mentions, accounts, eng, sent, vel, pred):
+        return {key: name, "mentions": mentions, "accounts": accounts, "engagement": eng,
+                "sentiment": sent, "velocity": vel, "predicted_24h": pred}
+    return {
+        "demo": True, "scanned": 4200, "accounts": 1160, "window_hours": 24,
+        "hashtags": [
+            it("انقطاع_الكهرباء", "hashtag", 1240, 486, 52000, "سلبي", 2.3, 3100),
+            it("الرواتب", "hashtag", 880, 354, 31000, "سلبي", 1.8, 1600),
+            it("مشاريع_الإعمار", "hashtag", 520, 210, 18500, "إيجابي", 1.2, 720),
+            it("الأمن_الغذائي", "hashtag", 300, 142, 9800, "محايد", 0.9, 410),
+        ],
+        "keywords": [
+            it("أزمة المياه", "keyword", 640, 268, 21000, "سلبي", 1.9, 980),
+            it("البطالة", "keyword", 520, 240, 15900, "سلبي", 1.6, 830),
+            it("الاستثمار", "keyword", 410, 190, 12400, "إيجابي", 1.1, 560),
+        ],
+    }
+
+
 @router.post("/discover")
 async def monitor_discover(req: KeywordReq = KeywordReq()):  # noqa: B008
     """Auto-discover currently trending/emerging hashtags & topics — no keyword."""
+    if req.demo:
+        return _discover_demo()
     seed = (req.keywords[0] if req.keywords else "") or DISCOVER_SEED
     rng = req.range or "day"
     key = f"discover:{rng}:{seed}"
@@ -794,10 +817,37 @@ async def monitor_sov(req: SovReq):
     return result
 
 
+def _new_accounts_demo() -> dict:
+    """Curated demo for the new-accounts view (matches monitor_new_accounts shape)."""
+    def acc(name, un, created, followers, posts, bot):
+        return {"name": name, "username": un, "created": created, "followers": followers,
+                "posts": posts, "bot_score": bot}
+    cluster = [acc("صوت الوطن", "voice_iq_2026", "2026-07-14", 12, 47, 82),
+               acc("الحقيقة الآن", "al_haqiqa_now", "2026-07-14", 8, 39, 74),
+               acc("وطن أولاً", "watan_first", "2026-07-14", 21, 33, 66),
+               acc("صوت الشعب", "sawt_alsha3b", "2026-07-14", 5, 28, 79)]
+    return {
+        "demo": True, "total_accounts": 1160, "new_accounts": 268, "new_ratio": 0.23, "scanned": 4200,
+        "creation_clusters": [{"date": "2026-07-14", "count": 14, "accounts": cluster}],
+        "bands": [
+            {"label": "اليوم (≤24 ساعة)", "count": 31, "accounts": [
+                acc("مراقب بغداد", "baghdad_now22", "2026-07-19", 3, 12, 68),
+                acc("أخبار عاجلة", "iq_breaking", "2026-07-19", 1, 6, 71)]},
+            {"label": "هذا الأسبوع (≤7 أيام)", "count": 96, "accounts": [
+                acc("صوت حر", "free_voice_iq", "2026-07-16", 40, 55, 52),
+                acc("نهر الرافدين", "n_alrafidain", "2026-07-15", 22, 31, 58)]},
+            {"label": "هذا الشهر (≤30 يوم)", "count": 141, "accounts": [
+                acc("تحديثات العراق", "iq_updates_x", "2026-07-02", 120, 88, 34)]},
+        ],
+    }
+
+
 @router.post("/new-accounts")
 async def monitor_new_accounts(req: KeywordReq = KeywordReq()):  # noqa: B008
     """Newly-created accounts active in the Iraqi feed, grouped by age band +
     same-day creation clusters. No AI needed (account metadata only)  fast."""
+    if req.demo:
+        return _new_accounts_demo()
     seed = (req.keywords[0] if req.keywords else "") or DISCOVER_SEED
     rng = req.range or "day"
     key = f"newacc:{rng}:{seed}"

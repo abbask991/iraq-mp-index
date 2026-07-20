@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { apiPost } from "@/lib/api";
+import { useDemo } from "@/components/ui/DemoContext";
 import RangeSelect, { Range } from "@/components/RangeSelect";
 
 const botColor = (s: number) => (s >= 60 ? "#f43f5e" : s >= 35 ? "#f59e0b" : "#8a97ad");
@@ -24,13 +25,14 @@ export default function NewAccountsView() {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<Range>("day");
   const [open, setOpen] = useState<string>("اليوم (≤24 ساعة)");
+  const { demo } = useDemo();
 
   const load = useCallback(async (rng: Range) => {
     setLoading(true);
-    const r = await apiPost("new-accounts", { range: rng }).catch(() => null);
+    const r = await apiPost("new-accounts", { range: rng, ...(demo ? { demo: 1 } : {}) }).catch(() => null);
     setData(r); setLoading(false);
-  }, []);
-  useEffect(() => { load("day"); }, [load]);
+  }, [demo]);
+  useEffect(() => { load(range); /* eslint-disable-next-line */ }, [load]);
 
   return (
  <div>

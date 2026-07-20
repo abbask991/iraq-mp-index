@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { apiPost } from "@/lib/api";
+import { useDemo } from "@/components/ui/DemoContext";
 import RangeSelect, { Range } from "@/components/RangeSelect";
 
 const sColor = (s: string) => (s === "سلبي" ? "#f43f5e" : s === "إيجابي" ? "#22c55e" : "#8a97ad");
@@ -34,14 +35,15 @@ export default function DiscoverView() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<Range>("day");
+  const { demo } = useDemo();
 
   const load = useCallback(async (rng: Range) => {
     setLoading(true);
-    const r = await apiPost("discover", { range: rng }).catch(() => null);
+    const r = await apiPost("discover", { range: rng, ...(demo ? { demo: 1 } : {}) }).catch(() => null);
     setData(r); setLoading(false);
-  }, []);
+  }, [demo]);
 
-  useEffect(() => { load("day"); }, [load]);
+  useEffect(() => { load(range); /* eslint-disable-next-line */ }, [load]);
 
   return (
  <div>

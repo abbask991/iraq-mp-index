@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
+import { useDemo } from "@/components/ui/DemoContext";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import RegionMap from "@/components/RegionMap";
@@ -18,6 +19,7 @@ export default function RegionalView() {
   const [range, setRange] = useState("week");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const { demo } = useDemo();
 
   useEffect(() => {
     apiGet("/api/regional-influence/countries").then((r) => setCountries(r?.countries || [])).catch(() => {});
@@ -25,11 +27,13 @@ export default function RegionalView() {
     run("IQ", "SY", "week");
     // eslint-disable-next-line
   }, []);
+  // re-run the comparison when the demo switch flips
+  useEffect(() => { run(source, target, range); /* eslint-disable-next-line */ }, [demo]);
 
   const run = (s: string, t: string, rng: string) => {
     if (s === t) return;
     setLoading(true); setD(null);
-    apiGet(`/api/regional-influence?source=${s}&target=${t}&range=${rng}`).then(setD).finally(() => setLoading(false));
+    apiGet(`/api/regional-influence?source=${s}&target=${t}&range=${rng}${demo ? "&demo=1" : ""}`).then(setD).finally(() => setLoading(false));
   };
   const pickNeighbor = (cc: string) => { setSource("IQ"); setTarget(cc); run("IQ", cc, range); window.scrollTo({ top: 9999, behavior: "smooth" }); };
 
