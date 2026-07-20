@@ -14,7 +14,7 @@ def enabled() -> bool:
     return bool(SUPABASE_URL and SUPABASE_SERVICE_KEY)
 
 
-async def get_monitors(limit: int = 40, owner: str | None = None):
+async def get_monitors(limit: int = 40, owner: str | None = None, owners: list | None = None):
     """Monitors for ONE owner, or every owner when owner is None.
 
     This client uses the service key and therefore bypasses RLS. Without an owner
@@ -26,7 +26,9 @@ async def get_monitors(limit: int = 40, owner: str | None = None):
     if not enabled():
         return []
     q = f"select=id,owner,name,keywords&order=created_at.desc&limit={limit}"
-    if owner:
+    if owners:                                     # org aggregation: any member owner
+        q += "&owner=in.(" + ",".join(str(o) for o in owners if o) + ")"
+    elif owner:
         q += f"&owner=eq.{owner}"
     async with httpx.AsyncClient() as c:
         r = await c.get(f"{SUPABASE_URL}/rest/v1/monitors?{q}", headers=_h(), timeout=15)

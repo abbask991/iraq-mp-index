@@ -6,7 +6,7 @@ narrative term to centre the battlefield on.
 """
 from fastapi import APIRouter, Depends
 
-from app.common_auth import current_user
+from app.common_auth import current_org
 
 from app.services import cache
 from app.services import media_battlefield as bf
@@ -15,11 +15,10 @@ router = APIRouter(prefix="/api/battlefield", tags=["battlefield"])
 
 
 @router.get("/national")
-async def national(user: dict = Depends(current_user)):
-    # Tenant-scoped: the digest beneath this is per-owner, so identity comes
-    # from the session and the cache key carries the owner. A global key here
-    # would serve one tenant's picture to another.
-    owner = user["id"]
+async def national(ctx: dict = Depends(current_org)):
+    # Tenant-scoped: the digest beneath this is per-org, so identity comes from
+    # the session and the cache key carries the org id.
+    owner = ctx["org_id"]
     return await cache.swr(f"bf:national:{owner}", 1800, lambda: bf.build_national(owner=owner))
 
 

@@ -40,21 +40,34 @@ async def _tick():
     now = datetime.now(_BAGHDAD)
 
     # CHEAP jobs only (no X fetch) — alerts/digest read stored data + Redis.
+    # Both jobs are ORG-scoped: monitors are user-owned, so we roll each
+    # monitor-owner up to the org id they resolve to (same id the reader uses) and
+    # act once per distinct org — matching the org-keyed digest/feed the app reads.
+    async def _org_ids() -> set:
+        from app.services import db, orgs
+        ids = set()
+        for _uid in await db.monitor_owners():
+            try:
+                ids.add(await orgs.org_id_for_user(_uid))
+            except Exception:
+                ids.add(f"personal-{_uid}")
+        return ids
+
     if await _won("alerts", 28 * 60):                   # evaluate + push alerts (~30 min)
-        from app.services import alert_engine, db
-        # per tenant: an alert is derived from a tenant's digest and lands in
-        # that tenant's feed
-        for _o in await db.monitor_owners():
-            await _safe(lambda o=_o: alert_engine.evaluate_and_notify(owner=o))
+        from app.services import alert_engine
+        # per tenant: an alert is derived from an org's digest and lands in
+        # that org's feed
+        for _org in await _org_ids():
+            await _safe(lambda o=_org: alert_engine.evaluate_and_notify(owner=o))
 
     if await _won("digest", 350 * 60):                  # rebuild ready-made digest (~6h, no fetch)
-        from app.services import db, intel_digest
-        # One digest PER TENANT: the digest derives from a watchlist, and watchlists
-        # are per-owner. A single global build is what let one account's dashboard
+        from app.services import intel_digest
+        # One digest PER ORG: the digest derives from a watchlist, and watchlists
+        # are per-tenant. A single global build is what let one account's dashboard
         # render another's entities. Cheap — stored data + rule engines, no AI/fetch.
-        for _owner in await db.monitor_owners():
-            await _safe(lambda o=_owner: intel_digest.build_digest(time.time(), owner=o))
-        # The un-scoped build is gone: every consumer is owner-scoped now.
+        for _org in await _org_ids():
+            await _safe(lambda o=_org: intel_digest.build_digest(time.time(), owner=o))
+        # The un-scoped build is gone: every consumer is org-scoped now.
 
     # EXPENSIVE warm (15k national X fetch) runs at most ONCE/day, before the
     # brief — NOT every 15 min (that drained the X budget). Pages otherwise warm

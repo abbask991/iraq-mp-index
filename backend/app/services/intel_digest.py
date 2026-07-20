@@ -63,7 +63,16 @@ async def build_digest(now_ts: float | None = None, owner: str | None = None):
     a single-tenant deployment or an explicit national roll-up, never for serving a
     signed-in user.
     """
-    monitors = await db.get_monitors(30, owner=owner)
+    # Org-scoped: a tenant's digest aggregates the monitors of ALL users in the
+    # org, so same-org users share one intelligence picture. `owner` is the org id.
+    members = []
+    if owner:
+        try:
+            from app.services import orgs
+            members = await orgs.member_user_ids(owner)
+        except Exception:
+            members = []
+    monitors = await db.get_monitors(30, owners=(members or None), owner=(None if members else owner))
     # the tenant's OWN previous digest — deltas ("+11 خطر") are computed against it,
     # so reading the global one would diff this tenant against another's numbers
     prev = await get_digest(owner)

@@ -10,7 +10,7 @@ import json
 import httpx
 from fastapi import APIRouter, Depends
 
-from app.common_auth import current_user
+from app.common_auth import current_org
 from pydantic import BaseModel
 
 from app.config import ANTHROPIC_API_KEY, SUMMARY_MODEL
@@ -153,11 +153,11 @@ async def ask(req: AskReq):
 
 
 @router.get("/digest")
-async def digest(user: dict = Depends(current_user)):
-    """Ready-made intelligence digest — the CALLER'S, served instantly from cache
+async def digest(ctx: dict = Depends(current_org)):
+    """Ready-made intelligence digest — the ORG'S, served instantly from cache
     (no live fetch, no AI). Refreshed per tenant by the cron; builds once if cold."""
     import time
-    owner = user["id"]
+    owner = ctx["org_id"]
     d = await intel_digest.get_digest(owner)
     if d is None:
         d = await intel_digest.build_digest(time.time(), owner=owner)   # cheap: stored data only
@@ -202,7 +202,7 @@ async def stylometry_analyze(req: StyloReq):
 
 
 @router.post("/report")
-async def report(req: ReportReq, user: dict = Depends(current_user)):
+async def report(req: ReportReq, ctx: dict = Depends(current_org)):
     """Generate a server-side report (pdf | docx | pptx).
 
     Word and PowerPoint use light pure-python formatters that ship on the web
@@ -214,7 +214,7 @@ async def report(req: ReportReq, user: dict = Depends(current_user)):
     verified session owner (the queued worker has no session and would serve a
     default tenant's picture)."""
     from app.services import reports
-    owner = user["id"]
+    owner = ctx["org_id"]
     if req.format in ("docx", "pptx") or req.kind == "crisis":
         out = await reports.build(req.kind, req.target, req.range, req.format, owner=owner)
         return {"job_id": None, "status": "done", **out}

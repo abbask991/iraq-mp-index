@@ -89,6 +89,41 @@ async def list_orgs() -> list[dict]:
     return []
 
 
+async def org_id_for_user(uid: str, email: str | None = None) -> str:
+    """The canonical org id a user resolves to — SAME logic as resolve_org, so a
+    background job keys a digest under the exact id the signed-in reader will read.
+    Provisions a personal org on first sight; falls back to the synthetic id."""
+    try:
+        if db.enabled():
+            rows = await db.select("memberships", f"select=org_id&user_id=eq.{uid}&limit=1")
+            if rows:
+                return rows[0]["org_id"]
+            org = await _provision(uid, email)
+            if org:
+                return org["id"]
+    except Exception:
+        pass
+    return _synthetic(uid, email)["id"]
+
+
+async def member_user_ids(org_id: str) -> list[str]:
+    """The user ids belonging to an org — the boundary for aggregating a tenant's
+    data. A member's monitors/mentions roll up to their org so same-org users
+    share one intelligence picture. Includes the org id itself as a fallback key
+    (personal/synthetic orgs where the user id doubles as the tenant key)."""
+    ids: list[str] = []
+    try:
+        if db.enabled() and org_id and not str(org_id).startswith("personal-"):
+            rows = await db.select("memberships", f"select=user_id&org_id=eq.{org_id}&limit=500")
+            ids = [r["user_id"] for r in rows if r.get("user_id")]
+    except Exception:
+        pass
+    # personal-<uid> synthetic org → the uid is embedded in the id
+    if str(org_id or "").startswith("personal-"):
+        ids.append(str(org_id)[len("personal-"):])
+    return ids
+
+
 async def create_org(name: str, plan: str = "trial") -> dict | None:
     plan = plan if plan in VALID_PLANS else "trial"
     try:

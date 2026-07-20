@@ -2,7 +2,7 @@
 as the previous Next.js API routes, so the frontend swaps base URL only."""
 from fastapi import APIRouter, Depends
 
-from app.common_auth import current_user
+from app.common_auth import current_org
 from pydantic import BaseModel
 
 import asyncio
@@ -169,10 +169,10 @@ async def cron_alerts():
 
 
 @router.get("/alerts-feed")
-async def alerts_feed(user: dict = Depends(current_user)):
-    """Recent triggered alerts (for the in-app alerts view) — the caller's own."""
+async def alerts_feed(ctx: dict = Depends(current_org)):
+    """Recent triggered alerts (for the in-app alerts view) — the caller's org."""
     from app.services import alert_engine
-    return {"alerts": await alert_engine.feed(user["id"])}
+    return {"alerts": await alert_engine.feed(ctx["org_id"])}
 
 
 @router.get("/cron/brief")
@@ -631,11 +631,20 @@ async def cron_digest(secret: str = "", ingest: int = 1):
                                      return_exceptions=True)
             except Exception:
                 pass
-    # cron: build one digest per tenant (a digest derives from a watchlist, and
-    # watchlists are per-owner)
+    # cron: build one digest per ORG (tenant). Monitors are owned by users, so we
+    # roll each monitor-owner up to the org id they resolve to — the SAME id the
+    # signed-in reader uses — and build once per distinct org (member monitors are
+    # aggregated inside build_digest).
+    from app.services import orgs as _orgs
+    org_ids: set[str] = set()
+    for _uid in await db.monitor_owners():
+        try:
+            org_ids.add(await _orgs.org_id_for_user(_uid))
+        except Exception:
+            org_ids.add(f"personal-{_uid}")
     built, ents = 0, 0
-    for _o in await db.monitor_owners():
-        dg = await intel_digest.build_digest(_t.time(), owner=_o)
+    for _org in org_ids:
+        dg = await intel_digest.build_digest(_t.time(), owner=_org)
         built += 1
         ents += (dg or {}).get("count", 0)
     return {"refreshed": refreshed, "tenants": built, "entities": ents}
