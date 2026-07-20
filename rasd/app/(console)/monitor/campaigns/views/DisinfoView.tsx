@@ -6,7 +6,7 @@ import { SkelCards } from "@/components/Skeleton";
 
 const riskColor = (v: number) => (v >= 65 ? "#f43f5e" : v >= 40 ? "#fb923c" : "#22c55e");
 
-export default function Disinfo() {
+export default function DisinfoView() {
   const [text, setText] = useState("");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(false);

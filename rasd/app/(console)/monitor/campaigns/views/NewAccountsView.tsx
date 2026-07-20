@@ -19,7 +19,7 @@ function AccountRow({ a }: { a: any }) {
   );
 }
 
-export default function NewAccounts() {
+export default function NewAccountsView() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<Range>("day");

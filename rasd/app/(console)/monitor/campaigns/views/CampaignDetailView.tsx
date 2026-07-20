@@ -24,7 +24,7 @@ const SIG_LABEL: Record<string, string> = {
   influencer_trigger: "تحريك المؤثّرين",
 };
 
-export default function Campaign() {
+export default function CampaignDetailView() {
   const [monitors, setMonitors] = useState<any[]>([]);
   const [term, setTerm] = useState("");
   const [range, setRange] = useState<Range>("week");

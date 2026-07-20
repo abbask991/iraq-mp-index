@@ -56,12 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "campaigns", ar: "الحملات والتضليل", en: "Campaigns & Disinformation",
     items: [
-      { ar: "رادار الحملات", en: "Campaign Radar", href: "/monitor/campaigns" },
-      { ar: "كشف الشبكات المنسّقة", en: "Coordinated Networks", href: "/monitor/coordination" },
-      { ar: "كشف التضليل والتزييف", en: "Disinformation", href: "/monitor/disinfo" },
-      { ar: "تتبّع المصدر (Patient Zero)", en: "Patient Zero", href: "/monitor/patient-zero" },
-      { ar: "رادار الحسابات الجديدة", en: "New Accounts Radar", href: "/monitor/new-accounts" },
-      { ar: "كشف الصور والتزييف", en: "Visual Verification", href: "/monitor/visual-verification" },
+      { ar: "الحملات والتضليل", en: "Campaigns & Disinformation", href: "/monitor/campaigns" },
     ],
   },
   {

@@ -11,6 +11,13 @@ const nextConfig = {
       // overview showed the same ~10 items as command in older styling; its one
       // unique piece (Iraq geo map) moved into command.
       { source: "/monitor/overview", destination: "/monitor/command", permanent: false },
+      // Campaigns & Disinformation — 6 tools folded into one tabbed module.
+      { source: "/monitor/campaign", destination: "/monitor/campaigns?tab=check", permanent: false },
+      { source: "/monitor/coordination", destination: "/monitor/campaigns?tab=coordination", permanent: false },
+      { source: "/monitor/disinfo", destination: "/monitor/campaigns?tab=disinfo", permanent: false },
+      { source: "/monitor/visual-verification", destination: "/monitor/campaigns?tab=visual", permanent: false },
+      { source: "/monitor/new-accounts", destination: "/monitor/campaigns?tab=new-accounts", permanent: false },
+      { source: "/monitor/patient-zero", destination: "/monitor/campaigns?tab=patient-zero", permanent: false },
       // Risk & Early Warning — 5 tools folded into one tabbed module.
       { source: "/monitor/alerts", destination: "/monitor/risk?tab=alerts", permanent: false },
       { source: "/monitor/discover", destination: "/monitor/risk?tab=trends-now", permanent: false },

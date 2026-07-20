@@ -12,7 +12,7 @@ const fmtTime = (s: string) => {
   catch { return s; }
 };
 
-export default function Coordination() {
+export default function CoordinationView() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [term, setTerm] = useState("");
   const [d, setD] = useState<any>(null);

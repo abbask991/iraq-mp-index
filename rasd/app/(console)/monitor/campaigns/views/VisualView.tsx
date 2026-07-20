@@ -7,7 +7,7 @@ import { useDemo } from "@/components/ui/DemoContext";
 const lvlColor = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : /متوسط/.test(l || "") ? "#f59e0b" : "#22c55e");
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 
-export default function VisualVerification() {
+export default function VisualView() {
   const [url, setUrl] = useState("");
   const [claim, setClaim] = useState("");
   const [d, setD] = useState<any>(null);

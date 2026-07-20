@@ -9,7 +9,7 @@ import EmptyState from "@/components/EmptyState";
 const fmt = (s: string) => { try { return new Date(s).toLocaleString("ar-IQ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch { return ""; } };
 const natColor = (s: number) => (s >= 60 ? "#f43f5e" : s >= 35 ? "#fb923c" : "#22c55e");
 
-export default function PatientZero() {
+export default function PatientZeroView() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [term, setTerm] = useState("");
   const [d, setD] = useState<any>(null);
