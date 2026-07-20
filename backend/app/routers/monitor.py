@@ -33,6 +33,7 @@ class KeywordReq(BaseModel):
     limit: int | None = None
     range: str | None = None   # day | week | month | year
     demo: int | None = None    # 1 → return curated demo data instead of a live fetch
+    channels: list[str] = []   # telegram: public channel handles to collect
 
 
 class RepliesReq(BaseModel):
@@ -986,6 +987,52 @@ async def monitor_campaign(req: KeywordReq):
     result = campaign.detect(kw, tweets, users, news_res.get("count", 0), window_label=win)
     cache.put(key, result)
     return result
+
+
+def _telegram_demo() -> dict:
+    """Curated demo for the Telegram collector — same shape a real t.me/s scrape
+    returns, so the tab and downstream digest look identical to live mode."""
+    base = [
+        ("iraq_alerts", "عاجل | انقطاع واسع للتيار الكهربائي في عدة أحياء ببغداد والمواطنون يطالبون بحلول عاجلة #الكهرباء", "2026-07-19T20:12:00", "18.4K"),
+        ("iraq_alerts", "متداول: دعوات للتجمّع أمام وزارة الكهرباء غداً احتجاجاً على تردّي الخدمة", "2026-07-19T21:40:00", "24.1K"),
+        ("baghdad_now", "مصدر خاص: اجتماع طارئ لمعالجة أزمة الطاقة بعد تصاعد الغضب الشعبي على المنصّات", "2026-07-19T22:05:00", "9.7K"),
+        ("news_pulse_iq", "الغلاء وأسعار السلة الغذائية يتصدّران نقاش المواطنين هذا الأسبوع #الغلاء", "2026-07-19T18:30:00", "6.2K"),
+        ("watan_channel", "تحليل: السردية السلبية حول الخدمات تنتقل من القنوات إلى الإعلام التقليدي", "2026-07-19T23:15:00", "4.9K"),
+    ]
+    hits = []
+    for i, (ch, text, date, views) in enumerate(base):
+        hits.append({"platform": "telegram", "external_id": f"{ch}/{100 + i}", "title": text[:120],
+                     "text": text, "link": f"https://t.me/{ch}/{100 + i}", "source": ch, "src_type": "Telegram",
+                     "author": ch, "date": date, "hashtags": __import__("re").findall(r"#(\w+)", text),
+                     "engagement": views, "sentiment": "سلبي" if i < 4 else "محايد", "type": "عام", "demo": True})
+    return {"hits": hits, "count": len(hits), "channels": len({h["source"] for h in hits}),
+            "sources": len({h["source"] for h in hits}), "demo": True}
+
+
+@router.post("/telegram")
+async def monitor_telegram(req: KeywordReq):
+    """Collect recent posts from public Telegram channels (t.me/s), classify tone,
+    and persist to the normalized mentions store — so Telegram joins the digest."""
+    if req.demo:
+        return _telegram_demo()
+    channels = req.channels or req.keywords or []
+    if not channels:
+        return {"hits": [], "count": 0, "channels": 0, "note": "أضِف قنوات عامة (مثال: @iraq_alerts)"}
+    from app.services import telegram as tg
+    hits = await tg.fetch_telegram(channels, per=req.limit or 20)
+    if not hits:
+        return {"hits": [], "count": 0, "channels": len(channels),
+                "note": "لا منشورات — تأكّد أن القنوات عامة وتدعم المعاينة (t.me/s)."}
+    try:
+        cls = await ai.classify_all([h["text"] for h in hits])
+        for h, c in zip(hits, cls):
+            h["sentiment"], h["type"] = c.get("sentiment", "محايد"), c.get("type", "عام")
+    except Exception:
+        pass
+    if db.enabled():
+        asyncio.create_task(store.store_mentions(hits, keyword=(channels[0] if channels else None)))
+    return {"hits": hits, "count": len(hits), "channels": len(channels),
+            "sources": len({h["source"] for h in hits})}
 
 
 @router.post("/trends")
