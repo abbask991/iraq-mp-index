@@ -141,6 +141,7 @@ export const MODULES: ModuleDef[] = [
       { key: "usage", label: "الاستهلاك" },
       { key: "account", label: "الحساب" },
       { key: "orgs", label: "العملاء", adminOnly: true },
+      { key: "success", label: "نجاح العملاء", adminOnly: true },
       { key: "packages", label: "الباقات والصلاحيات", adminOnly: true },
     ],
     related: ["command"],

@@ -14,6 +14,9 @@ import IntelligenceTaskingPanel from "@/components/IntelligenceTaskingPanel";
 import ClientLanguageAdapter from "@/components/ClientLanguageAdapter";
 import IntelligenceROITracker from "@/components/IntelligenceROITracker";
 import ActionImpactTracker from "@/components/ActionImpactTracker";
+import IntelligenceMaturityScore from "@/components/IntelligenceMaturityScore";
+import OnboardingWizard from "@/components/OnboardingWizard";
+import FeatureGate from "@/components/FeatureGate";
 import { CLIENT_TYPES, TEMPLATES, clientType, getClientType, setClientType, type Template } from "@/lib/workspace";
 
 const FIELDS: [string, string, string][] = [
@@ -52,6 +55,7 @@ export default function Workspace() {
   const [feedLoading, setFeedLoading] = useState(false);
   // value layer
   const [ct, setCt] = useState("");
+  const [showWizard, setShowWizard] = useState(false);
   const [cc, setCc] = useState<any>(null);
   const [anger, setAnger] = useState<any>(null);
   const [applyMsg, setApplyMsg] = useState("");
@@ -143,10 +147,19 @@ export default function Workspace() {
       {/* ---- VALUE DASHBOARD ---- */}
       {tab === "value" && (
         <>
-          {!ct && (
-            <div className="cbox" style={{ marginBottom: 14, borderInlineStart: "4px solid #f59e0b" }}>
-              <b>اختر نوع العميل أو ابدأ بقالب جاهز</b>
-              <p className="muted" style={{ fontSize: 13, margin: "6px 0 0" }}>سيُخصّص هذا لوحة القيمة والتقارير الأنسب — ويمكن لقالب أن يهيّئ قائمتك تلقائياً.</p>
+          <div style={{ marginBottom: 14 }}><IntelligenceMaturityScore compact /></div>
+
+          {showWizard ? (
+            <div style={{ marginBottom: 14 }}>
+              <OnboardingWizard onDone={() => { setShowWizard(false); load(); setCt(getClientType()); }} />
+            </div>
+          ) : (
+            <div className="cbox" style={{ marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, borderInlineStart: !ct ? "4px solid #f59e0b" : undefined }}>
+              <div>
+                <b>{ct ? "أعِد الإعداد الموجّه" : "ابدأ الإعداد الموجّه"}</b>
+                <p className="muted" style={{ fontSize: 13, margin: "4px 0 0" }}>يهيّئ نوع العميل + الكيانات + القضايا + المخرجات في خطوات قصيرة.</p>
+              </div>
+              <button className="btn" onClick={() => setShowWizard(true)}><Icon name="rocket" size={14} /> الإعداد الموجّه</button>
             </div>
           )}
 
@@ -185,7 +198,7 @@ export default function Workspace() {
             <PlatformContributionCard platforms={cc?.platform_activity} title="مساهمة المنصّات" />
           </div>
 
-          <div style={{ marginBottom: 14 }}><IntelligenceROITracker period={cfg ? cfg.ar : "الفترة الحالية"} /></div>
+          <div style={{ marginBottom: 14 }}><FeatureGate feature="roi_tracker"><IntelligenceROITracker period={cfg ? cfg.ar : "الفترة الحالية"} /></FeatureGate></div>
           <div style={{ marginBottom: 14 }}><ActionImpactTracker d={cc} anger={anger} /></div>
 
           {!cc && <SkelCards count={3} />}

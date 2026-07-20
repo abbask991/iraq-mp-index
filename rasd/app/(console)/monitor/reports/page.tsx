@@ -9,6 +9,7 @@ import AngerReportView from "./AngerReportView";
 import CrisisReportView from "./CrisisReportView";
 import BoardSummaryView from "./BoardSummaryView";
 import IntelligencePlaybooks from "@/components/IntelligencePlaybooks";
+import FeatureGate from "@/components/FeatureGate";
 import ExportCenterView from "./ExportCenterView";
 
 /**
@@ -48,7 +49,7 @@ export default function Reports() {
       {tab === "anger" && <AngerReportView />}
       {tab === "crisis" && <CrisisReportView />}
       {tab === "board" && <BoardSummaryView />}
-      {tab === "playbooks" && <IntelligencePlaybooks />}
+      {tab === "playbooks" && <FeatureGate feature="playbooks"><IntelligencePlaybooks /></FeatureGate>}
       {tab === "export" && <ExportCenterView />}
     </div>
   );

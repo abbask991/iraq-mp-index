@@ -6,6 +6,7 @@ import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
 import DecisionSimulator from "@/components/DecisionSimulator";
+import FeatureGate from "@/components/FeatureGate";
 import ReputationAttackSurface from "@/components/ReputationAttackSurface";
 import IntelligenceMemoryRecall from "@/components/IntelligenceMemoryRecall";
 import { useDemo } from "@/components/ui/DemoContext";
@@ -82,9 +83,11 @@ export default function EntityWorkspace() {
             <p style={{ fontSize: 14, lineHeight: 1.9, margin: 0 }}>{d.executive_summary}</p>
           </div>
 
-          {/* Decision Simulator — what-if projection for this entity */}
+          {/* Decision Simulator — what-if projection for this entity (Enterprise) */}
           <div style={{ marginBottom: 14 }}>
-            <DecisionSimulator entityId={d.name || id} name={d.name || id} />
+            <FeatureGate feature="decision_simulator">
+              <DecisionSimulator entityId={d.name || id} name={d.name || id} />
+            </FeatureGate>
           </div>
 
           {/* Reputation attack surface — where this entity is most exposed */}
