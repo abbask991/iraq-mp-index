@@ -70,13 +70,11 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    // Every report type (daily, dossier, campaign, public-anger, export center)
+    // is a tab inside /monitor/reports, so this collapses to a single module link.
     key: "reports", ar: "التقارير والمخرجات", en: "Reports & Deliverables",
     items: [
-      { ar: "التقارير (يومي + شامل)", en: "Reports (Daily + Dossier)", href: "/monitor/reports" },
-      { ar: "تقارير الحملات", en: "Campaign Reports", soon: true },
-      { ar: "تقارير الكيانات", en: "Entity Reports", soon: true },
-      { ar: "تقارير الأزمات", en: "Crisis Reports", soon: true },
-      { ar: "تقارير PDF / PowerPoint", en: "PDF / PowerPoint Reports", soon: true },
+      { ar: "التقارير والمخرجات", en: "Reports & Deliverables", href: "/monitor/reports" },
     ],
   },
   {
