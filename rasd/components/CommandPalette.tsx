@@ -27,10 +27,10 @@ export default function CommandPalette({ items }: { items: Item[] }) {
   // typing a name → offer to analyze it directly across the intelligence engines
   const enc = encodeURIComponent(raw);
   const entityActions: Item[] = raw.length >= 2 ? [
-    { label: `الرأي العام: «${raw}»`, href: `/monitor/opinion?q=${enc}`, group: "تحليل" },
-    { label: `الصورة الموحّدة: «${raw}»`, href: `/monitor/fusion?q=${enc}`, group: "تحليل" },
+    { label: `الرأي العام: «${raw}»`, href: `/monitor/analysis?tab=opinion&q=${enc}`, group: "تحليل" },
+    { label: `الصورة الموحّدة: «${raw}»`, href: `/monitor/sources?src=overview&q=${enc}`, group: "تحليل" },
     { label: `الاستخبارات المؤسسية: «${raw}»`, href: `/monitor/corporate?q=${enc}`, group: "تحليل" },
-    { label: `استطلاع الرأي: «${raw}»`, href: `/monitor/polling?q=${enc}`, group: "تحليل" },
+    { label: `استطلاع الرأي: «${raw}»`, href: `/monitor/analysis?tab=polling&q=${enc}`, group: "تحليل" },
   ] : [];
   const filtered = [...sections, ...entityActions];
   const go = (href: string) => { setOpen(false); router.push(href); };

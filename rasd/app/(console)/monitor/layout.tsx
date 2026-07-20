@@ -6,6 +6,9 @@ import { supabase } from "@/lib/supabaseClient";
 import { getMySub, isActive, daysLeft, PLAN_LABEL, Sub } from "@/lib/subscription";
 import { getLang, setLang, applyDir, tr, Lang, getTheme, setTheme, applyTheme, Theme } from "@/lib/i18n";
 import CommandPalette from "@/components/CommandPalette";
+import Breadcrumb from "@/components/Breadcrumb";
+import RelatedModules from "@/components/RelatedModules";
+import { paletteEntries } from "@/lib/modules";
 import Logo from "@/components/Logo";
 import { DemoProvider, useDemo } from "@/components/ui/DemoContext";
 import { DemoBanner, Icon } from "@/components/ui";
@@ -170,7 +173,15 @@ function DashShell({ children }: { children: React.ReactNode }) {
   const allItems = NAV_GROUPS.flatMap((g) => g.items.filter((it) => it.href));
   const cur = allItems.find((it) => it.href === path);
   const sectionTitle = cur ? t(cur) : (lang === "ar" ? "مركز العمليات" : "Operations Center");
-  const paletteItems = NAV_GROUPS.flatMap((g) => g.items.filter((it) => it.href && !it.soon).map((it) => ({ label: t(it), href: it.href!, group: t(g) })));
+  // Palette indexes every module AND every tab (search stays 63-wide though the
+  // sidebar is 11). Operations extras (war room, watchlist) aren't in the module
+  // registry, so fold them in from the nav so the palette still reaches them.
+  const navExtras = NAV_GROUPS.flatMap((g) =>
+    g.items.filter((it) => it.href && !it.soon && it.href!.startsWith("/monitor") && it.href !== path)
+      .map((it) => ({ label: t(it), href: it.href!, group: t(g) })));
+  const moduleEntries = paletteEntries(lang, isAdmin);
+  const seen = new Set(moduleEntries.map((e) => e.href));
+  const paletteItems = [...moduleEntries, ...navExtras.filter((e) => !seen.has(e.href))];
 
   return (
  <>
@@ -180,7 +191,9 @@ function DashShell({ children }: { children: React.ReactNode }) {
  <Logo size={24} />
  <span className="cb-brand">Sentinel<span className="cb-brand-2"> Intelligence</span></span>
  <span className="cb-chev">›</span>
- <span className="cb-section">{sectionTitle}</span>
+ <Suspense fallback={<span className="cb-section">{sectionTitle}</span>}>
+ <Breadcrumb fallback={sectionTitle} lang={lang} />
+ </Suspense>
  </div>
  <div className="cb-right">
  <CommandPalette items={paletteItems} />
@@ -275,6 +288,7 @@ function DashShell({ children }: { children: React.ReactNode }) {
         <Suspense fallback={<p className="muted" style={{ padding: 30 }}>…</p>}>
           {children}
         </Suspense>
+        <RelatedModules lang={lang} />
  </div>
  </div>
  </>

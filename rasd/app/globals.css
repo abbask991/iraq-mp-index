@@ -93,6 +93,25 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .cb-brand { font-weight: 800; }
 .cb-chev { color: var(--muted); }
 .cb-section { color: var(--accent); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* breadcrumb: module segment is a link back to the module home; the active tab
+   is a quieter trailing segment. */
+a.cb-crumb-link { text-decoration: none; }
+a.cb-crumb-link:hover { text-decoration: underline; }
+.cb-crumb-tab { color: var(--muted); font-weight: 600; }
+
+/* related-modules cards — the cross-links at the foot of every module page */
+.related-mods { margin: 28px 0 8px; padding-top: 18px; border-top: 1px solid var(--line); }
+.related-mods-h { font-size: 12px; font-weight: 700; letter-spacing: .3px; color: var(--muted); margin-bottom: 10px; }
+.related-mods-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.related-card {
+  display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+  padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 5%, transparent); color: var(--text);
+  font-size: 13.5px; font-weight: 600; transition: border-color .15s, background .15s, transform .15s;
+}
+.related-card:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); transform: translateY(-1px); }
+.related-card svg { color: var(--muted); }
+.related-card:hover svg { color: var(--accent); }
 .cb-right { display: flex; align-items: center; gap: 8px; }
 .cb-clock { display: inline-flex; align-items: center; gap: 7px; font-variant-numeric: tabular-nums; font-size: 13px;
   background: var(--input); border: 1px solid var(--line); border-radius: 9px; padding: 6px 11px; }
