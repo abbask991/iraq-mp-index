@@ -95,6 +95,31 @@ def _campaign_html(d):
     return body
 
 
+def _crisis_html(d):
+    sc = d.get("scores", {})
+    risk = sc.get("national_risk", 0)
+    posture = ("حالة حرجة" if risk >= 70 else "تحذير مرتفع" if risk >= 50
+               else "مراقبة" if risk >= 30 else "هادئ — تحت السيطرة")
+    body = f'<p><b>حالة التأهّب الوطني:</b> {_esc(posture)} — الخطر الوطني {_esc(risk)}/100</p>'
+    body += _kpis([("مؤشر الأزمة", sc.get("crisis", 0)), ("الخطر السياسي", sc.get("political", 0)),
+                   ("حملات منسّقة", sc.get("campaign", 0)), ("خطر السمعة", sc.get("reputation", 0))])
+    if d.get("summary"):
+        body += f"<h2>تقييم الموقف</h2><p>{_esc(d['summary'])}</p>"
+    if d.get("most_attacked"):
+        body += "<h2>الكيانات الأكثر تعرّضاً للهجوم</h2>" + _table(
+            ["الكيان", "مستوى الخطر"], [[e.get("name"), e.get("risk")] for e in d["most_attacked"][:8]])
+    if d.get("top_narratives"):
+        body += "<h2>السرديات المتصاعدة</h2>" + _table(
+            ["السردية", "المنشورات"], [[n.get("narrative"), n.get("posts", 0)] for n in d["top_narratives"][:8]])
+    if d.get("top_campaigns"):
+        body += "<h2>الحملات المنسّقة</h2>" + _table(
+            ["الهاشتاغ", "درجة التنسيق"], [["#" + (c.get("hashtag") or ""), c.get("coordination_score", 0)] for c in d["top_campaigns"][:8]])
+    if d.get("recommended_actions"):
+        body += "<h2>إجراءات الاستجابة الموصى بها</h2><p>" + "<br>".join(
+            f"• {_esc(a)}" for a in d["recommended_actions"][:8]) + "</p>"
+    return body
+
+
 def _executive_html(d):
     s = d.get("sentiment", {})
     body = _kpis([("المسوح", d.get("scanned", d.get("total", 0))),
@@ -110,12 +135,18 @@ def _executive_html(d):
     return body
 
 
-async def _gather(kind, target, rng):
+async def _gather(kind, target, rng, owner=None):
     """Pull the data payload for a report kind from the existing endpoints."""
     from app.routers import monitor as m
     if kind == "daily_book":
         from app.services import chief_ai
         return await chief_ai.build_dashboard()
+    if kind == "crisis":
+        # National crisis picture — tenant-scoped. `owner` MUST come from a
+        # verified session (never a client-supplied id), else one tenant's
+        # picture leaks to another. Rendered inline so the owner flows through.
+        from app.services import media_battlefield as bf
+        return await bf.build_national(owner=owner)
     if kind == "campaign":
         return await m.monitor_campaign(m.KeywordReq(keywords=[target], range=rng))
     if kind == "executive":
@@ -126,9 +157,10 @@ async def _gather(kind, target, rng):
 
 def _render_html(kind, target, data):
     title = {"campaign": "تقرير حملة منظّمة", "executive": "التقرير التنفيذي للرصد",
+             "crisis": "تقرير موقف الأزمة الوطني",
              "government": f"ملف استخباراتي — {target}"}.get(kind, f"الملف الشامل — {target}")
     sub = f"النطاق الزمني: {data.get('period', data.get('window', '—'))} · تاريخ الإصدار آلي"
-    builder = {"campaign": _campaign_html, "executive": _executive_html}.get(kind, _profile_html)
+    builder = {"campaign": _campaign_html, "executive": _executive_html, "crisis": _crisis_html}.get(kind, _profile_html)
     return _shell(title, sub, builder(data))
 
 
@@ -148,6 +180,24 @@ def _doc_model(kind, target, data):
         if data.get("events"):
             sections.append(("أهم الأحداث", [f"• ({e.get('importance')}) {e.get('title')}" for e in data["events"][:6]]))
         return {"title": "الكتاب الاستخباراتي اليومي", "subtitle": f"مستوى الخطر: {data.get('risk_level', '—')} · إصدار آلي",
+                "kpis": kpis, "sections": sections}
+    if kind == "crisis":
+        sc = data.get("scores", {})
+        kpis = [("الخطر الوطني", sc.get("national_risk", 0)), ("مؤشر الأزمة", sc.get("crisis", 0)),
+                ("الخطر السياسي", sc.get("political", 0)), ("خطر السمعة", sc.get("reputation", 0))]
+        sections = []
+        if data.get("summary"):
+            sections.append(("تقييم الموقف", [data["summary"]]))
+        if data.get("most_attacked"):
+            sections.append(("الكيانات الأكثر تعرّضاً للهجوم",
+                             [f"• {e.get('name')} — خطر {e.get('risk')}" for e in data["most_attacked"][:8]]))
+        if data.get("top_narratives"):
+            sections.append(("السرديات المتصاعدة",
+                             [f"• {n.get('narrative')} ({n.get('posts', 0)})" for n in data["top_narratives"][:8]]))
+        if data.get("recommended_actions"):
+            sections.append(("إجراءات الاستجابة", [f"• {a}" for a in data["recommended_actions"][:8]]))
+        return {"title": "تقرير موقف الأزمة الوطني",
+                "subtitle": f"مستوى الخطر: {data.get('risk_level', '—')} · إصدار آلي",
                 "kpis": kpis, "sections": sections}
     title = {"campaign": "تقرير حملة منظّمة", "executive": "التقرير التنفيذي للرصد",
              "government": f"ملف استخباراتي — {target}"}.get(kind, f"الملف الشامل — {target}")
@@ -224,9 +274,10 @@ def _build_pptx(kind, target, data):
             "file_base64": base64.b64encode(buf.getvalue()).decode("ascii")}
 
 
-async def build(kind: str, target: str, rng: str = "week", fmt: str = "pdf") -> dict:
-    """Gather data → render report in `fmt` (pdf | docx | pptx). Returns base64."""
-    data = await _gather(kind, target, rng)
+async def build(kind: str, target: str, rng: str = "week", fmt: str = "pdf", owner=None) -> dict:
+    """Gather data → render report in `fmt` (pdf | docx | pptx). Returns base64.
+    `owner` (verified session id) scopes tenant-specific kinds like crisis."""
+    data = await _gather(kind, target, rng, owner=owner)
     if fmt == "docx":
         return _build_docx(kind, target, data)
     if fmt == "pptx":

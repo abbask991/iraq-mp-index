@@ -39,14 +39,16 @@ function intelUrl(path: string): string {
 }
 
 export async function intelGet(path: string): Promise<any> {
-  const res = await fetch(intelUrl(path));
+  // Attach the session JWT — harmless on open intel routes, and required by the
+  // ones that are tenant-scoped (e.g. /report crisis reads the owner's picture).
+  const res = await fetch(intelUrl(path), { headers: { ...(await authHeaders()) } });
   return res.json();
 }
 
 export async function intelPost(path: string, body: unknown): Promise<any> {
   const res = await fetch(intelUrl(path), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify(body),
   });
   return res.json();

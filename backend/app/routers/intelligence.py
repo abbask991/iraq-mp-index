@@ -202,16 +202,21 @@ async def stylometry_analyze(req: StyloReq):
 
 
 @router.post("/report")
-async def report(req: ReportReq):
+async def report(req: ReportReq, user: dict = Depends(current_user)):
     """Generate a server-side report (pdf | docx | pptx).
 
     Word and PowerPoint use light pure-python formatters that ship on the web
     image, so they render inline immediately — no worker required. Only PDF
     (playwright + chromium, heavy) is queued to the worker when one is
-    configured, and falls back to inline HTML for the browser's print-to-PDF."""
+    configured, and falls back to inline HTML for the browser's print-to-PDF.
+
+    The crisis kind is tenant-scoped, so it always renders inline with the
+    verified session owner (the queued worker has no session and would serve a
+    default tenant's picture)."""
     from app.services import reports
-    if req.format in ("docx", "pptx"):
-        out = await reports.build(req.kind, req.target, req.range, req.format)
+    owner = user["id"]
+    if req.format in ("docx", "pptx") or req.kind == "crisis":
+        out = await reports.build(req.kind, req.target, req.range, req.format, owner=owner)
         return {"job_id": None, "status": "done", **out}
     from app import jobq
     job = jobq.enqueue("app.tasks.generate_report", req.kind, req.target, req.range,
@@ -222,7 +227,7 @@ async def report(req: ReportReq):
                                             "format": req.format})
         return {"job_id": job.id, "status": "queued"}
     # inline fallback (no worker): render now (PDF → HTML for print)
-    out = await reports.build(req.kind, req.target, req.range, req.format)
+    out = await reports.build(req.kind, req.target, req.range, req.format, owner=owner)
     return {"job_id": None, "status": "done", **out}
 
 

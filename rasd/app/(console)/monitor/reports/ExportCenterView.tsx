@@ -17,6 +17,7 @@ import { PageHeader, Button, Icon } from "@/components/ui";
 const KINDS: [string, string, boolean][] = [
   ["executive", "الموجز التنفيذي الوطني", false],
   ["daily_book", "الكتاب الاستخباراتي اليومي", false],
+  ["crisis", "تقرير موقف الأزمة الوطني", false],
   ["profile", "ملف كيان / شخصية", true],
   ["government", "تقرير جهة حكومية", true],
   ["campaign", "تقرير حملة / هاشتاغ", true],
