@@ -12,6 +12,10 @@ import Gauge from "@/components/Gauge";
 import RadarChart from "@/components/RadarChart";
 import IraqMap from "@/components/IraqMap";
 import PlatformContributionCard from "@/components/PlatformContributionCard";
+import WhatMattersNow, { buildMattersItems } from "@/components/WhatMattersNow";
+import SoWhatInsightBlock from "@/components/SoWhatInsightBlock";
+import RecommendedActions, { type Reco, type RecoType } from "@/components/RecommendedActions";
+import ReportGenerationButtons from "@/components/ReportGenerationButtons";
 import { useDemo } from "@/components/ui/DemoContext";
 
 const PLATFORM_AR: Record<string, string> = {
@@ -63,6 +67,32 @@ const RISK_LABELS: [string, string, IconName][] = [
   ["crisis", "مؤشر الأزمة", "alert"],
   ["campaign", "حملات منسّقة", "megaphone"],
 ];
+
+/** Structured recommendations from real signals (risks + anger + digest actions)
+ *  — never free speculation. Deduped by title, priority from severity. */
+function buildRecos(d: any, anger: any): Reco[] {
+  const out: Reco[] = [];
+  const prioOf = (lvl?: string): "high" | "medium" | "low" =>
+    /حرج|مرتفع/.test(lvl || "") ? "high" : /متوسط/.test(lvl || "") ? "medium" : "low";
+  (d?.top_risks || []).slice(0, 4).forEach((r: any) => {
+    if (!r.recommended_action) return;
+    const t: RecoType = /حرج|مرتفع/.test(r.level || "") ? "escalate" : "watch_entity";
+    out.push({
+      id: `risk:${r.entity}`, title: r.recommended_action, type: t, priority: prioOf(r.level),
+      reason: `${r.entity} · ${r.level} (${r.risk})`, confidence: Math.min(99, r.evidence_count || 0),
+      href: "/monitor/risk?tab=alerts",
+    });
+  });
+  (anger?.explanation?.recommended_actions || []).slice(0, 2).forEach((a: string, i: number) => {
+    out.push({ id: `anger:${i}`, title: a, type: "prepare_statement", priority: "medium",
+      reason: "من تحليل مؤشر الغضب العام", confidence: anger?.confidence_score, href: "/monitor/risk?tab=anger" });
+  });
+  (d?.recommended_actions || []).forEach((a: string, i: number) => {
+    out.push({ id: `rec:${i}`, title: a, type: "monitor", priority: "low" });
+  });
+  const seen = new Set<string>();
+  return out.filter((r) => (seen.has(r.title) ? false : (seen.add(r.title), true))).slice(0, 8);
+}
 
 export default function CommandCenter() {
   const [d, setD] = useState<any>(null);
@@ -153,6 +183,23 @@ export default function CommandCenter() {
 
       {!loading && d && (!d.empty || demo) && (
         <>
+          {/* Client value layer — the decision-ready top: what matters now +
+              one-click reports, before any raw dashboard. */}
+          {(() => {
+            const items = buildMattersItems(d, anger);
+            if (!items.length) return null;
+            const top = (d.platform_activity || [])[0];
+            const note = top ? `أبرز منصّة في النقاش الآن: ${PLATFORM_AR[top.platform] || top.platform}. التفصيل في مركز الرصد.` : undefined;
+            return (
+              <div className="u-section">
+                <WhatMattersNow items={items} platformNote={note} />
+                <div style={{ marginTop: "var(--s-3)" }}>
+                  <ReportGenerationButtons only={["daily", "crisis", "anger", "campaign", "executive"]} />
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Coverage — "based on what?". Every score below is an unbacked claim
               without it. Figures that are unavailable are omitted, never zeroed. */}
           {(d.coverage?.signals != null || d.coverage?.platforms) && (
@@ -336,6 +383,18 @@ export default function CommandCenter() {
                   <Link href="/monitor/risk?tab=anger" className="u-btn"><Icon name="target" size={13} /> التحليل الكامل</Link>
                 </div>
               </Card>
+              {/* So What — the decision framing, from the anger explanation. */}
+              {(anger.explanation?.why_changed || (anger.explanation?.recommended_actions || []).length > 0) && (
+                <div style={{ marginTop: "var(--s-3)" }}>
+                  <SoWhatInsightBlock data={{
+                    why_it_matters: anger.explanation?.why_changed,
+                    likely_next_step: (anger.explanation?.what_to_watch || [])[0],
+                    recommended_action: (anger.explanation?.recommended_actions || [])[0],
+                    confidence: anger.confidence_score,
+                    uncertainty: anger.explanation?.uncertainty,
+                  }} />
+                </div>
+              )}
             </Section>
           )}
 
@@ -372,6 +431,13 @@ export default function CommandCenter() {
               </Grid>
             </Section>
           )}
+
+          {/* Recommended actions — structured, from real risks/anger/digest. */}
+          {(() => {
+            const recos = buildRecos(d, anger);
+            if (!recos.length) return null;
+            return <div className="u-section"><RecommendedActions actions={recos} /></div>;
+          })()}
 
           {/* What changed — with a period switch (folds in the old /changes page) */}
           <Section title="ما الذي تغيّر" icon="refresh" count={changes.length}>
