@@ -27,7 +27,7 @@ const PRESETS: { label: string; category: string; entities: { name: string; alia
   },
 ];
 
-export default function SOV() {
+export default function SovView() {
   const [range, setRange] = useState<Range>("week");
   const [custom, setCustom] = useState("");
   const [res, setRes] = useState<any>(null);

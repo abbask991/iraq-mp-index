@@ -6,7 +6,7 @@ import { Donut, Bars } from "@/components/MiniCharts";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 
-export default function Polls() {
+export default function PollsView() {
   const [list, setList] = useState<any>(null);
   const [q, setQ] = useState("");
   const [poll, setPoll] = useState<any>(null);

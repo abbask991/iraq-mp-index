@@ -11,6 +11,15 @@ const nextConfig = {
       // overview showed the same ~10 items as command in older styling; its one
       // unique piece (Iraq geo map) moved into command.
       { source: "/monitor/overview", destination: "/monitor/command", permanent: false },
+      // Analysis Lab — 8 analytical tools folded into one tabbed module.
+      { source: "/monitor/content", destination: "/monitor/analysis?tab=content", permanent: false },
+      { source: "/monitor/sov", destination: "/monitor/analysis?tab=sov", permanent: false },
+      { source: "/monitor/opinion", destination: "/monitor/analysis?tab=opinion", permanent: false },
+      { source: "/monitor/polling", destination: "/monitor/analysis?tab=polling", permanent: false },
+      { source: "/monitor/network", destination: "/monitor/analysis?tab=advanced", permanent: false },
+      { source: "/monitor/research", destination: "/monitor/analysis?tab=studies", permanent: false },
+      { source: "/monitor/index-report", destination: "/monitor/analysis?tab=kpis", permanent: false },
+      { source: "/monitor/polls", destination: "/monitor/analysis?tab=polls", permanent: false },
       // what-changed is a section of the command center (with a period switch now).
       { source: "/monitor/changes", destination: "/monitor/command", permanent: false },
       // brief + dossier are both printable deliverables → one Reports page, two tabs.

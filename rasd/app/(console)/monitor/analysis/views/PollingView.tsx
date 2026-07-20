@@ -10,7 +10,7 @@ function Stat({ l, v, c }: { l: string; v: any; c?: string }) {
 const TYPES = ["موثّق", "مؤثّر", "عادي"];
 const WEIGHTINGS = [{ v: "population", l: "ترجيح سكّاني" }, { v: "equal", l: "موازنة المحافظات" }, { v: "raw", l: "بدون ترجيح" }];
 
-export default function Polling() {
+export default function PollingView() {
   const [subject, setSubject] = useState("");
   const [d, setD] = useState<any>(null);
   const [busy, setBusy] = useState(false);

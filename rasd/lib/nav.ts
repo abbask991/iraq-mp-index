@@ -42,15 +42,9 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "analysis", ar: "التحليل والبحوث", en: "Analysis & Research",
+    key: "analysis", ar: "مختبر التحليل", en: "Analysis Lab",
     items: [
-      { ar: "تحليل المحتوى", en: "Content Analysis", href: "/monitor/content" },
-      { ar: "حصة الصوت (SOV)", en: "Share of Voice", href: "/monitor/sov" },
-      { ar: "المؤشرات والـKPIs", en: "Indices & KPIs", href: "/monitor/index-report" },
-      { ar: "التحليلات المتقدمة", en: "Advanced Analytics", href: "/monitor/network" },
-      { ar: "استطلاع الرأي الاجتماعي", en: "Social Opinion Poll", href: "/monitor/polling" },
-      { ar: "الدراسات والبحوث", en: "Studies & Research", href: "/monitor/research" },
-      { ar: "استطلاعات الرأي", en: "Opinion Polls", href: "/monitor/polls" },
+      { ar: "مختبر التحليل", en: "Analysis Lab", href: "/monitor/analysis" },
     ],
   },
   {
@@ -95,7 +89,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { ar: "المقارنة (كيان مقابل كيان)", en: "Compare Entities", href: "/monitor/compare" },
       { ar: "تحليل الحسابات والمؤثرين", en: "Account & Influencer Analysis", href: "/monitor/profiler" },
       { ar: "رادار المؤثّرين", en: "Influencer Radar", href: "/monitor/influencers" },
-      { ar: "مؤشر الرأي العام الرقمي (PPOI)", en: "Public Opinion Index (PPOI)", href: "/monitor/opinion" },
     ],
   },
   {

@@ -6,7 +6,7 @@ import { Donut, HBars, Spark } from "@/components/MiniCharts";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 
-export default function Research() {
+export default function StudiesView() {
   const [list, setList] = useState<any>(null);
   const [topic, setTopic] = useState("");
   const [study, setStudy] = useState<any>(null);

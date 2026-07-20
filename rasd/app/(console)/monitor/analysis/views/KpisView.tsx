@@ -15,7 +15,7 @@ const DIMS: [string, string][] = [
 const gradeColor = (g: string) =>
   g.startsWith("A") ? "#22c55e" : g === "B" ? "#84cc16" : g === "C" ? "#f59e0b" : "#f43f5e";
 
-export default function IndexReport() {
+export default function KpisView() {
   const [monitors, setMonitors] = useState<any[]>([]);
   const [scores, setScores] = useState<Record<number, any>>({});
   const [scanning, setScanning] = useState(false);

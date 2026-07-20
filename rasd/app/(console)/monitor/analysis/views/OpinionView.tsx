@@ -9,7 +9,7 @@ const idxColor = (i: number) => (i <= 29 ? "#f43f5e" : i <= 44 ? "#fb923c" : i <
 const gapColor = (g: number) => (g <= 20 ? "#22c55e" : g <= 40 ? "#f59e0b" : g <= 70 ? "#fb923c" : "#f43f5e");
 const confColor = (l?: string) => (l === "عالية جداً" || l === "عالية" ? "#22c55e" : l === "متوسطة" ? "#f59e0b" : "#f43f5e");
 
-export default function Opinion() {
+export default function OpinionView() {
   const [target, setTarget] = useState("");
   const [d, setD] = useState<any>(null);
   const [busy, setBusy] = useState(false);

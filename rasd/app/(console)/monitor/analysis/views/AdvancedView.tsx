@@ -11,7 +11,7 @@ const COMM = ["#2563eb", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4", "#ec4899", 
 const riskColor = (r: number) => (r >= 60 ? "#f43f5e" : r >= 35 ? "#f59e0b" : "#22c55e");
 const lvlColor = (l: string) => (l?.includes("جداً") ? "#f43f5e" : l === "مرتفع" ? "#fb923c" : l === "متوسط" ? "#f59e0b" : "#22c55e");
 
-export default function BigData() {
+export default function AdvancedView() {
   const [monitors, setMonitors] = useState<any[]>([]);
   const [term, setTerm] = useState("");
   const [range, setRange] = useState<Range>("week");

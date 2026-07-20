@@ -11,7 +11,7 @@ const C = { neg: "#f43f5e", neu: "#8a97ad", pos: "#22c55e" };
 const sColor = (s: string) => (s === "سلبي" ? C.neg : s === "إيجابي" ? C.pos : C.neu);
 const leanColor = (l: number) => (l >= 20 ? C.pos : l <= -20 ? C.neg : C.neu);
 
-export default function Content() {
+export default function ContentView() {
   const [monitors, setMonitors] = useState<any[]>([]);
   const [term, setTerm] = useState("");
   const [range, setRange] = useState<Range>("week");
