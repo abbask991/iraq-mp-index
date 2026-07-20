@@ -128,8 +128,8 @@ export default function ExportCenterView() {
       </div>
 
       <p className="u-fine" style={{ marginTop: 12, maxWidth: 640 }}>
-        يجري توليد PDF/Word/PowerPoint على خادم العامل (worker). عند عدم توفّره يُفتح تقرير PDF في المتصفّح للطباعة،
-        بينما تتطلّب صيغتا Word و PowerPoint تفعيل الخدمة على الخادم.
+        تُولَّد تقارير Word و PowerPoint مباشرةً على الخادم وتُنزَّل فوراً. أما PDF فيُولَّد على خادم العامل عند توفّره،
+        وإلا يُفتح التقرير في المتصفّح لحفظه PDF عبر أمر الطباعة.
       </p>
     </div>
   );

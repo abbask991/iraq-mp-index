@@ -203,8 +203,16 @@ async def stylometry_analyze(req: StyloReq):
 
 @router.post("/report")
 async def report(req: ReportReq):
-    """Queue a server-side PDF report (worker). Falls back to inline rendering
-    when no queue is configured. Returns a job id to poll, or the result inline."""
+    """Generate a server-side report (pdf | docx | pptx).
+
+    Word and PowerPoint use light pure-python formatters that ship on the web
+    image, so they render inline immediately — no worker required. Only PDF
+    (playwright + chromium, heavy) is queued to the worker when one is
+    configured, and falls back to inline HTML for the browser's print-to-PDF."""
+    from app.services import reports
+    if req.format in ("docx", "pptx"):
+        out = await reports.build(req.kind, req.target, req.range, req.format)
+        return {"job_id": None, "status": "done", **out}
     from app import jobq
     job = jobq.enqueue("app.tasks.generate_report", req.kind, req.target, req.range,
                        req.format, job_timeout=900)
@@ -213,8 +221,7 @@ async def report(req: ReportReq):
                                             "kind": req.kind, "target": req.target,
                                             "format": req.format})
         return {"job_id": job.id, "status": "queued"}
-    # inline fallback (no worker): render now
-    from app.services import reports
+    # inline fallback (no worker): render now (PDF → HTML for print)
     out = await reports.build(req.kind, req.target, req.range, req.format)
     return {"job_id": None, "status": "done", **out}
 

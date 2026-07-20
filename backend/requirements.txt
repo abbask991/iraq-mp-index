@@ -6,3 +6,9 @@ redis==5.2.1
 rq==2.0.0
 Pillow==10.4.0
 python-multipart==0.0.12
+# Document formatters for the Export Center. These are pure-python and light, so
+# they live on the web image too — that lets /api/intelligence/report render Word
+# and PowerPoint inline (no RQ worker required). Only PDF (playwright + chromium,
+# genuinely heavy) stays worker-only, with an in-browser print fallback on web.
+python-docx==1.1.2
+python-pptx==1.0.2
