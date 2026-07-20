@@ -112,6 +112,18 @@ a.cb-crumb-link:hover { text-decoration: underline; }
 .related-card:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); transform: translateY(-1px); }
 .related-card svg { color: var(--muted); }
 .related-card:hover svg { color: var(--accent); }
+
+/* PlatformContributionCard — compact contextual platform breakdown */
+.pcc { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.pcc-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.pcc-title { font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 6px; }
+.pcc-lead { font-size: 13px; margin-bottom: 8px; }
+.pcc-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); gap: 1px; }
+.pcc-bar > div { min-width: 2px; }
+.pcc-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.pcc-leg { font-size: 11px; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+.pcc-leg i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.pcc-note { font-size: 11px; color: var(--muted); margin-top: 8px; }
 .cb-right { display: flex; align-items: center; gap: 8px; }
 .cb-clock { display: inline-flex; align-items: center; gap: 7px; font-variant-numeric: tabular-nums; font-size: 13px;
   background: var(--input); border: 1px solid var(--line); border-radius: 9px; padding: 6px 11px; }

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import Tabs, { type TabDef } from "@/components/ui/Tabs";
+import PlatformContributionCard from "@/components/PlatformContributionCard";
 import AlertsView from "./views/AlertsView";
 import DiscoverView from "./views/DiscoverView";
 import TrendsView from "./views/TrendsView";
@@ -34,6 +35,10 @@ export default function RiskModule() {
   return (
     <div>
       <PageHeader title="المخاطر والإنذار المبكر" sub="اكتشاف الترندات، التنبيهات، التنبّؤ، والمؤشرات الاستراتيجية — قبل أن تتصاعد." />
+      <div style={{ marginBottom: "var(--s-4)" }}>
+        <PlatformContributionCard title="المنصّات المساهمة في الخطر"
+          note="حصّة كل منصّة من الإشارات المرصودة. للتفصيل الكامل ومسار المصدر، افتح مركز الرصد." />
+      </div>
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       {Active ? <Active /> : null}
     </div>

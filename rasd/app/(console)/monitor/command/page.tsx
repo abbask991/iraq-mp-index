@@ -11,6 +11,7 @@ import EmotionHeatmap from "@/components/EmotionHeatmap";
 import Gauge from "@/components/Gauge";
 import RadarChart from "@/components/RadarChart";
 import IraqMap from "@/components/IraqMap";
+import PlatformContributionCard from "@/components/PlatformContributionCard";
 import { useDemo } from "@/components/ui/DemoContext";
 
 const PLATFORM_AR: Record<string, string> = {
@@ -184,6 +185,15 @@ export default function CommandCenter() {
                   التعليقات غير محتسبة — يتطلّب تطبيق ترحيل ‎011‎ لتفعيل تخزين منشورات/تعليقات فيسبوك.
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Platform contribution — compact, links to the full Monitoring Hub
+              breakdown. Only shown when real platform activity exists. */}
+          {d.platform_activity?.length > 0 && (
+            <div className="u-section">
+              <PlatformContributionCard platforms={d.platform_activity}
+                note="أين يجري النقاش الآن عبر المصادر — التفصيل الكامل ومسار المصادر في مركز الرصد." />
             </div>
           )}
 
