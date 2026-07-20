@@ -9,7 +9,7 @@ const magColor = (v: number) => (v >= 60 ? "#f43f5e" : v >= 35 ? "#fb923c" : "#e
 const flag = (c: string) => (c === "العراق" ? "🇮🇶" : "🇸🇾");
 const fmtH = (iso: string) => { try { return new Date(iso).toLocaleString("ar-IQ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch { return ""; } };
 
-export default function CrossInfluence() {
+export default function CrossBorderView() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState("week");

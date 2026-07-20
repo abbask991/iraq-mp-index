@@ -11,6 +11,10 @@ const nextConfig = {
       // overview showed the same ~10 items as command in older styling; its one
       // unique piece (Iraq geo map) moved into command.
       { source: "/monitor/overview", destination: "/monitor/command", permanent: false },
+      // Narratives & Battlefield — 4 tools folded into one tabbed module.
+      { source: "/monitor/battlefield", destination: "/monitor/narratives?tab=battlefield", permanent: false },
+      { source: "/monitor/regional-influence", destination: "/monitor/narratives?tab=regional", permanent: false },
+      { source: "/monitor/cross-influence", destination: "/monitor/narratives?tab=cross-border", permanent: false },
       // Campaigns & Disinformation — 6 tools folded into one tabbed module.
       { source: "/monitor/campaign", destination: "/monitor/campaigns?tab=check", permanent: false },
       { source: "/monitor/coordination", destination: "/monitor/campaigns?tab=coordination", permanent: false },

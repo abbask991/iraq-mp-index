@@ -9,7 +9,7 @@ import RegionFlowChart from "@/components/RegionFlowChart";
 const magColor = (v: number) => (v >= 60 ? "#f43f5e" : v >= 35 ? "#fb923c" : "#eab308");
 const fmtH = (iso: string) => { try { return new Date(iso).toLocaleString("ar-IQ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch { return ""; } };
 
-export default function RegionalInfluence() {
+export default function RegionalView() {
   const [countries, setCountries] = useState<any[]>([]);
   const [ov, setOv] = useState<any>(null);
   const [ovLoading, setOvLoading] = useState(true);

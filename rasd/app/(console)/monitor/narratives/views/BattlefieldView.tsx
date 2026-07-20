@@ -10,7 +10,7 @@ import BattlefieldGraph from "@/components/BattlefieldGraph";
 
 const C = { neg: "#f43f5e", pos: "#22c55e", neu: "#8a97ad" };
 
-export default function Battlefield() {
+export default function BattlefieldView() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [term, setTerm] = useState("");
   const [d, setD] = useState<any>(null);

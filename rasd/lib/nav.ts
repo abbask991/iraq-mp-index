@@ -62,9 +62,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "narratives", ar: "السرديات والمعركة الإعلامية", en: "Narratives & Battlefield",
     items: [
-      { ar: "غرفة حرب السرديات", en: "Narrative War Room", href: "/monitor/narratives" },
-      { ar: "ساحة المعركة الإعلامية", en: "Media Battlefield", href: "/monitor/battlefield" },
-      { ar: "التأثير الإقليمي (العراق ← الجوار)", en: "Regional Influence", href: "/monitor/regional-influence" },
+      { ar: "السرديات والمعركة الإعلامية", en: "Narratives & Battlefield", href: "/monitor/narratives" },
     ],
   },
   {
