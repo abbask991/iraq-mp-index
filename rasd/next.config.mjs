@@ -11,6 +11,9 @@ const nextConfig = {
       // overview showed the same ~10 items as command in older styling; its one
       // unique piece (Iraq geo map) moved into command.
       { source: "/monitor/overview", destination: "/monitor/command", permanent: false },
+      // brief + dossier are both printable deliverables → one Reports page, two tabs.
+      { source: "/monitor/brief", destination: "/monitor/reports?tab=daily", permanent: false },
+      { source: "/monitor/dossier", destination: "/monitor/reports?tab=full", permanent: false },
       // corporate/report was the same endpoint as the dashboard — now its print view
       { source: "/monitor/corporate/report", destination: "/monitor/corporate", permanent: false },
       // 9 corporate sub-pages → tabs over one brand. Old routes land on their tab.

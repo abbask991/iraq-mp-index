@@ -93,7 +93,7 @@ function ExecBrief({ demo }: { demo: boolean }) {
   );
 }
 
-export default function DailyBrief() {
+export default function DailyBriefView() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);

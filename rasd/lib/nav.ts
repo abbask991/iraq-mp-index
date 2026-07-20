@@ -28,8 +28,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { ar: "غرفة الحرب (مباشر)", en: "Live War Room", href: "/monitor/warroom", danger: true },
       { ar: "مركز القيادة (ابدأ هنا)", en: "Command Center (start here)", href: "/monitor/command" },
       { ar: "ماذا تغيّر خلال 24 ساعة؟", en: "What Changed in 24h?", href: "/monitor/changes" },
-      { ar: "التقرير اليومي", en: "Daily Brief", href: "/monitor/brief" },
-      { ar: "التقرير الشامل", en: "Full Dossier", href: "/monitor/dossier" },
       { ar: "ضابط الاستخبارات", en: "Chief Intelligence", href: "/monitor/chief" },
       { ar: "المحلّل الذكي (اسأل أي سؤال)", en: "AI Analyst", href: "/monitor/analyst" },
     ],
@@ -110,8 +108,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "reports", ar: "التقارير والمخرجات", en: "Reports & Deliverables",
     items: [
-      { ar: "التقرير اليومي", en: "Daily Brief", href: "/monitor/brief" },
-      { ar: "التقرير الشامل", en: "Full Dossier", href: "/monitor/dossier" },
+      { ar: "التقارير (يومي + شامل)", en: "Reports (Daily + Dossier)", href: "/monitor/reports" },
       { ar: "تقارير الحملات", en: "Campaign Reports", soon: true },
       { ar: "تقارير الكيانات", en: "Entity Reports", soon: true },
       { ar: "تقارير الأزمات", en: "Crisis Reports", soon: true },
