@@ -11,6 +11,12 @@ const nextConfig = {
       // overview showed the same ~10 items as command in older styling; its one
       // unique piece (Iraq geo map) moved into command.
       { source: "/monitor/overview", destination: "/monitor/command", permanent: false },
+      // Risk & Early Warning — 5 tools folded into one tabbed module.
+      { source: "/monitor/alerts", destination: "/monitor/risk?tab=alerts", permanent: false },
+      { source: "/monitor/discover", destination: "/monitor/risk?tab=trends-now", permanent: false },
+      { source: "/monitor/trends", destination: "/monitor/risk?tab=trend", permanent: false },
+      { source: "/monitor/predictive", destination: "/monitor/risk?tab=forecast", permanent: false },
+      { source: "/monitor/indices/public-anger", destination: "/monitor/risk?tab=anger", permanent: false },
       // Analysis Lab — 8 analytical tools folded into one tabbed module.
       { source: "/monitor/content", destination: "/monitor/analysis?tab=content", permanent: false },
       { source: "/monitor/sov", destination: "/monitor/analysis?tab=sov", permanent: false },

@@ -30,7 +30,7 @@ function Row({ item, label }: { item: any; label: "hashtag" | "keyword"; }) {
   );
 }
 
-export default function Discover() {
+export default function DiscoverView() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<Range>("day");

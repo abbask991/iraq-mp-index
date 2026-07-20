@@ -6,7 +6,7 @@ import { SkelCards } from "@/components/Skeleton";
 
 const lvlColor = (v: number) => (v >= 65 ? "#f43f5e" : v >= 45 ? "#fb923c" : v >= 25 ? "#f59e0b" : "#22c55e");
 
-export default function Predictive() {
+export default function PredictiveView() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => { apiGet("/api/predictive").then(setD).finally(() => setLoading(false)); }, []);

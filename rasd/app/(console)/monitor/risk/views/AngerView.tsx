@@ -21,7 +21,7 @@ const SCOPES = [
 const riskColor = (s: number) => s >= 76 ? "#f43f5e" : s >= 51 ? "#fb923c" : s >= 26 ? "#facc15" : "#34d6c6";
 const trendAr: Record<string, string> = { accelerating: "متسارع ⤴", rising: "متصاعد ↑", stable: "مستقر →", declining: "متراجع ↓", cooling_down: "يهدأ ↓" };
 
-export default function PublicAnger() {
+export default function AngerView() {
   const [scopeType, setScopeType] = useState("entity");
   const [scopeName, setScopeName] = useState("وزارة الكهرباء");
   const [period, setPeriod] = useState("week");

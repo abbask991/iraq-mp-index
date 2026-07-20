@@ -15,7 +15,7 @@ type Risk = { level: "high" | "medium" | "low"; total: number; neg: number; rece
 
 const SEV: Record<string, string> = { high: "#f43f5e", medium: "#f59e0b", low: "#22c55e" };
 
-export default function Alerts() {
+export default function AlertsView() {
   const [monitors, setMonitors] = useState<any[]>([]);
   const [risks, setRisks] = useState<Record<number, Risk | "loading">>({});
   const [scanning, setScanning] = useState(false);

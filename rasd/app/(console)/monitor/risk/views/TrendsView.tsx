@@ -22,7 +22,7 @@ const METRIC_LABEL: Record<string, string> = {
   coordination: "إشارة التنسيق",
 };
 
-export default function Trends() {
+export default function TrendsView() {
   const [monitors, setMonitors] = useState<any[]>([]);
   const [term, setTerm] = useState("");
   const [range, setRange] = useState<Range>("week");
