@@ -9,6 +9,7 @@ timestamps. That timestamp is what lets Telegram join the cross-platform picture
 Public channels only (those with web preview enabled). For private/real-time/full
 history, graduate to the Telethon (MTProto) collector on the worker.
 """
+import html as _html
 import re
 from datetime import datetime, timezone
 
@@ -23,9 +24,7 @@ _VIEWS = re.compile(r'tgme_widget_message_views[^>]*>([\d.,KMkm]+)')
 def _clean(h: str) -> str:
     h = re.sub(r"<br\s*/?>", "\n", h)
     h = re.sub(r"<[^>]+>", "", h)
-    for a, b in (("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"), ("&quot;", '"'), ("&#39;", "'"), ("&nbsp;", " ")):
-        h = h.replace(a, b)
-    return h.strip()
+    return _html.unescape(h).strip()   # decodes named + numeric entities (&#036; → $)
 
 
 def _norm_channel(ch: str) -> str:
