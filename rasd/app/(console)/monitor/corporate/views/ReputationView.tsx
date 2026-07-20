@@ -2,6 +2,7 @@
 import { SkelCards } from "@/components/Skeleton";
 import { Donut, Spark } from "@/components/MiniCharts";
 import EvidenceChainDrawer from "@/components/EvidenceChainDrawer";
+import ReputationAttackSurface from "@/components/ReputationAttackSurface";
 import { useBrand } from "../useBrand";
 
 const col = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
@@ -29,6 +30,11 @@ export default function ReputationView({ brand, demo }: { brand: string; demo: b
           </div>
         ))}
       </div>
+      {(d.drivers_negative || []).length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <ReputationAttackSurface entity={brand} drivers={d.drivers_negative} topPlatform="فيسبوك" />
+        </div>
+      )}
       <div className="grid" style={{ marginBottom: 14 }}>
         {(s.positive != null) && (
           <div className="cbox" style={{ textAlign: "center" }}>

@@ -6,6 +6,7 @@ import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
 import DecisionSimulator from "@/components/DecisionSimulator";
+import ReputationAttackSurface from "@/components/ReputationAttackSurface";
 import { useDemo } from "@/components/ui/DemoContext";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
@@ -84,6 +85,13 @@ export default function EntityWorkspace() {
           <div style={{ marginBottom: 14 }}>
             <DecisionSimulator entityId={d.name || id} name={d.name || id} />
           </div>
+
+          {/* Reputation attack surface — where this entity is most exposed */}
+          {(d.reputation_risk?.drivers || []).filter(Boolean).length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <ReputationAttackSurface entity={d.name || id} drivers={d.reputation_risk.drivers} />
+            </div>
+          )}
 
           {/* Reputation & risk */}
           {d.reputation_risk && (

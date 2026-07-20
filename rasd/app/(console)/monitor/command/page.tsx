@@ -14,6 +14,9 @@ import IraqMap from "@/components/IraqMap";
 import PlatformContributionCard from "@/components/PlatformContributionCard";
 import WhatMattersNow, { buildMattersItems } from "@/components/WhatMattersNow";
 import CrisisProbabilityMeter from "@/components/CrisisProbabilityMeter";
+import NarrativeToActionSignal from "@/components/NarrativeToActionSignal";
+import SilentMajorityGap from "@/components/SilentMajorityGap";
+import OpportunityRadar from "@/components/OpportunityRadar";
 import SoWhatInsightBlock from "@/components/SoWhatInsightBlock";
 import RecommendedActions, { type Reco, type RecoType } from "@/components/RecommendedActions";
 import ReportGenerationButtons from "@/components/ReportGenerationButtons";
@@ -199,6 +202,11 @@ export default function CommandCenter() {
                 </div>
                 <div style={{ marginTop: "var(--s-3)" }}>
                   <CrisisProbabilityMeter d={d} anger={anger} compact />
+                </div>
+                <div style={{ marginTop: "var(--s-2)", display: "grid", gap: "var(--s-2)" }}>
+                  <NarrativeToActionSignal compact />
+                  <SilentMajorityGap compact />
+                  <OpportunityRadar compact />
                 </div>
               </div>
             );
