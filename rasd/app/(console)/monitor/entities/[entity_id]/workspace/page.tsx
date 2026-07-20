@@ -7,6 +7,7 @@ import EmptyState from "@/components/EmptyState";
 import EvidenceExplorer from "@/components/EvidenceExplorer";
 import DecisionSimulator from "@/components/DecisionSimulator";
 import ReputationAttackSurface from "@/components/ReputationAttackSurface";
+import IntelligenceMemoryRecall from "@/components/IntelligenceMemoryRecall";
 import { useDemo } from "@/components/ui/DemoContext";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
@@ -92,6 +93,12 @@ export default function EntityWorkspace() {
               <ReputationAttackSurface entity={d.name || id} drivers={d.reputation_risk.drivers} />
             </div>
           )}
+
+          {/* Intelligence Memory Recall — has this happened before? + record a case */}
+          <div style={{ marginBottom: 14 }}>
+            <IntelligenceMemoryRecall entity={d.name || id}
+              issue={(d.narratives?.harmful || [])[0] || (d.reputation_risk?.drivers || [])[0]} />
+          </div>
 
           {/* Reputation & risk */}
           {d.reputation_risk && (

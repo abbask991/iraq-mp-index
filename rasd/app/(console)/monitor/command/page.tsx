@@ -17,6 +17,7 @@ import CrisisProbabilityMeter from "@/components/CrisisProbabilityMeter";
 import NarrativeToActionSignal from "@/components/NarrativeToActionSignal";
 import SilentMajorityGap from "@/components/SilentMajorityGap";
 import OpportunityRadar from "@/components/OpportunityRadar";
+import IntelligenceMemoryRecall from "@/components/IntelligenceMemoryRecall";
 import SoWhatInsightBlock from "@/components/SoWhatInsightBlock";
 import RecommendedActions, { type Reco, type RecoType } from "@/components/RecommendedActions";
 import ReportGenerationButtons from "@/components/ReportGenerationButtons";
@@ -207,6 +208,12 @@ export default function CommandCenter() {
                   <NarrativeToActionSignal compact />
                   <SilentMajorityGap compact />
                   <OpportunityRadar compact />
+                  <IntelligenceMemoryRecall
+                    entity={d.top_risks?.[0]?.entity}
+                    issue={d.executive?.top_event || "الوضع الوطني"}
+                    anger={anger?.score}
+                    platforms={(d.platform_activity || []).map((p: any) => p.platform)}
+                    compact />
                 </div>
               </div>
             );

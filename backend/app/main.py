@@ -52,6 +52,8 @@ from app.routers import entity_workspace as entity_workspace_router  # noqa: E40
 app.include_router(entity_workspace_router.router)
 from app.routers import what_changed as what_changed_router  # noqa: E402
 app.include_router(what_changed_router.router)
+from app.routers import intel_cases as intel_cases_router  # noqa: E402
+app.include_router(intel_cases_router.router)
 from app.routers import cost_center as cost_center_router  # noqa: E402
 app.include_router(cost_center_router.router)
 from app.routers import visual_verification as visual_verification_router  # noqa: E402
