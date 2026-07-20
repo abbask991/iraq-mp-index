@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Logo from "@/components/Logo";
+import { fetchHostBrand, type HostBrand } from "@/lib/org";
 
 export default function Login() {
   const router = useRouter();
@@ -13,6 +14,14 @@ export default function Login() {
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [brand, setBrand] = useState<HostBrand | null>(null);
+
+  // Brand the entry point by the visitor's hostname (a client's custom domain
+  // shows THEIR identity before sign-in). Default hosts resolve to null → stock.
+  useEffect(() => { fetchHostBrand().then(setBrand); }, []);
+  useEffect(() => {
+    if (brand?.primary) document.documentElement.style.setProperty("--accent2", brand.primary);
+  }, [brand]);
 
   async function submit() {
     setErr(""); setMsg(""); setBusy(true);
@@ -36,9 +45,16 @@ export default function Login() {
   return (
  <div className="card" style={{ maxWidth: 440, margin: "40px auto" }}>
  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, marginBottom: 16 }}>
- <Logo size={46} />
- <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.3px" }}>Sentinel<span style={{ color: "var(--accent2)" }}> Intelligence</span></div>
- <div className="muted" style={{ fontSize: 11 }}>by Integrate Dynamics</div>
+      {brand?.logoUrl
+        ? /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={brand.logoUrl} alt={brand.name} height={46} style={{ height: 46, width: "auto", objectFit: "contain" }} />
+        : <Logo size={46} />}
+ <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.3px" }}>
+        {!brand || brand.isDefaultBrand
+          ? <>Sentinel<span style={{ color: "var(--accent2)" }}> Intelligence</span></>
+          : <span style={{ color: "var(--accent2)" }}>{brand.name}</span>}
+ </div>
+ <div className="muted" style={{ fontSize: 11 }}>{brand ? brand.vendorLine : "by Integrate Dynamics"}</div>
  </div>
  <div className="auth-tabs">
  <button className={mode === "login" ? "on" : ""} onClick={() => setMode("login")}>تسجيل الدخول</button>

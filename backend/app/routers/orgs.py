@@ -24,6 +24,17 @@ def _month_start() -> str:
     return n.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
 
 
+@router.get("/by-host")
+async def by_host(host: str = ""):
+    """PUBLIC (no auth): resolve a request hostname to its org's white-label
+    info so the login page can render the client's brand before sign-in.
+    Returns only public fields; unmapped/own hosts → {found: false}."""
+    info = await orgs.resolve_by_host(host)
+    if not info:
+        return {"found": False}
+    return {"found": True, **info}
+
+
 @router.get("/me")
 async def me(ctx: dict = Depends(current_org)):
     return {"org": ctx["org"], "role": ctx["role"], "email": ctx["user"]["email"]}
@@ -66,6 +77,7 @@ class UpdateReq(BaseModel):
     name: str | None = None
     plan: str | None = None
     org_type: str | None = None
+    domain: str | None = None
     branding: dict | None = None
     api_budget_usd: float | None = None
     byok: dict | None = None

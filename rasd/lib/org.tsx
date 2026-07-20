@@ -118,3 +118,36 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 export function useOrg(): OrgCtx {
   return useContext(Ctx);
 }
+
+export type HostBrand = {
+  name: string;
+  isDefaultBrand: boolean;
+  vendorLine: string;
+  primary: string | null;
+  logoUrl: string | null;
+  orgType: string;
+};
+
+/** Resolve white-label branding from the current hostname — public, no auth,
+ *  so the LOGIN page (outside OrgProvider) can render a client's brand before
+ *  sign-in. Returns null on the platform's own hosts / unmapped domains, so the
+ *  caller keeps the default identity. */
+export async function fetchHostBrand(): Promise<HostBrand | null> {
+  try {
+    const host = typeof window !== "undefined" ? window.location.hostname : "";
+    const r = await apiGet(`/api/orgs/by-host?host=${encodeURIComponent(host)}`);
+    if (!r?.found) return null;
+    const b: Branding = r.branding || {};
+    const customName = (b.name || "").trim();
+    return {
+      name: customName || DEFAULT_BRAND_NAME,
+      isDefaultBrand: !customName,
+      vendorLine: b.hide_vendor ? "" : `by ${DEFAULT_VENDOR}`,
+      primary: (b.primary || "").trim() || null,
+      logoUrl: (b.logo_url || "").trim() || null,
+      orgType: (r.org_type || "general").trim() || "general",
+    };
+  } catch {
+    return null;
+  }
+}

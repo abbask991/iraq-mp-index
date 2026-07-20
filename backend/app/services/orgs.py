@@ -122,6 +122,39 @@ async def org_id_for_user(uid: str, email: str | None = None) -> str:
     return _synthetic(uid, email)["id"]
 
 
+# hostnames that are the platform's OWN entry points, never a client's domain
+DEFAULT_HOSTS = {"rasd-monitor.vercel.app", "localhost", "127.0.0.1", ""}
+
+
+def normalize_host(host: str | None) -> str:
+    """Lowercase, strip protocol/port/path so it matches a stored org.domain."""
+    h = str(host or "").strip().lower()
+    if "//" in h:
+        h = h.split("//", 1)[1]
+    h = h.split("/", 1)[0].split(":", 1)[0]
+    return h
+
+
+async def resolve_by_host(host: str | None) -> dict | None:
+    """Public: map a request hostname to its org's PUBLIC white-label info
+    (name, branding, org_type) — used to brand the login page before sign-in.
+    Returns None for the platform's own hosts or an unmapped domain."""
+    h = normalize_host(host)
+    if h in DEFAULT_HOSTS or h.endswith(".vercel.app"):
+        return None
+    try:
+        if db.enabled():
+            rows = await db.select("organizations",
+                                   f"select=name,branding,org_type&domain=eq.{h}&limit=1")
+            if rows:
+                r = rows[0]
+                return {"name": r.get("name"), "branding": r.get("branding") or {},
+                        "org_type": r.get("org_type") or "general"}
+    except Exception:
+        pass
+    return None
+
+
 async def org_type(org_id: str) -> str:
     """The sector of an org — drives AI framing. 'general' when unset, synthetic,
     or pre-migration (column absent)."""
@@ -178,9 +211,12 @@ async def add_member(org_id: str, user_id: str, email: str | None, role: str = "
 
 async def update_org(org_id: str, patch: dict) -> bool:
     allowed = {k: v for k, v in patch.items()
-               if k in ("name", "plan", "branding", "api_budget_usd", "byok", "status", "org_type")}
+               if k in ("name", "plan", "branding", "api_budget_usd", "byok", "status", "org_type", "domain")}
     if "org_type" in allowed and allowed["org_type"] not in VALID_ORG_TYPES:
         allowed["org_type"] = "general"
+    if "domain" in allowed:
+        # store normalized; empty string clears the mapping (→ NULL)
+        allowed["domain"] = normalize_host(allowed["domain"]) or None
     if not allowed or str(org_id).startswith("personal-"):
         return False
     try:

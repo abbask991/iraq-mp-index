@@ -11,7 +11,7 @@ const PLANS = [
 const PLAN_AR: Record<string, string> = Object.fromEntries(PLANS.map((p) => [p.k, p.ar]));
 
 type Branding = { name?: string; logo_url?: string; primary?: string; hide_vendor?: boolean };
-type Org = { id: string; name: string; plan: string; org_type?: string; status?: string; slug?: string; created_at?: string; branding?: Branding };
+type Org = { id: string; name: string; plan: string; org_type?: string; domain?: string; status?: string; slug?: string; created_at?: string; branding?: Branding };
 
 const EMPTY_BRAND: Branding = { name: "", logo_url: "", primary: "", hide_vendor: false };
 
@@ -25,6 +25,7 @@ export default function OrgsView() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [brandId, setBrandId] = useState<string | null>(null);
   const [brandForm, setBrandForm] = useState<Branding>(EMPTY_BRAND);
+  const [brandDomain, setBrandDomain] = useState("");
   const [brandMsg, setBrandMsg] = useState("");
 
   const load = () => {
@@ -57,6 +58,7 @@ export default function OrgsView() {
     setBrandId(o.id);
     setBrandMsg("");
     setBrandForm({ ...EMPTY_BRAND, ...(o.branding || {}) });
+    setBrandDomain(o.domain || "");
   };
 
   const saveBrand = async (id: string) => {
@@ -68,7 +70,7 @@ export default function OrgsView() {
       primary: (brandForm.primary || "").trim(),
       hide_vendor: !!brandForm.hide_vendor,
     };
-    const r = await apiSend(`/api/orgs/${id}`, "PATCH", { branding }).catch(() => null);
+    const r = await apiSend(`/api/orgs/${id}`, "PATCH", { branding, domain: brandDomain.trim() }).catch(() => null);
     if (r && r.updated !== false) { setBrandMsg("✅ حُفظت الهوية"); load(); }
     else setBrandMsg("⚠️ تعذّر الحفظ (مؤسسة حقيقية فقط — طبّق 013 وأنشئ العميل)");
   };
@@ -166,6 +168,15 @@ export default function OrgsView() {
                       إخفاء «by Integrate Dynamics»
                     </label>
                   </div>
+                  <label style={{ fontSize: 12, display: "block", marginTop: 10 }}>
+                    النطاق المخصّص (custom domain)
+                    <input value={brandDomain} placeholder="intel.client.com"
+                      onChange={(e) => setBrandDomain(e.target.value)}
+                      style={{ width: "100%", marginTop: 4 }} />
+                    <span className="muted" style={{ fontSize: 11 }}>
+                      يعرض هوية هذا العميل على صفحة الدخول عند زيارة نطاقه. يتطلّب إضافة النطاق في Vercel + سجل DNS (CNAME → cname.vercel-dns.com).
+                    </span>
+                  </label>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10 }}>
                     <button className="btn" style={{ fontSize: 13 }} onClick={() => saveBrand(o.id)}>حفظ الهوية</button>
                     {brandMsg && <span className="muted" style={{ fontSize: 12 }}>{brandMsg}</span>}
