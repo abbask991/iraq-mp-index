@@ -9,9 +9,10 @@ from app.services.coordination import builder
 router = APIRouter(prefix="/api/coordination", tags=["coordination"])
 
 
-def _coord_demo(target: str) -> dict:
+async def _coord_demo(target: str) -> dict:
     """Curated demo for the coordinated-network detector — matches the shape
-    detect_network() returns from live X data (the fields CoordinationView reads)."""
+    detect_network() returns from live X data (the fields CoordinationView reads).
+    Async so it drops straight into cache.swr, which awaits its factory."""
     nodes = [
         {"id": "a1", "x": 0.30, "y": 0.40, "degree": 5, "suspicion": 82},
         {"id": "a2", "x": 0.38, "y": 0.31, "degree": 4, "suspicion": 74},
