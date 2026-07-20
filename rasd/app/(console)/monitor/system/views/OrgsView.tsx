@@ -11,7 +11,7 @@ const PLAN_AR: Record<string, string> = Object.fromEntries(PLANS.map((p) => [p.k
 
 type Org = { id: string; name: string; plan: string; status?: string; slug?: string; created_at?: string };
 
-export default function Organizations() {
+export default function OrgsView() {
   const [orgs, setOrgs] = useState<Org[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");

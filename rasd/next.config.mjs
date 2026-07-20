@@ -11,6 +11,13 @@ const nextConfig = {
       // overview showed the same ~10 items as command in older styling; its one
       // unique piece (Iraq geo map) moved into command.
       { source: "/monitor/overview", destination: "/monitor/command", permanent: false },
+      // System & Cost Control — 6 admin/settings pages folded into one module.
+      { source: "/monitor/settings", destination: "/monitor/system?tab=sources", permanent: false },
+      { source: "/monitor/usage", destination: "/monitor/system?tab=usage", permanent: false },
+      { source: "/monitor/account", destination: "/monitor/system?tab=account", permanent: false },
+      { source: "/monitor/system/cost-center", destination: "/monitor/system?tab=cost", permanent: false },
+      { source: "/monitor/system/organizations", destination: "/monitor/system?tab=orgs", permanent: false },
+      { source: "/monitor/system/packages", destination: "/monitor/system?tab=packages", permanent: false },
       // Entities & Influence — 4 standalone tools folded into one tabbed module.
       { source: "/monitor/intelligence", destination: "/monitor/entities?tab=twin", permanent: false },
       { source: "/monitor/influencers", destination: "/monitor/entities?tab=influencers", permanent: false },

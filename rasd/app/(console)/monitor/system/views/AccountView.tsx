@@ -10,7 +10,7 @@ const PLAN_FEATURES: Record<string, string[]> = {
   enterprise: ["كل ميزات الاحترافي", "وحدات مخصّصة", "تحليل الحملات وشبكات التأثير", "دعم وتدريب"],
 };
 
-export default function Account() {
+export default function AccountView() {
   const [sub, setSub] = useState<Sub | null>(null);
   const [email, setEmail] = useState("");
   const [uid, setUid] = useState("");

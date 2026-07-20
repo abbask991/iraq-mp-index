@@ -13,7 +13,7 @@ type Cat = { category: string; label: string; icon: string; custom?: string; ser
 
 const DANGER = new Set(["data_delete", "delete_old_raw", "delete_old_alerts", "require_2fa", "admin_lock"]);
 
-export default function Settings() {
+export default function SettingsView() {
   const [cats, setCats] = useState<Cat[]>([]);
   const [active, setActive] = useState("general");
   const [edits, setEdits] = useState<Record<string, any>>({});

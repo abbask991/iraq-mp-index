@@ -7,7 +7,7 @@ import { useDemo } from "@/components/ui/DemoContext";
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 const lvlColor = (l: string) => (/حرج/.test(l || "") ? "#dc2626" : /مرتفع/.test(l || "") ? "#f43f5e" : "#f59e0b");
 
-export default function CostCenter() {
+export default function CostView() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { demo, setDemo } = useDemo();

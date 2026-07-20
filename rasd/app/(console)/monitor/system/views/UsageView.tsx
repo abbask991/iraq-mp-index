@@ -8,7 +8,7 @@ const fmt = (n: number) => (n || 0).toLocaleString("en-US");
 const usd = (n: number) => "$" + (n || 0).toFixed(2);
 const catColor = ["#4f9dff", "#f43f5e", "#fb923c", "#a855f7", "#22c55e", "#34d6c6", "#eab308", "#ec4899", "#8b5cf6", "#f59e0b"];
 
-export default function Usage() {
+export default function UsageView() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => { apiGet("/api/settings/usage").then(setD).finally(() => setLoading(false)); }, []);

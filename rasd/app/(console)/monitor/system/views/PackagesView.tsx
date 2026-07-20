@@ -28,7 +28,7 @@ function MenuPreview({ hidden }: { hidden: Set<string> }) {
   );
 }
 
-export default function PackagesAdmin() {
+export default function PackagesView() {
   const [gate, setGate] = useState<"loading" | "denied" | "ok">("loading");
   const [mode, setMode] = useState<"plan" | "user">("plan");
 
