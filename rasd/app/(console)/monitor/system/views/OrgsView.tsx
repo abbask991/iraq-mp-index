@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiGet, apiSend } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
+import { ORG_TYPES } from "@/lib/sector";
 
 const PLANS = [
   { k: "trial", ar: "تجريبي" }, { k: "basic", ar: "أساسي" },
@@ -10,7 +11,7 @@ const PLANS = [
 const PLAN_AR: Record<string, string> = Object.fromEntries(PLANS.map((p) => [p.k, p.ar]));
 
 type Branding = { name?: string; logo_url?: string; primary?: string; hide_vendor?: boolean };
-type Org = { id: string; name: string; plan: string; status?: string; slug?: string; created_at?: string; branding?: Branding };
+type Org = { id: string; name: string; plan: string; org_type?: string; status?: string; slug?: string; created_at?: string; branding?: Branding };
 
 const EMPTY_BRAND: Branding = { name: "", logo_url: "", primary: "", hide_vendor: false };
 
@@ -43,6 +44,11 @@ export default function OrgsView() {
 
   const changePlan = async (id: string, p: string) => {
     await apiSend(`/api/orgs/${id}`, "PATCH", { plan: p }).catch(() => null);
+    load();
+  };
+
+  const changeType = async (id: string, t: string) => {
+    await apiSend(`/api/orgs/${id}`, "PATCH", { org_type: t }).catch(() => null);
     load();
   };
 
@@ -111,6 +117,9 @@ export default function OrgsView() {
                   <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>{o.id}</div>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <select value={o.org_type || "general"} onChange={(e) => changeType(o.id, e.target.value)} style={{ width: 160, fontSize: 13 }} title="القطاع — يكيّف المصطلحات والوحدة الرئيسية وتأطير الذكاء الاصطناعي">
+                    {ORG_TYPES.map((t) => <option key={t.key} value={t.key}>{t.ar}</option>)}
+                  </select>
                   <select value={o.plan} onChange={(e) => changePlan(o.id, e.target.value)} style={{ width: 130, fontSize: 13 }}>
                     {PLANS.map((p) => <option key={p.k} value={p.k}>{p.ar}</option>)}
                   </select>

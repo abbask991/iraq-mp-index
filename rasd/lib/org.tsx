@@ -25,6 +25,7 @@ type Org = {
   id: string;
   name?: string;
   plan?: string;
+  org_type?: string;
   branding?: Branding;
   status?: string;
   synthetic?: boolean;
@@ -45,6 +46,8 @@ export type OrgCtx = {
   primary: string | null;
   /** Custom logo URL or null (null → use the built-in <Logo/>). */
   logoUrl: string | null;
+  /** Sector — drives terminology + lead module. "general" = neutral default. */
+  orgType: string;
 };
 
 const DEFAULT_CTX: OrgCtx = {
@@ -56,6 +59,7 @@ const DEFAULT_CTX: OrgCtx = {
   vendorLine: `by ${DEFAULT_VENDOR}`,
   primary: null,
   logoUrl: null,
+  orgType: "general",
 };
 
 const Ctx = createContext<OrgCtx>(DEFAULT_CTX);
@@ -72,6 +76,7 @@ function derive(org: Org | null, role: string): OrgCtx {
     vendorLine: b.hide_vendor ? "" : `by ${DEFAULT_VENDOR}`,
     primary: (b.primary || "").trim() || null,
     logoUrl: (b.logo_url || "").trim() || null,
+    orgType: (org?.org_type || "general").trim() || "general",
   };
 }
 

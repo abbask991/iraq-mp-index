@@ -65,6 +65,7 @@ async def add_member(org_id: str, req: MemberReq, _: dict = Depends(require_admi
 class UpdateReq(BaseModel):
     name: str | None = None
     plan: str | None = None
+    org_type: str | None = None
     branding: dict | None = None
     api_budget_usd: float | None = None
     byok: dict | None = None

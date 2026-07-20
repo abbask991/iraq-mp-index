@@ -13,6 +13,22 @@ import re
 from app.services import db
 
 VALID_PLANS = ("trial", "basic", "pro", "enterprise")
+VALID_ORG_TYPES = ("general", "media", "corporate", "government", "political")
+
+# Per-sector framing fed into the AI narrative layer so briefs/analysis are
+# written from the concerns of that client's sector. 'general' adds nothing
+# (neutral, current behaviour).
+SECTOR_AI_FRAMING = {
+    "media": "سياق العميل: مؤسسة إعلامية. أطّر التحليل من زاوية التغطية الإعلامية، حصّة الصوت، وإدارة السمعة التحريرية.",
+    "corporate": "سياق العميل: شركة/علامة تجارية. أطّر التحليل من زاوية سمعة العلامة، مخاطر السوق، ومشاعر العملاء.",
+    "government": "سياق العميل: جهة حكومية/سيادية. أطّر التحليل من زاوية الرأي العام تجاه الخدمات والسياسات، والاستقرار، والإنذار المبكر.",
+    "political": "سياق العميل: كيان/حملة سياسية. أطّر التحليل من زاوية الرأي العام، المنافسة الانتخابية، والسرديات المؤثّرة على الناخب.",
+}
+
+
+def sector_framing(org_type: str | None) -> str:
+    """A one-line sector preamble for AI prompts, or '' for general/unknown."""
+    return SECTOR_AI_FRAMING.get(str(org_type or "general"), "")
 
 
 def _slugify(s: str) -> str:
@@ -26,7 +42,7 @@ def _synthetic(uid: str, email: str | None) -> dict:
     Deterministic per user so isolation still holds without persistence."""
     return {"id": f"personal-{uid}", "name": (email or "حسابي"), "slug": _slugify(email or uid),
             "plan": "trial", "branding": {}, "api_budget_usd": 0, "byok": {},
-            "status": "active", "synthetic": True}
+            "status": "active", "org_type": "general", "synthetic": True}
 
 
 async def get_org(org_id: str) -> dict | None:
@@ -106,6 +122,19 @@ async def org_id_for_user(uid: str, email: str | None = None) -> str:
     return _synthetic(uid, email)["id"]
 
 
+async def org_type(org_id: str) -> str:
+    """The sector of an org — drives AI framing. 'general' when unset, synthetic,
+    or pre-migration (column absent)."""
+    try:
+        org = await get_org(org_id)
+        t = (org or {}).get("org_type")
+        if t in VALID_ORG_TYPES:
+            return t
+    except Exception:
+        pass
+    return "general"
+
+
 async def member_user_ids(org_id: str) -> list[str]:
     """The user ids belonging to an org — the boundary for aggregating a tenant's
     data. A member's monitors/mentions roll up to their org so same-org users
@@ -149,7 +178,9 @@ async def add_member(org_id: str, user_id: str, email: str | None, role: str = "
 
 async def update_org(org_id: str, patch: dict) -> bool:
     allowed = {k: v for k, v in patch.items()
-               if k in ("name", "plan", "branding", "api_budget_usd", "byok", "status")}
+               if k in ("name", "plan", "branding", "api_budget_usd", "byok", "status", "org_type")}
+    if "org_type" in allowed and allowed["org_type"] not in VALID_ORG_TYPES:
+        allowed["org_type"] = "general"
     if not allowed or str(org_id).startswith("personal-"):
         return False
     try:

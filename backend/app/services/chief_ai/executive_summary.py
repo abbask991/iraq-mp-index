@@ -53,7 +53,13 @@ async def build_dashboard(owner: str | None = None) -> dict:
     dg = await intel_digest.get_digest(owner) or {}
     events = priority_engine.rank_events(dg)
     forecast = forecast_engine.multi_horizon(dg)
-    advisor = await recommendation_engine.generate(_facts(dg))
+    # sector framing so recommendations are written for this tenant's world
+    try:
+        from app.services import orgs
+        _framing = orgs.sector_framing(await orgs.org_type(owner)) if owner else ""
+    except Exception:
+        _framing = ""
+    advisor = await recommendation_engine.generate(((_framing + " ") if _framing else "") + _facts(dg))
     questions = advisor.get("questions") or question_engine.suggest(dg)
     risk_lv = (dg.get("executive") or {}).get("risk_level", "—")
 

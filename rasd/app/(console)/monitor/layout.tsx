@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -10,7 +10,8 @@ import Breadcrumb from "@/components/Breadcrumb";
 import RelatedModules from "@/components/RelatedModules";
 import { paletteEntries } from "@/lib/modules";
 import { DemoProvider, useDemo } from "@/components/ui/DemoContext";
-import { OrgProvider } from "@/lib/org";
+import { OrgProvider, useOrg } from "@/lib/org";
+import { applySector } from "@/lib/sector";
 import { BrandLogo, BrandName, BrandStack } from "@/components/Brand";
 import { DemoBanner, Icon } from "@/components/ui";
 
@@ -79,6 +80,9 @@ function DashShell({ children }: { children: React.ReactNode }) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());   // features hidden for this plan
   const [isAdmin, setIsAdmin] = useState(false);
   const path = usePathname();
+  const { orgType } = useOrg();
+  // sector adaptation: relabel groups + lead with this tenant's primary module
+  const navGroups = useMemo(() => applySector(NAV_GROUPS, orgType), [orgType]);
 
   useEffect(() => {
     setLangState(getLang());
@@ -123,16 +127,16 @@ function DashShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // single-open accordion: keep ONLY the group holding the current route open,
     // so the sidebar is one clean group + scannable headers — not a wall of 60 links.
-    const active = NAV_GROUPS.find((g) => g.items.some(itemActive));
+    const active = navGroups.find((g) => g.items.some(itemActive));
     setOpenGroups((prev) => {
       if (active) return { [active.key]: true };
       if (Object.keys(prev).length === 0) {
-        const d = NAV_GROUPS.find((g) => g.defaultOpen);
+        const d = navGroups.find((g) => g.defaultOpen);
         return d ? { [d.key]: true } : {};
       }
       return prev;
     });
-  }, [path]);
+  }, [path, navGroups]);
 
   const t = (s: { ar: string; en: string }) => tr(s, lang);
   const toggleTheme = () => { const n: Theme = theme === "dark" ? "light" : "dark"; setTheme(n); setThemeState(n); };
@@ -172,13 +176,13 @@ function DashShell({ children }: { children: React.ReactNode }) {
   );
 
   const dl = daysLeft(sub);
-  const allItems = NAV_GROUPS.flatMap((g) => g.items.filter((it) => it.href));
+  const allItems = navGroups.flatMap((g) => g.items.filter((it) => it.href));
   const cur = allItems.find((it) => it.href === path);
   const sectionTitle = cur ? t(cur) : (lang === "ar" ? "مركز العمليات" : "Operations Center");
   // Palette indexes every module AND every tab (search stays 63-wide though the
   // sidebar is 11). Operations extras (war room, watchlist) aren't in the module
   // registry, so fold them in from the nav so the palette still reaches them.
-  const navExtras = NAV_GROUPS.flatMap((g) =>
+  const navExtras = navGroups.flatMap((g) =>
     g.items.filter((it) => it.href && !it.soon && it.href!.startsWith("/monitor") && it.href !== path)
       .map((it) => ({ label: t(it), href: it.href!, group: t(g) })));
   const moduleEntries = paletteEntries(lang, isAdmin);
@@ -209,7 +213,7 @@ function DashShell({ children }: { children: React.ReactNode }) {
  <div className="admin-shell">
  <aside className={"admin-side" + (navOpen ? " open" : "")} onClick={(e) => { if ((e.target as HTMLElement).closest("a")) setNavOpen(false); }}>
         {LangBtn}
-        {NAV_GROUPS.map((g) => {
+        {navGroups.map((g) => {
           // per-package visibility: drop hidden features + admin-only items for non-admins
           const vis = g.items.filter((it) => !(it.href && hidden.has(it.href)) && !(it.adminOnly && !isAdmin));
           if (!vis.length) return null;

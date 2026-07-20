@@ -42,9 +42,17 @@ async def build_brief(now_ts: float | None = None, owner: str | None = None) -> 
     camps = dg.get("active_campaigns", [])[:5]
     sent = dg.get("national_sentiment", {})
 
+    # sector framing so the AI writes for this tenant's world (general → no-op)
+    try:
+        from app.services import orgs
+        _framing = orgs.sector_framing(await orgs.org_type(owner)) if owner else ""
+    except Exception:
+        _framing = ""
+
     # fresh executive summary via the reliable summarizer — always strong narrative
     facts = (
-        f"حالة التأهّب الوطني: {threat['level']} (الخطر {national_risk}/100). "
+        (f"{_framing} " if _framing else "")
+        + f"حالة التأهّب الوطني: {threat['level']} (الخطر {national_risk}/100). "
         f"مؤشرات الخطر: سياسي {rs.get('political', 0)}، أزمة {rs.get('crisis', 0)}، حملات {rs.get('campaign', 0)}. "
         f"المشاعر الوطنية: إيجابي {sent.get('pos', 0)}، سلبي {sent.get('neg', 0)}، محايد {sent.get('neu', 0)}. "
         f"أبرز التهديدات: {'، '.join(e['name'] + ' (خطر ' + str(e.get('risk', 0)) + ')' for e in top_threats[:3]) or '—'}. "
