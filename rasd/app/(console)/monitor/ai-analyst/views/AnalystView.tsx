@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { apiGet, apiSend } from "@/lib/api";
+import { apiGet, apiSend, logEvent } from "@/lib/api";
 import Logo from "@/components/Logo";
 import StrategicQuestionGenerator from "@/components/StrategicQuestionGenerator";
 
@@ -18,6 +18,7 @@ export default function AnalystView() {
 
   const send = async (question: string) => {
     if (!question.trim() || busy) return;
+    logEvent("ai_question", {});
     setQ(""); setBusy(true);
     setMsgs((m) => [...m, { role: "user", text: question }, { role: "ai", text: "", loading: true }]);
     const r = await apiSend("/api/analyst/ask", "POST", { question }).catch(() => null);

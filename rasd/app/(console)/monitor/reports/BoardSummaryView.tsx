@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/api";
+import { apiGet, logEvent } from "@/lib/api";
 import { useDemo } from "@/components/ui/DemoContext";
 import Logo from "@/components/Logo";
 import { PageHeader, Button, Icon } from "@/components/ui";
@@ -41,7 +41,7 @@ export default function BoardSummaryView() {
     <div className="brief-wrap">
       <div className="no-print">
         <PageHeader title="موجز المجلس" sub="صفحة واحدة موجزة لصانع القرار — العنوان، ما يهمّ، الموقف، والإجراءات."
-          actions={d && !loading ? <Button variant="primary" onClick={() => window.print()}><Icon name="clip" size={14} /> PDF</Button> : null} />
+          actions={d && !loading ? <Button variant="primary" onClick={() => { logEvent("report_generated", { kind: "board" }); window.print(); }}><Icon name="clip" size={14} /> PDF</Button> : null} />
       </div>
 
       {loading && <SkelCards count={3} />}

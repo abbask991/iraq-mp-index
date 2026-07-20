@@ -18,19 +18,26 @@ export default function IntelligenceROITracker({ period = "الفترة الحا
   const [alerts, setAlerts] = useState<number | null>(null);
   const [cases, setCases] = useState<number | null>(null);
   const [tasks, setTasks] = useState<number>(0);
+  const [usage, setUsage] = useState<any>(null);
 
   useEffect(() => {
     apiGet("/api/command-center" + (demo ? "?demo=1" : "")).then(setCc).catch(() => {});
     apiGet("/monitor/alerts-feed").then((r) => setAlerts((r?.alerts || []).length)).catch(() => setAlerts(null));
     apiGet("/api/intel-cases/list").then((r) => setCases((r?.cases || []).length)).catch(() => setCases(null));
+    apiGet("/api/usage/summary?since_days=30").then(setUsage).catch(() => setUsage(null));
     try { setTasks(JSON.parse(localStorage.getItem("rasd_tasks") || "[]").length); } catch { /* ignore */ }
   }, [demo]);
+
+  const uc = usage?.counts || {};
+  const reportsGen = uc.report_generated || 0;
+  const evidenceOpened = uc.evidence_opened || 0;
+  const aiQuestions = uc.ai_question || 0;
 
   const evidence = cc?.coverage?.signals || 0;
   const campaigns = (cc?.active_campaigns || []).length;
   const earlyWarn = (cc?.top_risks || []).filter((r: any) => /حرج|مرتفع/.test(r.level || "")).length;
   // ESTIMATE only — a transparent heuristic on the real counts above.
-  const hours = Math.round(evidence / 1000 * 2 + (alerts || 0) * 0.3 + campaigns * 3 + (cases || 0) * 1.5 + tasks * 0.5);
+  const hours = Math.round(evidence / 1000 * 2 + (alerts || 0) * 0.3 + campaigns * 3 + (cases || 0) * 1.5 + tasks * 0.5 + reportsGen * 0.8 + aiQuestions * 0.2);
 
   const summary = `خلال ${period}: ${fmt(alerts || 0)} تنبيهاً، ${fmt(earlyWarn)} إشارة إنذار مبكر، ${fmt(campaigns)} حملة مرصودة، و${fmt(evidence)} إشارة مجموعة.`;
 
@@ -55,10 +62,13 @@ export default function IntelligenceROITracker({ period = "الفترة الحا
         <Stat label="أدلّة مجموعة" icon="clip" value={fmt(evidence)} />
         {cases != null && <Stat label="حالات مرجعية" icon="refresh" value={fmt(cases)} />}
         <Stat label="مهام تشغيلية" icon="check" value={fmt(tasks)} />
+        {usage && <Stat label="تقارير مولّدة" icon="clip" value={fmt(reportsGen)} meta="آخر ٣٠ يوم" />}
+        {usage && <Stat label="أدلّة مفتوحة" icon="brain" value={fmt(evidenceOpened)} meta="آخر ٣٠ يوم" />}
+        {usage && <Stat label="أسئلة المحلّل" icon="target" value={fmt(aiQuestions)} meta="آخر ٣٠ يوم" />}
         <Stat label="ساعات عمل مُوفَّرة" icon="brain" value={`~${fmt(hours)}`} meta="تقديري" />
       </div>
       <div className="cbox" style={{ borderInlineStart: "3px solid var(--accent)", fontSize: 13.5, lineHeight: 1.9 }}>{summary}</div>
-      <p className="u-fine" style={{ marginTop: 8 }}>الأرقام الأساسية مقيسة فعلاً. «ساعات العمل المُوفَّرة» تقدير شفّاف مبني عليها — لا رقم مقيس. <Badge t="warn">تقديري</Badge></p>
+      <p className="u-fine" style={{ marginTop: 8 }}>الأرقام مقيسة فعلاً — بما فيها التقارير المولّدة والأدلّة المفتوحة وأسئلة المحلّل من سجلّ الاستخدام. «ساعات العمل المُوفَّرة» وحدها تقدير شفّاف مبني عليها. <Badge t="warn">تقديري</Badge></p>
     </div>
   );
 }

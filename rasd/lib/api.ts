@@ -68,6 +68,18 @@ export async function apiPost(kind: Kind, body: unknown): Promise<any> {
   return res.json();
 }
 
+// Fire-and-forget usage event — records a real client action for the ROI / client
+// success metrics. Never throws and never blocks the action it is logging.
+export async function logEvent(type: string, meta: Record<string, unknown> = {}): Promise<void> {
+  try {
+    await fetch((BASE || "") + "/api/usage/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+      body: JSON.stringify({ type, meta }),
+    });
+  } catch { /* ignore — logging must never disrupt UX */ }
+}
+
 // Generic GET to a backend /monitor/* path (e.g. "/monitor/status").
 // Attach the Supabase session JWT so protected backend routes can verify the user.
 async function authHeaders(): Promise<Record<string, string>> {

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { apiGet } from "@/lib/api";
+import { apiGet, logEvent } from "@/lib/api";
 import { Icon, Badge, type Tone } from "@/components/ui";
 
 /**
@@ -34,6 +34,7 @@ export default function EvidenceChainDrawer({ subject, context, label = "أرن�
   const clean = (subject || "").replace(/^#/, "").trim();
   const show = async () => {
     setOpen(true);
+    logEvent("evidence_opened", { subject: clean });
     if (!d && clean) {
       setLoading(true);
       const r = await apiGet(`/api/evidence/search?q=${encodeURIComponent(clean)}&since_days=60&limit=50`).catch(() => null);

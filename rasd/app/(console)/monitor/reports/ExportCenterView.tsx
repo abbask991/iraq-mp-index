@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { intelPost, intelGet } from "@/lib/api";
+import { intelPost, intelGet, logEvent } from "@/lib/api";
 import { PageHeader, Button, Icon } from "@/components/ui";
 
 /**
@@ -52,8 +52,8 @@ export default function ExportCenterView() {
 
   const finish = (out: any) => {
     setBusy(false);
-    if (out?.pdf_base64) { download(out.pdf_base64, MIME.pdf, nameFor("pdf")); setStatus("تم إنشاء ملف PDF وتنزيله."); return; }
-    if (out?.file_base64) { download(out.file_base64, MIME[out.format] || "application/octet-stream", nameFor(out.format || format)); setStatus("تم إنشاء الملف وتنزيله."); return; }
+    if (out?.pdf_base64) { download(out.pdf_base64, MIME.pdf, nameFor("pdf")); setStatus("تم إنشاء ملف PDF وتنزيله."); logEvent("report_generated", { kind, format: "pdf" }); return; }
+    if (out?.file_base64) { download(out.file_base64, MIME[out.format] || "application/octet-stream", nameFor(out.format || format)); setStatus("تم إنشاء الملف وتنزيله."); logEvent("report_generated", { kind, format: out.format || format }); return; }
     // PDF requested but no worker → the endpoint hands back rendered HTML; open it
     // in a new window so the browser's own print-to-PDF produces the document.
     if (out?.error && out?.html) {
