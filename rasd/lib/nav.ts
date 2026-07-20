@@ -27,7 +27,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { ar: "قائمة المتابعة — الكيانات المرصودة", en: "Watchlist — Monitored Entities", href: "/monitor" },
       { ar: "غرفة الحرب (مباشر)", en: "Live War Room", href: "/monitor/warroom", danger: true },
       { ar: "مركز القيادة (ابدأ هنا)", en: "Command Center (start here)", href: "/monitor/command" },
-      { ar: "ماذا تغيّر خلال 24 ساعة؟", en: "What Changed in 24h?", href: "/monitor/changes" },
       { ar: "ضابط الاستخبارات", en: "Chief Intelligence", href: "/monitor/chief" },
       { ar: "المحلّل الذكي (اسأل أي سؤال)", en: "AI Analyst", href: "/monitor/analyst" },
     ],

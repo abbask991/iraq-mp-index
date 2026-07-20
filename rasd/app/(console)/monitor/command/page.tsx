@@ -63,6 +63,18 @@ export default function CommandCenter() {
   const [health, setHealth] = useState<any>(null);
   const load = () => { setLoading(true); apiGet("/api/command-center" + (demo ? "?demo=1" : "")).then(setD).finally(() => setLoading(false)); };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [demo]);
+
+  // What-changed period. 24h uses the payload we already have (no extra call);
+  // 7d / custom fetch /api/what-changed on demand. Folds in the old standalone
+  // /monitor/changes page, whose only extra was this period switch.
+  const [chPeriod, setChPeriod] = useState("last_24h");
+  const [chData, setChData] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (chPeriod === "last_24h") { setChData(null); return; }
+    apiGet(`/api/what-changed?period=${chPeriod}${demo ? "&demo=1" : ""}`)
+      .then((r) => setChData(r?.changes || [])).catch(() => setChData([]));
+  }, [chPeriod, demo]);
+  const changes = chPeriod === "last_24h" ? (d?.what_changed || []) : (chData || []);
   // "Why is my dashboard empty?" was answerable only from a settings panel that
   // showed all-green while collection had been stopped for three weeks. Put the
   // answer where the emptiness is noticed.
@@ -303,18 +315,25 @@ export default function CommandCenter() {
             </Section>
           )}
 
-          {/* What changed */}
-          {d.what_changed?.length > 0 && (
-            <Section title="ما الذي تغيّر خلال ٢٤ ساعة" icon="refresh" count={d.what_changed.length}>
+          {/* What changed — with a period switch (folds in the old /changes page) */}
+          <Section title="ما الذي تغيّر" icon="refresh" count={changes.length}>
+            <div style={{ display: "flex", gap: "var(--s-2)", marginBottom: "var(--s-3)" }}>
+              {[["last_24h", "٢٤ ساعة"], ["last_7d", "٧ أيام"], ["custom", "مخصّص"]].map(([k, l]) => (
+                <Button key={k} aria-pressed={chPeriod === k} onClick={() => setChPeriod(k)}>{l}</Button>
+              ))}
+            </div>
+            {changes.length === 0 ? (
+              <Card><p className="u-muted" style={{ margin: 0 }}>لا تغيّرات ملحوظة في هذه المدة.</p></Card>
+            ) : (<>
               {/* polarity around zero — the one thing the row list can't show */}
               <Card style={{ marginBottom: "var(--s-3)" }}>
                 <CardHead title="حجم التغيّر واتجاهه" />
                 {/* only rows whose change is an actual delta — "حملة جديدة" is prose,
                     not a number, and would plot as a meaningless zero-width bar */}
-                <DeltaBars data={d.what_changed.filter((c: any) => /-?\d/.test(String(c.change))).map((c: any) => ({ label: c.entity, value: deltaNum(c.change) }))} />
+                <DeltaBars data={changes.filter((c: any) => /-?\d/.test(String(c.change))).map((c: any) => ({ label: c.entity, value: deltaNum(c.change) }))} />
               </Card>
               <Card>
-                {d.what_changed.map((c: any, i: number) => {
+                {changes.map((c: any, i: number) => {
                   const cfg = CHANGE[c.type] || { icon: "refresh" as IconName, tone: "neutral" as Tone };
                   return (
                     <Row
@@ -327,8 +346,8 @@ export default function CommandCenter() {
                   );
                 })}
               </Card>
-            </Section>
-          )}
+            </>)}
+          </Section>
 
           <Grid cols="2" style={{ marginBottom: "var(--s-6)" }}>
             {d.active_campaigns?.length > 0 && (

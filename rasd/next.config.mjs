@@ -11,6 +11,8 @@ const nextConfig = {
       // overview showed the same ~10 items as command in older styling; its one
       // unique piece (Iraq geo map) moved into command.
       { source: "/monitor/overview", destination: "/monitor/command", permanent: false },
+      // what-changed is a section of the command center (with a period switch now).
+      { source: "/monitor/changes", destination: "/monitor/command", permanent: false },
       // brief + dossier are both printable deliverables → one Reports page, two tabs.
       { source: "/monitor/brief", destination: "/monitor/reports?tab=daily", permanent: false },
       { source: "/monitor/dossier", destination: "/monitor/reports?tab=full", permanent: false },
