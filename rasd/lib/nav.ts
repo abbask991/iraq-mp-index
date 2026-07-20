@@ -23,7 +23,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { ar: "مركز القيادة (ابدأ هنا)", en: "Command Center (start here)", href: "/monitor/command" },
       { ar: "غرفة الحرب (مباشر)", en: "Live War Room", href: "/monitor/warroom", danger: true },
-      { ar: "قائمة المتابعة", en: "Watchlist", href: "/monitor" },
+      { ar: "مساحة العمل", en: "Workspace", href: "/monitor/workspace", matchPrefix: "/monitor/workspace" },
       { ar: "المحلّل الذكي", en: "AI Analyst", href: "/monitor/ai-analyst" },
     ],
   },
