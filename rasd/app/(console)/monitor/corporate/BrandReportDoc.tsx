@@ -1,5 +1,5 @@
 "use client";
-import Logo from "@/components/Logo";
+import { BrandLine, BrandLogo } from "@/components/Brand";
 import { Bars, Donut, Stars } from "@/components/MiniCharts";
 
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
@@ -24,7 +24,7 @@ export default function BrandReportDoc({ d }: { d: any }) {
     <div className="brief-doc">
       <div className="brief-head">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Logo size={42} />
+          <BrandLogo size={42} />
           <div>
             <div style={{ fontSize: 20, fontWeight: 900 }}>تقرير استخبارات العلامة</div>
             <div className="muted" style={{ fontSize: 12 }}>{d.brand} · {today}</div>
@@ -82,7 +82,7 @@ export default function BrandReportDoc({ d }: { d: any }) {
         </section>
       )}
 
-      <div className="brief-foot muted">{d.disclaimer} · Sentinel Intelligence by Integrate Dynamics · {today}</div>
+      <div className="brief-foot muted">{d.disclaimer} · <BrandLine /> · {today}</div>
     </div>
   );
 }

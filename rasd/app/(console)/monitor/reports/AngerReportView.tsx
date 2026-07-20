@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { useDemo } from "@/components/ui/DemoContext";
-import Logo from "@/components/Logo";
+import { BrandLine, BrandTitle, BrandLogo } from "@/components/Brand";
 import { PageHeader, Button, Icon } from "@/components/ui";
 
 /**
@@ -72,9 +72,9 @@ export default function AngerReportView() {
         <div className="brief-doc">
           <div className="brief-head">
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Logo size={42} />
+              <BrandLogo size={42} />
               <div>
-                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 0.5 }}>Sentinel Intelligence</div>
+                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 0.5 }}><BrandTitle /></div>
                 <div className="muted" style={{ fontSize: 12 }}>تقرير مؤشر الغضب العام — {d.scope_name || scopeName} · {today}</div>
               </div>
             </div>
@@ -145,7 +145,7 @@ export default function AngerReportView() {
           )}
 
           <div className="brief-foot muted">
-            {d.disclaimer}{d.confidence_score != null ? ` · الثقة ${d.confidence_score}%` : ""} · Sentinel Intelligence by Integrate Dynamics · {today}
+            {d.disclaimer}{d.confidence_score != null ? ` · الثقة ${d.confidence_score}%` : ""} · <BrandLine /> · {today}
           </div>
         </div>
       )}

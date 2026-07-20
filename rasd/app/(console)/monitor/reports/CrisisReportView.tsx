@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
-import Logo from "@/components/Logo";
+import { BrandLine, BrandTitle, BrandLogo } from "@/components/Brand";
 import { PageHeader, Button, Icon } from "@/components/ui";
 import { SkelCards } from "@/components/Skeleton";
 
@@ -72,9 +72,9 @@ export default function CrisisReportView() {
         <div className="brief-doc">
           <div className="brief-head">
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Logo size={42} />
+              <BrandLogo size={42} />
               <div>
-                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 0.5 }}>Sentinel Intelligence</div>
+                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 0.5 }}><BrandTitle /></div>
                 <div className="muted" style={{ fontSize: 12 }}>تقرير موقف الأزمة الوطني · {today}</div>
               </div>
             </div>
@@ -197,7 +197,7 @@ export default function CrisisReportView() {
           )}
 
           <div className="brief-foot muted">
-            تقرير آلي — المؤشرات احتمالية وتتطلّب مراجعة بشرية قبل أي قرار · Sentinel Intelligence by Integrate Dynamics ·
+            تقرير آلي — المؤشرات احتمالية وتتطلّب مراجعة بشرية قبل أي قرار · <BrandLine /> ·
             بيانات حتى: {d.generated_at ? new Date(d.generated_at).toLocaleString("ar-IQ") : "—"}
           </div>
         </div>

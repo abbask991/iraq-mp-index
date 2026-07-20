@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
-import Logo from "@/components/Logo";
+import { BrandLine, BrandTitle, BrandLogo } from "@/components/Brand";
 import { PageHeader, Button, Icon, DemoBanner } from "@/components/ui";
 import { SkelCards } from "@/components/Skeleton";
 import { useDemo } from "@/components/ui/DemoContext";
@@ -88,7 +88,7 @@ function ExecBrief({ demo }: { demo: boolean }) {
         ))}
       </Block>
 
-      <div className="brief-foot muted">{d?.disclaimer} · Sentinel Intelligence by Integrate Dynamics</div>
+      <div className="brief-foot muted">{d?.disclaimer} · <BrandLine /></div>
     </div>
   );
 }
@@ -145,9 +145,9 @@ export default function DailyBriefView() {
           {/* letterhead */}
           <div className="brief-head">
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Logo size={42} />
+              <BrandLogo size={42} />
               <div>
-                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 0.5 }}>Sentinel Intelligence</div>
+                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 0.5 }}><BrandTitle /></div>
                 <div className="muted" style={{ fontSize: 12 }}>التقرير الاستخباراتي اليومي · {today}</div>
               </div>
             </div>
@@ -259,7 +259,7 @@ export default function DailyBriefView() {
           )}
 
           <div className="brief-foot muted">
-            {d.disclaimer} · Sentinel Intelligence by Integrate Dynamics ·
+            {d.disclaimer} · <BrandLine /> ·
             بيانات حتى: {d.data_generated_at ? new Date(d.data_generated_at * 1000).toLocaleString("ar-IQ") : "—"}
           </div>
         </div>

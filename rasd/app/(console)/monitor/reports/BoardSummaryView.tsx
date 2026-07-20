@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiGet, logEvent } from "@/lib/api";
 import { useDemo } from "@/components/ui/DemoContext";
-import Logo from "@/components/Logo";
+import { BrandTitle, BrandLogo } from "@/components/Brand";
 import { PageHeader, Button, Icon } from "@/components/ui";
 import { SkelCards } from "@/components/Skeleton";
 import { buildMattersItems } from "@/components/WhatMattersNow";
@@ -50,9 +50,9 @@ export default function BoardSummaryView() {
         <div className="brief-doc">
           <div className="brief-head">
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Logo size={42} />
+              <BrandLogo size={42} />
               <div>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>Sentinel Intelligence</div>
+                <div style={{ fontSize: 20, fontWeight: 900 }}><BrandTitle /></div>
                 <div className="muted" style={{ fontSize: 12 }}>موجز المجلس · {today}</div>
               </div>
             </div>
@@ -106,7 +106,7 @@ export default function BoardSummaryView() {
             )}
           </div>
 
-          <div className="brief-foot muted">{d.disclaimer || "مؤشرات احتمالية — تتطلّب قراءة بشرية قبل القرار."} · Sentinel Intelligence · {today}</div>
+          <div className="brief-foot muted">{d.disclaimer || "مؤشرات احتمالية — تتطلّب قراءة بشرية قبل القرار."} · <BrandTitle /> · {today}</div>
         </div>
       )}
     </div>

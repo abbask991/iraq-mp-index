@@ -10,6 +10,7 @@ import { Bars as MBars } from "@/components/MiniCharts";
 import { PageHeader, Button, Icon, DemoBanner } from "@/components/ui";
 import Tabs, { type TabDef } from "@/components/ui/Tabs";
 import { useDemo } from "@/components/ui/DemoContext";
+import { BrandTitle } from "@/components/Brand";
 
 const appColor = (v: number) => (v >= 60 ? "#22c55e" : v >= 40 ? "#f59e0b" : "#f43f5e");
 const fmt = (n: number) => (n || 0).toLocaleString("en-US");
@@ -616,7 +617,7 @@ function FbReportView({ demo }: { demo: boolean }) {
             {d.viral_posts.slice(0, 5).map((p: any, i: number) => <div key={i} style={{ fontSize: 12.5, padding: "5px 0", borderTop: i ? "1px solid var(--line)" : 0 }}>{p.text} <span className="muted">— {p.page} · {fmt(p.reactions)}</span></div>)}
           </section>
         )}
-        <div className="brief-foot muted">{d.disclaimer} · Sentinel Intelligence · {today}</div>
+        <div className="brief-foot muted">{d.disclaimer} · <BrandTitle /> · {today}</div>
       </div>
     </div>
   );

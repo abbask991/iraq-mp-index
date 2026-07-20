@@ -4,7 +4,7 @@ import { apiPost } from "@/lib/api";
 import { getTargets, primaryKeyword } from "@/lib/targets";
 import { useDemo } from "@/components/ui/DemoContext";
 import RangeSelect, { Range } from "@/components/RangeSelect";
-import Logo from "@/components/Logo";
+import { BrandLine, BrandTitle, BrandLogo } from "@/components/Brand";
 import { PageHeader, Button, Icon } from "@/components/ui";
 
 /**
@@ -84,9 +84,9 @@ export default function CampaignReportView() {
         <div className="brief-doc">
           <div className="brief-head">
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Logo size={42} />
+              <BrandLogo size={42} />
               <div>
-                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 0.5 }}>Sentinel Intelligence</div>
+                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 0.5 }}><BrandTitle /></div>
                 <div className="muted" style={{ fontSize: 12 }}>تقرير الحملات المنسّقة · {today}</div>
               </div>
             </div>
@@ -157,7 +157,7 @@ export default function CampaignReportView() {
             </section>
           )}
 
-          <div className="brief-foot muted">{res.disclaimer} · Sentinel Intelligence by Integrate Dynamics · {today}</div>
+          <div className="brief-foot muted">{res.disclaimer} · <BrandLine /> · {today}</div>
         </div>
       ))}
     </div>

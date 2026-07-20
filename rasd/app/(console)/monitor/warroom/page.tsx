@@ -10,6 +10,7 @@ import EmotionHeatmap from "@/components/EmotionHeatmap";
 import IraqMap from "@/components/IraqMap";
 import Icon from "@/components/ui/Icon";
 import { PageHeader, Button } from "@/components/ui";
+import { BrandLine } from "@/components/Brand";
 
 const TRAJ = (t: string) => (t === "rising" || t === "escalating" ? "▲" : t === "declining" || t === "cooling" ? "▼" : "▬");
 
@@ -307,7 +308,7 @@ export default function WarRoom() {
           )}
 
           <div className="muted" style={{ fontSize: 11, textAlign: "center", marginTop: 12 }}>
-            تحديث حيّ كل {REFRESH} ثانية · آخر تحديث للبيانات: {d.generated_at ? new Date(d.generated_at).toLocaleString("ar-IQ") : "—"} · Sentinel Intelligence by Integrate Dynamics
+            تحديث حيّ كل {REFRESH} ثانية · آخر تحديث للبيانات: {d.generated_at ? new Date(d.generated_at).toLocaleString("ar-IQ") : "—"} · <BrandLine />
           </div>
         </>
       )}

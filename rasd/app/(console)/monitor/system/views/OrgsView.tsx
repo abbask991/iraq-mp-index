@@ -9,7 +9,10 @@ const PLANS = [
 ];
 const PLAN_AR: Record<string, string> = Object.fromEntries(PLANS.map((p) => [p.k, p.ar]));
 
-type Org = { id: string; name: string; plan: string; status?: string; slug?: string; created_at?: string };
+type Branding = { name?: string; logo_url?: string; primary?: string; hide_vendor?: boolean };
+type Org = { id: string; name: string; plan: string; status?: string; slug?: string; created_at?: string; branding?: Branding };
+
+const EMPTY_BRAND: Branding = { name: "", logo_url: "", primary: "", hide_vendor: false };
 
 export default function OrgsView() {
   const [orgs, setOrgs] = useState<Org[] | null>(null);
@@ -19,6 +22,9 @@ export default function OrgsView() {
   const [msg, setMsg] = useState("");
   const [usage, setUsage] = useState<Record<string, any>>({});
   const [openId, setOpenId] = useState<string | null>(null);
+  const [brandId, setBrandId] = useState<string | null>(null);
+  const [brandForm, setBrandForm] = useState<Branding>(EMPTY_BRAND);
+  const [brandMsg, setBrandMsg] = useState("");
 
   const load = () => {
     setLoading(true);
@@ -38,6 +44,27 @@ export default function OrgsView() {
   const changePlan = async (id: string, p: string) => {
     await apiSend(`/api/orgs/${id}`, "PATCH", { plan: p }).catch(() => null);
     load();
+  };
+
+  const openBrand = (o: Org) => {
+    if (brandId === o.id) { setBrandId(null); return; }
+    setBrandId(o.id);
+    setBrandMsg("");
+    setBrandForm({ ...EMPTY_BRAND, ...(o.branding || {}) });
+  };
+
+  const saveBrand = async (id: string) => {
+    setBrandMsg("…");
+    // trim empties so an unset field falls back to the default identity
+    const branding: Branding = {
+      name: (brandForm.name || "").trim(),
+      logo_url: (brandForm.logo_url || "").trim(),
+      primary: (brandForm.primary || "").trim(),
+      hide_vendor: !!brandForm.hide_vendor,
+    };
+    const r = await apiSend(`/api/orgs/${id}`, "PATCH", { branding }).catch(() => null);
+    if (r && r.updated !== false) { setBrandMsg("✅ حُفظت الهوية"); load(); }
+    else setBrandMsg("⚠️ تعذّر الحفظ (مؤسسة حقيقية فقط — طبّق 013 وأنشئ العميل)");
   };
 
   const toggleUsage = async (id: string) => {
@@ -87,11 +114,55 @@ export default function OrgsView() {
                   <select value={o.plan} onChange={(e) => changePlan(o.id, e.target.value)} style={{ width: 130, fontSize: 13 }}>
                     {PLANS.map((p) => <option key={p.k} value={p.k}>{p.ar}</option>)}
                   </select>
+                  <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => openBrand(o)}>
+                    {brandId === o.id ? "إغلاق الهوية" : "الهوية (White-label)"}
+                  </button>
                   <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => toggleUsage(o.id)}>
                     {openId === o.id ? "إخفاء الكلفة" : "كلفة البيانات"}
                   </button>
                 </div>
               </div>
+              {brandId === o.id && (
+                <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+                  <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>
+                    اترك أي حقل فارغاً ليعود للهوية الافتراضية «Sentinel Intelligence by Integrate Dynamics».
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <label style={{ fontSize: 12 }}>
+                      اسم العلامة
+                      <input value={brandForm.name || ""} placeholder="Sentinel Intelligence"
+                        onChange={(e) => setBrandForm((f) => ({ ...f, name: e.target.value }))}
+                        style={{ width: "100%", marginTop: 4 }} />
+                    </label>
+                    <label style={{ fontSize: 12 }}>
+                      رابط الشعار (logo URL)
+                      <input value={brandForm.logo_url || ""} placeholder="https://…/logo.png"
+                        onChange={(e) => setBrandForm((f) => ({ ...f, logo_url: e.target.value }))}
+                        style={{ width: "100%", marginTop: 4 }} />
+                    </label>
+                    <label style={{ fontSize: 12 }}>
+                      اللون الأساسي
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
+                        <input type="color" value={brandForm.primary || "#4f9dff"}
+                          onChange={(e) => setBrandForm((f) => ({ ...f, primary: e.target.value }))}
+                          style={{ width: 40, height: 32, padding: 0, border: "none", background: "none" }} />
+                        <input value={brandForm.primary || ""} placeholder="#4f9dff"
+                          onChange={(e) => setBrandForm((f) => ({ ...f, primary: e.target.value }))}
+                          style={{ flex: 1 }} />
+                      </div>
+                    </label>
+                    <label style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 8, marginTop: 20 }}>
+                      <input type="checkbox" checked={!!brandForm.hide_vendor}
+                        onChange={(e) => setBrandForm((f) => ({ ...f, hide_vendor: e.target.checked }))} />
+                      إخفاء «by Integrate Dynamics»
+                    </label>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10 }}>
+                    <button className="btn" style={{ fontSize: 13 }} onClick={() => saveBrand(o.id)}>حفظ الهوية</button>
+                    {brandMsg && <span className="muted" style={{ fontSize: 12 }}>{brandMsg}</span>}
+                  </div>
+                </div>
+              )}
               {openId === o.id && (
                 <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
                   {!usage[o.id] && <span className="muted" style={{ fontSize: 12 }}>…جارٍ الحساب</span>}

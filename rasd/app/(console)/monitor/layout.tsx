@@ -9,8 +9,9 @@ import CommandPalette from "@/components/CommandPalette";
 import Breadcrumb from "@/components/Breadcrumb";
 import RelatedModules from "@/components/RelatedModules";
 import { paletteEntries } from "@/lib/modules";
-import Logo from "@/components/Logo";
 import { DemoProvider, useDemo } from "@/components/ui/DemoContext";
+import { OrgProvider } from "@/lib/org";
+import { BrandLogo, BrandName, BrandStack } from "@/components/Brand";
 import { DemoBanner, Icon } from "@/components/ui";
 
 /** The one demo switch for the console. Lives in the top bar so it is reachable
@@ -65,8 +66,9 @@ const T = {
 
 export default function DashLayout({ children }: { children: React.ReactNode }) {
   // DemoSwitch/DemoNotice below read this context, so the provider has to wrap
-  // the whole shell, not just {children}.
-  return <DemoProvider><DashShell>{children}</DashShell></DemoProvider>;
+  // the whole shell, not just {children}. OrgProvider wraps everything so the
+  // sidebar brand and every report footer read the tenant's white-label branding.
+  return <OrgProvider><DemoProvider><DashShell>{children}</DashShell></DemoProvider></OrgProvider>;
 }
 
 function DashShell({ children }: { children: React.ReactNode }) {
@@ -188,8 +190,8 @@ function DashShell({ children }: { children: React.ReactNode }) {
  <div className="console-bar">
  <div className="cb-left">
  <button className="cb-burger" aria-label="menu" onClick={() => setNavOpen((v) => !v)}>{navOpen ? "✕" : "☰"}</button>
- <Logo size={24} />
- <span className="cb-brand">Sentinel<span className="cb-brand-2"> Intelligence</span></span>
+ <BrandLogo size={24} />
+ <BrandName />
  <span className="cb-chev">›</span>
  <Suspense fallback={<span className="cb-section">{sectionTitle}</span>}>
  <Breadcrumb fallback={sectionTitle} lang={lang} />
@@ -268,8 +270,8 @@ function DashShell({ children }: { children: React.ReactNode }) {
         })}
 
  <div className="side-brand">
- <Logo size={22} />
- <span className="t"><b>Sentinel Intelligence</b><br />by Integrate Dynamics</span>
+ <BrandLogo size={22} />
+ <BrandStack />
  </div>
  </aside>
 
