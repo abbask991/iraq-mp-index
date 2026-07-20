@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
@@ -38,6 +39,12 @@ const toneOf = (l: string): Tone =>
   /حرج/.test(l) ? "crit" : /مرتفع/.test(l) ? "danger" : /متوسط/.test(l) ? "warn" : "ok";
 /** Numeric risk (0-100) → tone. */
 const toneOfScore = (n: number): Tone => (n >= 70 ? "crit" : n >= 50 ? "danger" : n >= 30 ? "warn" : "ok");
+
+/** Public Anger trend → Arabic. Mirrors AngerView's own map so the command
+ *  card and the full breakdown speak the same language. */
+const ANGER_TREND: Record<string, string> = {
+  accelerating: "متسارع", rising: "متصاعد", stable: "مستقر", declining: "متراجع", cooling_down: "يهدأ",
+};
 
 const CHANGE: Record<string, { icon: IconName; tone: Tone }> = {
   reputation_drop: { icon: "trendDown", tone: "danger" },
@@ -81,6 +88,15 @@ export default function CommandCenter() {
   useEffect(() => { apiGet("/api/settings/health").then(setHealth).catch(() => {}); }, []);
   const blockers = (health?.blockers || []).filter((b: any) => b.severity === "crit");
 
+  // Public Anger Index — national scope. The full, scope-selectable breakdown
+  // lives in Risk › مؤشر الغضب العام; here it surfaces as a single posture card
+  // so a decision-maker sees the national anger level without leaving command.
+  const [anger, setAnger] = useState<any>(null);
+  useEffect(() => {
+    const q = `scope_type=country&scope_id=${encodeURIComponent("العراق")}&scope_name=${encodeURIComponent("العراق")}&period=week&demo=${demo ? 1 : ""}`;
+    apiGet(`/api/indices/public-anger?${q}`).then(setAnger).catch(() => setAnger(null));
+  }, [demo]);
+
   return (
     <div>
       <PageHeader
@@ -99,6 +115,11 @@ export default function CommandCenter() {
                 </span>
               );
             })()}
+            {/* The war room is the live wall-display mode of this page — same data,
+                fullscreen, auto-refreshing. Entered from here, not a nav item. */}
+            <Link href="/monitor/warroom" className="u-btn" data-variant="primary" title="عرض حائطي مباشر يتحدّث تلقائياً">
+              <Icon name="expand" size={13} /> غرفة الحرب (مباشر)
+            </Link>
           </>
         }
       />
@@ -278,6 +299,32 @@ export default function CommandCenter() {
                   </Card>
                 )}
               </Grid>
+            </Section>
+          )}
+
+          {/* Public Anger Index — national posture card. Full breakdown in Risk. */}
+          {anger?.score != null && (
+            <Section title="مؤشر الغضب العام" icon="alert">
+              <Card t={toneOfScore(anger.score)}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--s-5)", flexWrap: "wrap" }}>
+                  <Gauge value={anger.score} sub={anger.risk_level_ar} color={riskColor(anger.score)} size={124} stroke={11} />
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", marginBottom: "var(--s-3)" }}>
+                      {anger.trend && <Badge t={toneOfScore(anger.score)} dot>{ANGER_TREND[anger.trend] || anger.trend}</Badge>}
+                      {anger.change_24h != null && <Badge t={anger.change_24h > 0 ? "danger" : "ok"}>٢٤س: {anger.change_24h > 0 ? "+" : ""}{anger.change_24h}</Badge>}
+                      {anger.change_7d != null && <Badge>٧ أيام: {anger.change_7d > 0 ? "+" : ""}{anger.change_7d}</Badge>}
+                    </div>
+                    {anger.explanation?.summary && (
+                      <p className="u-muted" style={{ margin: "0 0 var(--s-3)", lineHeight: "var(--lh-base)" }}>{anger.explanation.summary}</p>
+                    )}
+                    <div className="u-fine">النطاق: العراق (وطني) · أسبوع{anger.confidence_score != null ? ` · الثقة ${anger.confidence_score}%` : ""}</div>
+                  </div>
+                </div>
+                <div className="u-card-foot">
+                  <span className="u-fine">أعلى الدوافع: {(anger.drivers || []).slice(0, 3).map((dr: any) => dr.driver_name).join(" · ") || "—"}</span>
+                  <Link href="/monitor/risk?tab=anger" className="u-btn"><Icon name="target" size={13} /> التحليل الكامل</Link>
+                </div>
+              </Card>
             </Section>
           )}
 
