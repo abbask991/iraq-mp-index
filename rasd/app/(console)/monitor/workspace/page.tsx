@@ -12,6 +12,8 @@ import PlatformContributionCard from "@/components/PlatformContributionCard";
 import PilotMode from "@/components/PilotMode";
 import IntelligenceTaskingPanel from "@/components/IntelligenceTaskingPanel";
 import ClientLanguageAdapter from "@/components/ClientLanguageAdapter";
+import IntelligenceROITracker from "@/components/IntelligenceROITracker";
+import ActionImpactTracker from "@/components/ActionImpactTracker";
 import { CLIENT_TYPES, TEMPLATES, clientType, getClientType, setClientType, type Template } from "@/lib/workspace";
 
 const FIELDS: [string, string, string][] = [
@@ -182,6 +184,9 @@ export default function Workspace() {
             {recos.length > 0 && <RecommendedActions actions={recos} />}
             <PlatformContributionCard platforms={cc?.platform_activity} title="مساهمة المنصّات" />
           </div>
+
+          <div style={{ marginBottom: 14 }}><IntelligenceROITracker period={cfg ? cfg.ar : "الفترة الحالية"} /></div>
+          <div style={{ marginBottom: 14 }}><ActionImpactTracker d={cc} anger={anger} /></div>
 
           {!cc && <SkelCards count={3} />}
           <p className="muted" style={{ fontSize: 11 }}>لوحة القيمة تعرض صورة مؤسستك (معزولة لكل عميل). التفاصيل الكاملة في الوحدات المختصّة.</p>
