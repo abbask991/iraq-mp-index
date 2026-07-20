@@ -64,11 +64,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "entities", ar: "الكيانات والتأثير", en: "Entities & Influence",
     items: [
-      { ar: "مساحة عمل الكيان", en: "Entity Workspace", href: "/monitor/entities/%D9%88%D8%B2%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D9%83%D9%87%D8%B1%D8%A8%D8%A7%D8%A1/workspace", matchPrefix: "/monitor/entities" },
-      { ar: "التوأم الرقمي", en: "Digital Twin", href: "/monitor/intelligence" },
-      { ar: "المقارنة (كيان مقابل كيان)", en: "Compare Entities", href: "/monitor/compare" },
-      { ar: "تحليل الحسابات والمؤثرين", en: "Account & Influencer Analysis", href: "/monitor/profiler" },
-      { ar: "رادار المؤثّرين", en: "Influencer Radar", href: "/monitor/influencers" },
+      { ar: "الكيانات والتأثير", en: "Entities & Influence", href: "/monitor/entities" },
     ],
   },
   {

@@ -43,7 +43,7 @@ function Bar({ value, color }: { value: number; color: string }) {
   );
 }
 
-export default function Intelligence() {
+export default function TwinView() {
   const [monitors, setMonitors] = useState<any[]>([]);
   const [term, setTerm] = useState("");
   const [stage, setStage] = useState("");

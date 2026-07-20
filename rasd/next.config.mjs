@@ -11,6 +11,11 @@ const nextConfig = {
       // overview showed the same ~10 items as command in older styling; its one
       // unique piece (Iraq geo map) moved into command.
       { source: "/monitor/overview", destination: "/monitor/command", permanent: false },
+      // Entities & Influence — 4 standalone tools folded into one tabbed module.
+      { source: "/monitor/intelligence", destination: "/monitor/entities?tab=twin", permanent: false },
+      { source: "/monitor/influencers", destination: "/monitor/entities?tab=influencers", permanent: false },
+      { source: "/monitor/profiler", destination: "/monitor/entities?tab=profiler", permanent: false },
+      { source: "/monitor/compare", destination: "/monitor/entities?tab=compare", permanent: false },
       // Monitoring Hub — source-level coverage. Uses ?src= for module tabs.
       { source: "/monitor/facebook", destination: "/monitor/sources?src=facebook", permanent: false },
       { source: "/monitor/fusion", destination: "/monitor/sources?src=overview", permanent: false },

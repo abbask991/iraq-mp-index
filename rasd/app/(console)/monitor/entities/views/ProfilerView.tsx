@@ -7,7 +7,7 @@ import EmptyState from "@/components/EmptyState";
 
 const colColor = (v: number) => (v >= 60 ? "#f43f5e" : v >= 35 ? "#fb923c" : "#22c55e");
 
-export default function Profiler() {
+export default function ProfilerView() {
   const [h, setH] = useState("");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(false);

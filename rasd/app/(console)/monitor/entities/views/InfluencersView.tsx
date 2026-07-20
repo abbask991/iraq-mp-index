@@ -11,7 +11,7 @@ function Stat({ l, v, c }: { l: string; v: any; c?: string }) {
   return <div style={{ textAlign: "center" }}><div style={{ fontWeight: 800, fontSize: 16, color: c }}>{v}</div><div className="muted" style={{ fontSize: 11 }}>{l}</div></div>;
 }
 
-export default function Influencers() {
+export default function InfluencersView() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<string | null>(null);

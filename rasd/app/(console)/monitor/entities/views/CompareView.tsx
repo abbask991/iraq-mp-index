@@ -24,7 +24,7 @@ async function buildTwin(name: string) {
   return t;
 }
 
-export default function Compare() {
+export default function CompareView() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [a, setA] = useState(""); const [b, setB] = useState("");
   const [twA, setTwA] = useState<any>(null); const [twB, setTwB] = useState<any>(null);
