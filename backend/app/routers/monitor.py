@@ -32,6 +32,7 @@ class KeywordReq(BaseModel):
     keywords: list[str] = []
     limit: int | None = None
     range: str | None = None   # day | week | month | year
+    demo: int | None = None    # 1 → return curated demo data instead of a live fetch
 
 
 class RepliesReq(BaseModel):
@@ -863,9 +864,55 @@ async def monitor_campaign_scan(req: KeywordReq = KeywordReq()):  # noqa: B008
     return out
 
 
+def _campaign_demo(kw: str) -> dict:
+    """Curated demo for the coordinated-campaign detector. Mirrors the exact
+    shape campaign.detect() returns from live X data — so the demo shows the
+    same fields the real pipeline produces, never invented ones."""
+    return {
+        "coordination_score": 72,
+        "alert_level": {"level": "strong", "label": "تنسيق قوي — حملة منظّمة محتملة"},
+        "main_narrative": f"موجة منشورات منسّقة حول «{kw}»",
+        "total_posts": 1840, "unique_accounts": 213,
+        "duplicate_content_ratio": 0.41, "peak_15min_post_ratio": 0.48, "suspicious_account_ratio": 0.37,
+        "platforms_detected": ["x", "telegram", "facebook"],
+        "sub_scores": {
+            "text_similarity": 78, "timing_sync": 71, "account_suspicion": 63, "network_amplification": 69,
+            "link_repetition": 55, "hashtag_pattern": 74, "cross_platform": 66, "narrative_consistency": 80,
+            "influencer_trigger": 58,
+        },
+        "weights": {
+            "text_similarity": 0.16, "timing_sync": 0.14, "account_suspicion": 0.12, "network_amplification": 0.12,
+            "link_repetition": 0.08, "hashtag_pattern": 0.10, "cross_platform": 0.10, "narrative_consistency": 0.10,
+            "influencer_trigger": 0.08,
+        },
+        "explanation": (
+            f"رُصدت موجة نشر مكثّفة حول «{kw}» خلال نافذة قصيرة: ٤١٪ من المحتوى متطابق أو شبه متطابق، "
+            "و٤٨٪ من المنشورات تركّزت في ذُرى مدّتها ١٥ دقيقة، مع ٣٧٪ من الحسابات تحمل مؤشّرات اشتباه "
+            "(حسابات حديثة، إيقاع آلي، قلّة متابعين). تماسك السردية مرتفع (٨٠) عبر ثلاث منصّات، ما يرجّح "
+            "وجود تنسيق منظّم لا نشاطاً عضوياً. يُنصح بمراجعة بشرية قبل أي استنتاج نهائي."
+        ),
+        "disclaimer": "مؤشّر احتمالي — يُستأنس به ولا يُعتمد كحقيقة قاطعة. (بيانات توضيحية)",
+        "top_repeated_phrases": [
+            {"count": 96, "text": f"لا صوت يعلو على {kw} — الشعب يريد"},
+            {"count": 74, "text": "شاركوا ونشروا الوسم قبل حذفه"},
+            {"count": 51, "text": "هذا ما لا يريدون أن تعرفوه عن"},
+        ],
+        "top_hashtags": [
+            {"hashtag": kw.replace(" ", "_"), "count": 612}, {"hashtag": "العراق", "count": 388},
+            {"hashtag": "الحقيقة", "count": 205}, {"hashtag": "لا_للفساد", "count": 149},
+        ],
+        "top_amplifier_accounts": [
+            {"username": "voice_iq_2026", "posts": 47}, {"username": "al_haqiqa_now", "posts": 39},
+            {"username": "watan_first", "posts": 33}, {"username": "sawt_alsha3b", "posts": 28},
+        ],
+    }
+
+
 @router.post("/campaign")
 async def monitor_campaign(req: KeywordReq):
     """Coordinated-campaign detection — 9-signal Coordination Score (0-100)."""
+    if req.demo:
+        return _campaign_demo((req.keywords or ["الحملة"])[0])
     if not req.keywords:
         return {"coordination_score": 0, "alert_level": {"level": "organic"}}
     kw = req.keywords[0]

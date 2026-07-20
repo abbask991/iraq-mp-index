@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiPost } from "@/lib/api";
 import { getTargets, primaryKeyword } from "@/lib/targets";
+import { useDemo } from "@/components/ui/DemoContext";
 import RangeSelect, { Range } from "@/components/RangeSelect";
 import Logo from "@/components/Logo";
 import { PageHeader, Button, Icon } from "@/components/ui";
@@ -28,6 +29,7 @@ export default function CampaignReportView() {
   const [range, setRange] = useState<Range>("week");
   const [res, setRes] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const { demo } = useDemo();
   const today = new Date().toLocaleDateString("ar-IQ", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
   useEffect(() => {
@@ -42,9 +44,11 @@ export default function CampaignReportView() {
   const run = async (q: string) => {
     if (!q.trim()) return;
     setTerm(q); setLoading(true); setRes(null);
-    const r = await apiPost("campaign", { keywords: [q], range }).catch(() => null);
+    const r = await apiPost("campaign", { keywords: [q], range, ...(demo ? { demo: 1 } : {}) }).catch(() => null);
     setRes(r); setLoading(false);
   };
+  // re-run when the demo switch flips
+  useEffect(() => { if (term) run(term); /* eslint-disable-next-line */ }, [demo]);
 
   const c = LV[res?.alert_level?.level] || LV.organic;
 

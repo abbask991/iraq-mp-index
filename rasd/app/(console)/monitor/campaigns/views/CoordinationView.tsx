@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { getTargets, primaryKeyword, Target } from "@/lib/targets";
+import { useDemo } from "@/components/ui/DemoContext";
 import Gauge from "@/components/Gauge";
 import { SkelCards } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
@@ -17,11 +18,12 @@ export default function CoordinationView() {
   const [term, setTerm] = useState("");
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const { demo } = useDemo();
 
   const run = async (name: string) => {
     if (!name.trim()) return;
     setTerm(name); setLoading(true); setD(null);
-    const r = await apiGet(`/api/coordination/${encodeURIComponent(name.trim())}?range=week`).catch(() => null);
+    const r = await apiGet(`/api/coordination/${encodeURIComponent(name.trim())}?range=week${demo ? "&demo=1" : ""}`).catch(() => null);
     setD(r); setLoading(false);
   };
   useEffect(() => {
@@ -29,6 +31,8 @@ export default function CoordinationView() {
     getTargets().then((ts) => { setTargets(ts); run(qp || primaryKeyword(ts)); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // re-run when the demo switch flips
+  useEffect(() => { if (term) run(term); /* eslint-disable-next-line */ }, [demo]);
 
   const vd = d?.verdict || {};
   const m = d?.metrics || {};

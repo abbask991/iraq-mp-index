@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { apiPost } from "@/lib/api";
 import { getTargets, primaryKeyword } from "@/lib/targets";
+import { useDemo } from "@/components/ui/DemoContext";
 import RangeSelect, { Range } from "@/components/RangeSelect";
 
 const LV: Record<string, { c: string; bg: string }> = {
@@ -30,6 +31,7 @@ export default function CampaignDetailView() {
   const [range, setRange] = useState<Range>("week");
   const [res, setRes] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const { demo } = useDemo();
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get("q");
@@ -39,11 +41,13 @@ export default function CampaignDetailView() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // re-run when the demo switch flips so the detector shows demo vs live data
+  useEffect(() => { if (term) run(term); /* eslint-disable-next-line */ }, [demo]);
 
   const run = async (q: string) => {
     if (!q.trim()) return;
     setTerm(q); setLoading(true); setRes(null);
-    const r = await apiPost("campaign", { keywords: [q], range }).catch(() => null);
+    const r = await apiPost("campaign", { keywords: [q], range, ...(demo ? { demo: 1 } : {}) }).catch(() => null);
     setRes(r); setLoading(false);
   };
 
