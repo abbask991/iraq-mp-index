@@ -145,5 +145,15 @@ async def update(table: str, match: str, patch: dict, timeout: int = 15):
         return r.status_code in (200, 204)
 
 
+async def delete(table: str, match: str, timeout: int = 15):
+    """DELETE /rest/v1/<table>?<match>. `match` MUST scope the rows (never call
+    with an empty filter — PostgREST would refuse, but don't rely on that)."""
+    if not enabled() or not match:
+        return False
+    async with httpx.AsyncClient() as c:
+        r = await c.delete(f"{SUPABASE_URL}/rest/v1/{table}?{match}", headers=_h(), timeout=timeout)
+        return r.status_code in (200, 204)
+
+
 async def insert_job_run(row: dict):
     await insert("job_runs", row, upsert=True, on_conflict="id")

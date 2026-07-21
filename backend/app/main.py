@@ -70,6 +70,8 @@ from app.routers import workspace as workspace_router  # noqa: E402
 app.include_router(workspace_router.router)
 from app.routers import orgs as orgs_router  # noqa: E402
 app.include_router(orgs_router.router)
+from app.routers import organization as organization_router  # noqa: E402
+app.include_router(organization_router.router)
 from app.routers import indices as indices_router  # noqa: E402
 app.include_router(indices_router.router)
 

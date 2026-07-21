@@ -19,15 +19,31 @@ from app.services import db
 WHITELABEL_BASE_DOMAIN = os.getenv("WHITELABEL_BASE_DOMAIN", "").strip().lower()
 
 VALID_PLANS = ("trial", "basic", "pro", "enterprise")
-VALID_ORG_TYPES = ("general", "media", "corporate", "government", "political")
+# spec §3 org types + the legacy short values kept for backward-compat.
+VALID_ORG_TYPES = (
+    "general", "government", "ministry", "security_institution", "embassy",
+    "international_organization", "corporate", "research_center",
+    "political_actor", "media_organization", "investor", "other",
+    # legacy values from earlier code — still accepted so existing rows keep working
+    "media", "political",
+)
 
 # Per-sector framing fed into the AI narrative layer so briefs/analysis are
-# written from the concerns of that client's sector. 'general' adds nothing
-# (neutral, current behaviour).
+# written from the concerns of that client's sector. 'general'/'other' add
+# nothing (neutral, current behaviour).
 SECTOR_AI_FRAMING = {
-    "media": "سياق العميل: مؤسسة إعلامية. أطّر التحليل من زاوية التغطية الإعلامية، حصّة الصوت، وإدارة السمعة التحريرية.",
-    "corporate": "سياق العميل: شركة/علامة تجارية. أطّر التحليل من زاوية سمعة العلامة، مخاطر السوق، ومشاعر العملاء.",
     "government": "سياق العميل: جهة حكومية/سيادية. أطّر التحليل من زاوية الرأي العام تجاه الخدمات والسياسات، والاستقرار، والإنذار المبكر.",
+    "ministry": "سياق العميل: وزارة تقدّم خدمات عامة. أطّر التحليل من زاوية شكاوى الخدمات، رضا الجمهور، والملفّات الحسّاسة والإنذار المبكر.",
+    "security_institution": "سياق العميل: مؤسسة أمنية. أطّر التحليل من زاوية المخاطر والتهديدات، الحشد والتنسيق المشبوه، والإنذار المبكر.",
+    "embassy": "سياق العميل: بعثة دبلوماسية. أطّر التحليل من زاوية استخبارات الدولة المضيفة، المزاج العام، والمخاطر السياسية والأمنية.",
+    "international_organization": "سياق العميل: منظمة دولية. أطّر التحليل من زاوية القضايا الإنسانية والتنموية، المخاطر الإقليمية، والرأي العام.",
+    "corporate": "سياق العميل: شركة/علامة تجارية. أطّر التحليل من زاوية سمعة العلامة، مخاطر السوق، ومشاعر العملاء.",
+    "research_center": "سياق العميل: مركز أبحاث. أطّر التحليل من زاوية تحليل الرأي العام، السرديات، والاتجاهات السياسية بموضوعية بحثية.",
+    "political_actor": "سياق العميل: كيان/حملة سياسية. أطّر التحليل من زاوية الرأي العام، المنافسة الانتخابية، والسرديات المؤثّرة على الناخب.",
+    "media_organization": "سياق العميل: مؤسسة إعلامية. أطّر التحليل من زاوية التغطية الإعلامية، حصّة الصوت، وإدارة السمعة التحريرية.",
+    "investor": "سياق العميل: مستثمر. أطّر التحليل من زاوية مخاطر الدولة والسوق، الاستقرار، والمؤشرات المؤثّرة على القرار الاستثماري.",
+    # legacy aliases
+    "media": "سياق العميل: مؤسسة إعلامية. أطّر التحليل من زاوية التغطية الإعلامية، حصّة الصوت، وإدارة السمعة التحريرية.",
     "political": "سياق العميل: كيان/حملة سياسية. أطّر التحليل من زاوية الرأي العام، المنافسة الانتخابية، والسرديات المؤثّرة على الناخب.",
 }
 
