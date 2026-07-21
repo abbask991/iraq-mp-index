@@ -219,13 +219,21 @@ async def remove_study_target(study_id: str, target_id: str, ctx: dict = Depends
 @router.get("/studies/{study_id}/collection")
 async def collection_scope(study_id: str, ctx: dict = Depends(gate())):
     await _own_study(ctx, study_id)
-    return await collection.collection_scope(ctx["org_id"], study_id)
+    try:
+        return await collection.collection_scope(ctx["org_id"], study_id)
+    except Exception as e:  # TEMP diagnostic
+        import traceback
+        return {"_error": str(e), "_type": type(e).__name__, "_tb": traceback.format_exc()[-800:]}
 
 
 @router.get("/studies/{study_id}/estimate")
 async def collection_estimate(study_id: str, ctx: dict = Depends(gate())):
     await _own_study(ctx, study_id)
-    return await collection.estimate_study(ctx["org_id"], study_id)
+    try:
+        return await collection.estimate_study(ctx["org_id"], study_id)
+    except Exception as e:  # TEMP diagnostic
+        import traceback
+        return {"_error": str(e), "_type": type(e).__name__, "_tb": traceback.format_exc()[-800:]}
 
 
 @router.post("/studies/{study_id}/collection/{action}")
