@@ -50,6 +50,33 @@ async def all_orgs(_: dict = Depends(require_admin)):
     return {"orgs": await orgs.list_orgs()}
 
 
+@router.get("/overview")
+async def overview(_: dict = Depends(require_admin)):
+    """Platform-Admin dashboard (spec §20): fleet counts + recent activity."""
+    from app.services import audit
+    all_orgs = await orgs.list_orgs()
+
+    def tally(key: str) -> dict:
+        out: dict[str, int] = {}
+        for o in all_orgs:
+            k = str(o.get(key) or "—")
+            out[k] = out.get(k, 0) + 1
+        return out
+
+    active = sum(1 for o in all_orgs if o.get("status") == "active")
+    paying = sum(1 for o in all_orgs if o.get("plan") in ("basic", "pro", "enterprise"))
+    return {
+        "total": len(all_orgs),
+        "active": active,
+        "paying": paying,
+        "by_status": tally("status"),
+        "by_plan": tally("plan"),
+        "by_type": tally("org_type"),
+        "with_domain": sum(1 for o in all_orgs if o.get("domain")),
+        "recent_audit": await audit.recent(None, 40),
+    }
+
+
 class CreateReq(BaseModel):
     name: str
     plan: str = "trial"

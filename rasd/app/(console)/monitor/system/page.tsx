@@ -14,6 +14,7 @@ import ClientSuccessView from "./views/ClientSuccessView";
 import AccountView from "./views/AccountView";
 import OrgWorkspacesView from "./views/OrgWorkspacesView";
 import OrgUsersView from "./views/OrgUsersView";
+import PlatformDashboardView from "./views/PlatformDashboardView";
 
 // System & Cost Control — settings, cost, usage, clients, permissions, account.
 // Clients + Plans tabs are admin-only; the tab strip hides them for non-admins
@@ -27,13 +28,14 @@ const BASE: TabDef[] = [
   { key: "account", label: "الحساب", icon: "target" },
 ];
 const ADMIN: TabDef[] = [
+  { key: "platform", label: "لوحة المنصّة", icon: "rocket" },
   { key: "orgs", label: "العملاء", icon: "network" },
   { key: "success", label: "نجاح العملاء", icon: "check" },
   { key: "packages", label: "الباقات والصلاحيات", icon: "clip" },
 ];
 const VIEW: Record<string, any> = {
   sources: SettingsView, workspaces: OrgWorkspacesView, users: OrgUsersView, cost: CostView, usage: UsageView,
-  account: AccountView, orgs: OrgsView, success: ClientSuccessView, packages: PackagesView,
+  account: AccountView, platform: PlatformDashboardView, orgs: OrgsView, success: ClientSuccessView, packages: PackagesView,
 };
 
 export default function SystemModule() {
