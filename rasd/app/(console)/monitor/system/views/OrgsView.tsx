@@ -5,6 +5,7 @@ import { SkelCards } from "@/components/Skeleton";
 import { ORG_TYPES } from "@/lib/sector";
 import { featureRegistry } from "@/lib/nav";
 import { supabase } from "@/lib/supabaseClient";
+import ProvisioningWizard from "./ProvisioningWizard";
 
 const REGISTRY = featureRegistry();   // [{ group, items:[{ key(=href), ar, en }] }]
 
@@ -35,6 +36,7 @@ export default function OrgsView() {
   const [entHidden, setEntHidden] = useState<Set<string>>(new Set());
   const [entHas, setEntHas] = useState(false);
   const [entMsg, setEntMsg] = useState("");
+  const [wizard, setWizard] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -137,15 +139,21 @@ export default function OrgsView() {
       <h2 style={{ margin: 0 }}>المؤسسات (العملاء) — العزل والفوترة</h2>
       <p className="muted">كل عميل = مؤسسة معزولة ببياناتها وقائمتها وفاتورتها. هنا تنشئ العملاء، تحدّد باقتهم، وتشوف كلفة البيانات لكل واحد.</p>
 
+      {wizard && <ProvisioningWizard onClose={() => setWizard(false)} onCreated={load} />}
+
       <div className="cbox" style={{ marginBottom: 14 }}>
-        <h4>➕ إنشاء عميل جديد</h4>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <h4 style={{ margin: 0 }}>➕ إنشاء عميل جديد</h4>
+          <button className="btn" onClick={() => setWizard(true)}>معالج الإنشاء (كامل التهيئة)</button>
+        </div>
+        <div className="muted" style={{ fontSize: 11, margin: "6px 0 8px" }}>إنشاء سريع بالاسم والباقة، أو استخدم المعالج للتهيئة الكاملة (القطاع، المصادر، الصلاحيات، الهوية، النطاق).</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <input placeholder="اسم المؤسسة / العميل" value={name} onChange={(e) => setName(e.target.value)}
             style={{ flex: 1, minWidth: 200 }} />
           <select value={plan} onChange={(e) => setPlan(e.target.value)} style={{ width: 150 }}>
             {PLANS.map((p) => <option key={p.k} value={p.k}>{p.ar}</option>)}
           </select>
-          <button className="btn" onClick={create}>إنشاء</button>
+          <button className="btn ghost" onClick={create}>إنشاء سريع</button>
           {msg && <span className="muted" style={{ fontSize: 12 }}>{msg}</span>}
         </div>
       </div>
