@@ -6,6 +6,8 @@
  */
 import { useEffect, useState } from "react";
 import { apiGet, apiSend } from "@/lib/api";
+import { supabase } from "@/lib/supabaseClient";
+import { isAdminEmail } from "@/lib/nav";
 
 const ROLES = [
   { k: "organization_owner", ar: "مالك" },
@@ -33,20 +35,45 @@ export default function OrgUsersView() {
   const [password, setPassword] = useState("");
   const [pwEdit, setPwEdit] = useState<string | null>(null);
   const [newPw, setNewPw] = useState("");
+  // platform admin: choose WHICH client org to manage
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [orgs, setOrgs] = useState<{ id: string; name: string }[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<string>("");
+
+  const oq = selectedOrg ? `?org_id=${selectedOrg}` : "";
 
   const load = () => {
     setLoading(true);
-    apiGet("/api/organization/users")
+    apiGet(`/api/organization/users${oq}`)
       .then((r) => { setMembers(r?.users || []); setCap(r?.max_users ?? null); })
       .catch(() => setMembers([])).finally(() => setLoading(false));
   };
-  useEffect(() => { load(); }, []);
+
+  // detect platform admin → load the org list to pick from
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const admin = isAdminEmail(data.user?.email);
+      setIsAdmin(admin);
+      if (admin) {
+        apiGet("/api/orgs").then((r) => {
+          const list = (r?.orgs || []).map((o: any) => ({ id: o.id, name: o.name }));
+          setOrgs(list);
+          if (list.length) setSelectedOrg(list[0].id);
+        }).catch(() => setOrgs([]));
+      } else {
+        load();   // org admin: their own org (no selector)
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // reload whenever the selected org changes
+  useEffect(() => { if (selectedOrg) load(); /* eslint-disable-next-line */ }, [selectedOrg]);
 
   const add = async () => {
     if (!email.trim()) { setMsg("⚠️ الإيميل مطلوب"); return; }
     if (mode === "password" && password.length < 6) { setMsg("⚠️ باسورد ٦ أحرف على الأقل"); return; }
     setMsg("…");
-    const r = await apiSend("/api/organization/users", "POST",
+    const r = await apiSend(`/api/organization/users${oq}`, "POST",
       { email: email.trim(), role, mode, password: mode === "password" ? password : undefined }).catch(() => null);
     if (r?.created || r?.invited) {
       setMsg(r?.invited && !r?.created ? "✅ أُرسلت دعوة بالبريد" : "✅ أُنشئ المستخدم");
@@ -59,31 +86,42 @@ export default function OrgUsersView() {
   };
 
   const changeRole = async (uid: string, newRole: string) => {
-    await apiSend(`/api/organization/users/${uid}`, "PATCH", { role: newRole }).catch(() => null);
+    await apiSend(`/api/organization/users/${uid}${oq}`, "PATCH", { role: newRole }).catch(() => null);
     load();
   };
   const toggleStatus = async (m: Member) => {
     const status = m.status === "suspended" ? "active" : "suspended";
-    await apiSend(`/api/organization/users/${m.user_id}`, "PATCH", { status }).catch(() => null);
+    await apiSend(`/api/organization/users/${m.user_id}${oq}`, "PATCH", { status }).catch(() => null);
     load();
   };
   const resetPw = async (uid: string, sendLink: boolean) => {
     setMsg("…");
     const body = sendLink ? { send_reset: true } : { password: newPw };
     if (!sendLink && newPw.length < 6) { setMsg("⚠️ باسورد ٦ أحرف على الأقل"); return; }
-    const r = await apiSend(`/api/organization/users/${uid}/password`, "POST", body).catch(() => null);
+    const r = await apiSend(`/api/organization/users/${uid}/password${oq}`, "POST", body).catch(() => null);
     setMsg(r?.changed ? "✅ تغيّرت الباسورد" : r?.sent ? "✅ أُرسل رابط إعادة التعيين" : "⚠️ تعذّر");
     setPwEdit(null); setNewPw("");
   };
   const remove = async (uid: string) => {
-    await apiSend(`/api/organization/users/${uid}`, "DELETE").catch(() => null);
+    await apiSend(`/api/organization/users/${uid}${oq}`, "DELETE").catch(() => null);
     load();
   };
 
   return (
     <div>
       <h2 style={{ margin: 0 }}>المستخدمون والأدوار</h2>
-      <p className="muted">أنشئ حسابات مستخدمي مؤسستك وتحكّم بأدوارهم وحالتهم وكلمات مرورهم. معزول لمؤسستك.</p>
+      <p className="muted">أنشئ حسابات المستخدمين وتحكّم بأدوارهم وحالتهم وكلمات مرورهم. معزول لكل مؤسسة.</p>
+
+      {isAdmin && (
+        <div className="cbox" style={{ marginBottom: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <b style={{ fontSize: 13 }}>المؤسسة:</b>
+          <select value={selectedOrg} onChange={(e) => setSelectedOrg(e.target.value)} style={{ minWidth: 240 }}>
+            {orgs.length === 0 && <option value="">— لا مؤسسات (أنشئ عميلاً أولاً) —</option>}
+            {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+          </select>
+          <span className="muted" style={{ fontSize: 11 }}>اختر العميل الذي تديـر مستخدميه.</span>
+        </div>
+      )}
 
       <div className="cbox" style={{ marginBottom: 14 }}>
         <h4 style={{ marginTop: 0 }}>➕ إضافة مستخدم {cap != null && <span className="muted" style={{ fontSize: 12 }}>({members.length}/{cap})</span>}</h4>
