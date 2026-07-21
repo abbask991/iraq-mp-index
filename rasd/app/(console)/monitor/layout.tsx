@@ -97,7 +97,7 @@ function DashShell({ children }: { children: React.ReactNode }) {
       setSub(s);
       setState(isActive(s) ? "ok" : "locked");
       // feature visibility. The main ADMIN always sees EVERYTHING — never restricted.
-      // Non-admins: per-USER override wins, else the plan's entitlements.
+      // Non-admins: per-USER override wins, else per-ORG override, else the plan.
       if (isAdminEmail(user.email)) {
         try { window.localStorage.removeItem("sentinel_preview"); } catch { /* ignore */ }
         setHidden(new Set());   // admin = full access, always
@@ -106,9 +106,21 @@ function DashShell({ children }: { children: React.ReactNode }) {
           const u = await apiGet(`/api/entitlements/user?uid=${user.id}`);
           if (u?.has_override) {
             setHidden(new Set(u.hidden || []));
-          } else if (s?.plan) {
-            const r = await apiGet(`/api/entitlements?plan=${s.plan}`);
-            setHidden(new Set(r?.hidden || []));
+          } else {
+            // per-org override (a client's custom package) takes precedence over plan
+            let applied = false;
+            try {
+              const me = await apiGet(`/api/orgs/me`);
+              const oid = me?.org?.id;
+              if (oid) {
+                const o = await apiGet(`/api/entitlements/org?org_id=${oid}`);
+                if (o?.has_override) { setHidden(new Set(o.hidden || [])); applied = true; }
+              }
+            } catch { /* fall through to plan */ }
+            if (!applied && s?.plan) {
+              const r = await apiGet(`/api/entitlements?plan=${s.plan}`);
+              setHidden(new Set(r?.hidden || []));
+            }
           }
         } catch { /* default: show all */ }
       }

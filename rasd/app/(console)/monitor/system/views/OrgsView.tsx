@@ -3,6 +3,10 @@ import { useEffect, useState } from "react";
 import { apiGet, apiSend } from "@/lib/api";
 import { SkelCards } from "@/components/Skeleton";
 import { ORG_TYPES } from "@/lib/sector";
+import { featureRegistry } from "@/lib/nav";
+import { supabase } from "@/lib/supabaseClient";
+
+const REGISTRY = featureRegistry();   // [{ group, items:[{ key(=href), ar, en }] }]
 
 const PLANS = [
   { k: "trial", ar: "تجريبي" }, { k: "basic", ar: "أساسي" },
@@ -27,6 +31,10 @@ export default function OrgsView() {
   const [brandForm, setBrandForm] = useState<Branding>(EMPTY_BRAND);
   const [brandDomain, setBrandDomain] = useState("");
   const [brandMsg, setBrandMsg] = useState("");
+  const [entId, setEntId] = useState<string | null>(null);
+  const [entHidden, setEntHidden] = useState<Set<string>>(new Set());
+  const [entHas, setEntHas] = useState(false);
+  const [entMsg, setEntMsg] = useState("");
 
   const load = () => {
     setLoading(true);
@@ -73,6 +81,46 @@ export default function OrgsView() {
     const r = await apiSend(`/api/orgs/${id}`, "PATCH", { branding, domain: brandDomain.trim() }).catch(() => null);
     if (r && r.updated !== false) { setBrandMsg("✅ حُفظت الهوية"); load(); }
     else setBrandMsg("⚠️ تعذّر الحفظ (مؤسسة حقيقية فقط — طبّق 013 وأنشئ العميل)");
+  };
+
+  const uploadLogo = async (id: string, file: File) => {
+    setBrandMsg("…جارٍ رفع الصورة");
+    try {
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const path = `${id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("branding")
+        .upload(path, file, { upsert: true, cacheControl: "3600" });
+      if (error) { setBrandMsg("⚠️ فشل الرفع — أنشئ bucket «branding» عام في Supabase"); return; }
+      const { data } = supabase.storage.from("branding").getPublicUrl(path);
+      setBrandForm((f) => ({ ...f, logo_url: data.publicUrl }));
+      setBrandMsg("✅ رُفعت الصورة — اضغط «حفظ الهوية»");
+    } catch { setBrandMsg("⚠️ فشل الرفع"); }
+  };
+
+  const openEnt = async (o: Org) => {
+    if (entId === o.id) { setEntId(null); return; }
+    setEntId(o.id); setEntMsg(""); setEntHidden(new Set()); setEntHas(false);
+    const r = await apiGet(`/api/entitlements/org?org_id=${o.id}`).catch(() => null);
+    if (r) { setEntHidden(new Set(r.hidden || [])); setEntHas(!!r.has_override); }
+  };
+
+  const toggleFeature = (key: string) => {
+    setEntHidden((s) => { const n = new Set(s); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  };
+
+  const saveEnt = async (id: string) => {
+    setEntMsg("…");
+    const r = await apiSend("/api/entitlements/org", "POST",
+      { org_id: id, hidden: Array.from(entHidden) }).catch(() => null);
+    if (r?.saved) { setEntMsg("✅ حُفظت صلاحيات هذا العميل"); setEntHas(true); }
+    else setEntMsg("⚠️ تعذّر الحفظ (صلاحية أدمن مطلوبة)");
+  };
+
+  const clearEnt = async (id: string) => {
+    setEntMsg("…");
+    const r = await apiSend("/api/entitlements/org", "POST", { org_id: id, clear: true }).catch(() => null);
+    if (r?.saved) { setEntMsg("✅ رجع العميل لصلاحيات باقته"); setEntHidden(new Set()); setEntHas(false); }
+    else setEntMsg("⚠️ تعذّر");
   };
 
   const toggleUsage = async (id: string) => {
@@ -128,6 +176,9 @@ export default function OrgsView() {
                   <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => openBrand(o)}>
                     {brandId === o.id ? "إغلاق الهوية" : "الهوية (White-label)"}
                   </button>
+                  <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => openEnt(o)}>
+                    {entId === o.id ? "إغلاق الصلاحيات" : "الصلاحيات"}
+                  </button>
                   <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => toggleUsage(o.id)}>
                     {openId === o.id ? "إخفاء الكلفة" : "كلفة البيانات"}
                   </button>
@@ -146,7 +197,17 @@ export default function OrgsView() {
                         style={{ width: "100%", marginTop: 4 }} />
                     </label>
                     <label style={{ fontSize: 12 }}>
-                      رابط الشعار (logo URL)
+                      الشعار (ارفع صورة أو الصق رابط)
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
+                        {brandForm.logo_url
+                          ? /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={brandForm.logo_url} alt="logo" height={32}
+                              style={{ height: 32, width: "auto", objectFit: "contain", background: "var(--input)", borderRadius: 4, padding: 2 }} />
+                          : null}
+                        <input type="file" accept="image/*"
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo(o.id, f); }}
+                          style={{ fontSize: 11, flex: 1 }} />
+                      </div>
                       <input value={brandForm.logo_url || ""} placeholder="https://…/logo.png"
                         onChange={(e) => setBrandForm((f) => ({ ...f, logo_url: e.target.value }))}
                         style={{ width: "100%", marginTop: 4 }} />
@@ -180,6 +241,34 @@ export default function OrgsView() {
                   <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10 }}>
                     <button className="btn" style={{ fontSize: 13 }} onClick={() => saveBrand(o.id)}>حفظ الهوية</button>
                     {brandMsg && <span className="muted" style={{ fontSize: 12 }}>{brandMsg}</span>}
+                  </div>
+                </div>
+              )}
+              {entId === o.id && (
+                <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+                  <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>
+                    حدّد الوحدات اللي يشوفها هذا العميل (✔ = ظاهرة). {entHas
+                      ? "الحالة: صلاحيات خاصة بهذا العميل — تغلب باقته."
+                      : "الحالة: يتبع باقته — أي حفظ ينشئ صلاحيات خاصة به."}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 10 }}>
+                    {REGISTRY.map((g) => (
+                      <div key={g.group}>
+                        <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{g.group}</div>
+                        {g.items.map((it) => (
+                          <label key={it.key} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "2px 0" }}>
+                            <input type="checkbox" checked={!entHidden.has(it.key)}
+                              onChange={() => toggleFeature(it.key)} />
+                            {it.ar}
+                          </label>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10 }}>
+                    <button className="btn" style={{ fontSize: 13 }} onClick={() => saveEnt(o.id)}>حفظ الصلاحيات</button>
+                    {entHas && <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => clearEnt(o.id)}>رجوع للباقة</button>}
+                    {entMsg && <span className="muted" style={{ fontSize: 12 }}>{entMsg}</span>}
                   </div>
                 </div>
               )}

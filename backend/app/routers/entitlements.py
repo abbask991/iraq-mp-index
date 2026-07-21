@@ -110,3 +110,43 @@ async def set_user(req: UserReq, _: dict = Depends(require_admin)):
     except Exception:
         pass
     return {"saved": ok, "uid": req.uid, "has_override": val["override"], "hidden": val["hidden"]}
+
+
+# ── per-ORG overrides (a client's custom package — set from the Clients panel) ─
+# Precedence in the app: per-user override > per-org override > plan package.
+def _okey(org_id: str) -> str:
+    return f"entitlements.org.{org_id}"
+
+
+class OrgReq(BaseModel):
+    org_id: str
+    hidden: list[str] = []
+    clear: bool = False        # clear = revert this org to its plan package
+
+
+@router.get("/org")
+async def get_org(org_id: str):
+    try:
+        if db.enabled():
+            rows = await db.select("system_settings", f"select=value_json&key=eq.{_okey(org_id)}&limit=1")
+            if rows:
+                v = rows[0].get("value_json") or {}
+                if v.get("override"):
+                    return {"org_id": org_id, "hidden": v.get("hidden", []) or [], "has_override": True}
+    except Exception:
+        pass
+    return {"org_id": org_id, "hidden": [], "has_override": False}
+
+
+@router.post("/org")
+async def set_org(req: OrgReq, _: dict = Depends(require_admin)):
+    val = {"override": (not req.clear), "hidden": [] if req.clear else req.hidden}
+    ok = False
+    try:
+        if db.enabled():
+            ok = bool(await db.insert("system_settings",
+                                      {"key": _okey(req.org_id), "value_json": val, "category": "internal"},
+                                      upsert=True, on_conflict="key"))
+    except Exception:
+        pass
+    return {"saved": ok, "org_id": req.org_id, "has_override": val["override"], "hidden": val["hidden"]}

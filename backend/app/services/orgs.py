@@ -8,9 +8,15 @@ On a user's first login they get a personal org auto-provisioned (role=owner).
 If the `organizations` table isn't applied yet, we degrade to a deterministic
 SYNTHETIC org keyed on the user id so nothing breaks pre-migration.
 """
+import os
 import re
 
 from app.services import db
+
+# Optional platform base domain for per-client SUBDOMAINS (e.g. set to "rasd.app"
+# → embassy.rasd.app resolves to the org whose slug is "embassy"). Requires you to
+# own the domain + a "*.<base>" wildcard in Vercel. Empty = feature off.
+WHITELABEL_BASE_DOMAIN = os.getenv("WHITELABEL_BASE_DOMAIN", "").strip().lower()
 
 VALID_PLANS = ("trial", "basic", "pro", "enterprise")
 VALID_ORG_TYPES = ("general", "media", "corporate", "government", "political")
@@ -143,13 +149,22 @@ async def resolve_by_host(host: str | None) -> dict | None:
     if h in DEFAULT_HOSTS or h.endswith(".vercel.app"):
         return None
     try:
-        if db.enabled():
-            rows = await db.select("organizations",
-                                   f"select=name,branding,org_type&domain=eq.{h}&limit=1")
-            if rows:
-                r = rows[0]
-                return {"name": r.get("name"), "branding": r.get("branding") or {},
-                        "org_type": r.get("org_type") or "general"}
+        if not db.enabled():
+            return None
+        # 1) exact custom-domain match (client owns intel.client.com)
+        rows = await db.select("organizations",
+                               f"select=name,branding,org_type&domain=eq.{h}&limit=1")
+        # 2) else a subdomain of the platform base domain → match the org's slug
+        #    (embassy.rasd.app → org where slug='embassy'); one wildcard serves all
+        if not rows and WHITELABEL_BASE_DOMAIN and h.endswith("." + WHITELABEL_BASE_DOMAIN):
+            sub = h[: -(len(WHITELABEL_BASE_DOMAIN) + 1)]
+            if sub and sub not in ("www", "app", "api"):
+                rows = await db.select("organizations",
+                                       f"select=name,branding,org_type&slug=eq.{sub}&limit=1")
+        if rows:
+            r = rows[0]
+            return {"name": r.get("name"), "branding": r.get("branding") or {},
+                    "org_type": r.get("org_type") or "general"}
     except Exception:
         pass
     return None
