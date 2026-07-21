@@ -157,11 +157,15 @@ export default function OrgUsersView() {
                 <select value={m.role} onChange={(e) => changeRole(m.user_id, e.target.value)} style={{ width: 130, fontSize: 12 }}>
                   {ROLES.map((r) => <option key={r.k} value={r.k}>{r.ar}</option>)}
                 </select>
-                <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => toggleStatus(m)}>
-                  {m.status === "suspended" ? "تفعيل" : "إيقاف"}
-                </button>
+                {(m.role === "owner" || m.role === "organization_owner")
+                  ? <span className="chip" style={{ fontSize: 11 }}>مالك — محمي</span>
+                  : <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => toggleStatus(m)}>
+                      {m.status === "suspended" ? "تفعيل" : "إيقاف"}
+                    </button>}
                 <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => setPwEdit(pwEdit === m.user_id ? null : m.user_id)}>الباسورد</button>
-                <button className="btn ghost" style={{ fontSize: 12, color: "#f87171" }} onClick={() => remove(m.user_id)}>إزالة</button>
+                {(m.role === "owner" || m.role === "organization_owner")
+                  ? null
+                  : <button className="btn ghost" style={{ fontSize: 12, color: "#f87171" }} onClick={() => remove(m.user_id)}>إزالة</button>}
               </div>
             </div>
             {pwEdit === m.user_id && (

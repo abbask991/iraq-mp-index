@@ -3,7 +3,7 @@ organization_id from the signed-in user's resolved org (current_org) — a calle
 can only ever read/write their OWN org's workspaces and projects. Mutations are
 gated by the RBAC permission matrix and recorded in the audit log.
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.common_auth import ADMIN_EMAILS, current_org
@@ -221,6 +221,16 @@ async def patch_user(user_id: str, req: UserPatchReq, org_id: str = "", ctx: dic
     if req.role is not None:
         done["role"] = await org_users.set_role(org, user_id, _valid_role(req.role))
     if req.status is not None:
+        # never lock out the owner, a platform admin, or yourself
+        if req.status == "suspended":
+            member = next((m for m in await org_users.list_members(org) if m.get("user_id") == user_id), None)
+            self_id = (ctx.get("user") or {}).get("id")
+            if user_id == self_id:
+                raise HTTPException(400, "لا يمكنك إيقاف حسابك الشخصي")
+            if member and member.get("role") in ("owner", "organization_owner"):
+                raise HTTPException(400, "لا يمكن إيقاف مالك المؤسسة")
+            if member and (member.get("email") or "").lower() in ADMIN_EMAILS:
+                raise HTTPException(400, "لا يمكن إيقاف مشرف المنصّة")
         done["status"] = await org_users.set_status(org, user_id, req.status)
     await audit.log(org, "user.update", actor_email=(ctx.get("user") or {}).get("email"),
                     target=user_id, new=req.dict(exclude_none=True))
