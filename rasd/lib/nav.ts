@@ -64,6 +64,12 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: "surveys", ar: "الاستطلاعات والاستبيانات", en: "Surveys & Polling",
+    items: [
+      { ar: "الاستطلاعات والاستبيانات", en: "Surveys & Polling", href: "/monitor/surveys" },
+    ],
+  },
+  {
     key: "corporate", ar: "استخبارات الشركات والمؤسسات", en: "Corporate Intelligence",
     items: [
       { ar: "لوحة الشركة الموحّدة", en: "Company Dashboard", href: "/monitor/corporate" },

@@ -31,8 +31,12 @@ FEATURE_CATALOG: dict[str, dict] = {
     "/monitor/entities":  {"name": "الكيانات والتأثير", "module": "analysis", "min_package": "basic"},
     "/monitor/corporate": {"name": "استخبارات الشركات", "module": "corporate", "min_package": "pro"},
     "/monitor/reports":   {"name": "التقارير والمخرجات", "module": "reports", "min_package": "trial"},
+    "/monitor/surveys":   {"name": "الاستطلاعات والاستبيانات", "module": "surveys", "min_package": "trial"},
     "/monitor/system":    {"name": "النظام والكلفة", "module": "system", "min_package": "trial"},
 }
+
+# canonical semantic feature key for the survey module (spec §22)
+SURVEY_FEATURE_KEY = "/monitor/surveys"
 
 
 async def _settings_hidden(key: str, require_override: bool = False) -> tuple[set, bool]:
