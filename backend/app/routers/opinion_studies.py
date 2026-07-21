@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.common_auth import current_org
 from app.services import audit, facebook_pages, feature_access, permissions, source_access, studies, surveys
 from app.services import study_collection as collection
+from app.services import study_collect, study_analysis
 
 router = APIRouter(prefix="/api/opinion", tags=["opinion-studies"])
 
@@ -238,5 +239,38 @@ async def collection_control(study_id: str, action: str, ctx: dict = Depends(gat
     ok = await collection.set_status(ctx["org_id"], study_id, status)
     if ok:
         await audit.log(ctx["org_id"], f"study.collection_{action}", target=study_id, **_actor(ctx))
-    return {"ok": ok, "status": status,
-            "note": "التنفيذ الفعلي للجمع يُربط في المرحلة القادمة (Sprint 3)."}
+    return {"ok": ok, "status": status}
+
+
+# ── REAL collection + analysis (Sprint 3) ────────────────────────────────────
+class KeywordsReq(BaseModel):
+    keywords: list[str] = []
+
+
+@router.post("/studies/{study_id}/collect")
+async def run_collection(study_id: str, ctx: dict = Depends(gate("survey.manage_distribution"))):
+    """Actually collect + classify real content NOW (Google News + Telegram).
+    Facebook pages are reported pending (no provider) — no fabricated data."""
+    await _own_study(ctx, study_id)
+    res = await study_collect.collect_study(ctx["org_id"], study_id)
+    await collection.set_status(ctx["org_id"], study_id, "collecting")
+    await audit.log(ctx["org_id"], "study.collect_run", target=study_id,
+                    new={"collected": res.get("collected")}, **_actor(ctx))
+    return res
+
+
+@router.get("/studies/{study_id}/analysis")
+async def study_analysis_ep(study_id: str, ctx: dict = Depends(gate())):
+    await _own_study(ctx, study_id)
+    return await study_analysis.analyze(ctx["org_id"], study_id)
+
+
+@router.post("/studies/{study_id}/keywords")
+async def set_keywords(study_id: str, req: KeywordsReq, ctx: dict = Depends(gate("survey.edit"))):
+    s = await surveys.get_survey(ctx["org_id"], study_id)
+    if not s:
+        raise HTTPException(404, "not found")
+    analysis = s.get("analysis_json") or {}
+    analysis["keywords"] = [k.strip() for k in req.keywords if k.strip()][:20]
+    ok = await surveys.update_survey(ctx["org_id"], study_id, {"analysis_json": analysis})
+    return {"saved": ok, "keywords": analysis["keywords"]}

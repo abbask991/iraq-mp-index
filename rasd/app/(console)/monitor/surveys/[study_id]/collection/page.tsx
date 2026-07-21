@@ -32,6 +32,10 @@ export default function CollectionPage() {
   const [panelSel, setPanelSel] = useState("");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(true);
+  const [keywords, setKeywords] = useState("");
+  const [analysis, setAnalysis] = useState<any>(null);
+  const [collecting, setCollecting] = useState(false);
+  const [collectMsg, setCollectMsg] = useState("");
 
   const load = () => {
     setLoading(true);
@@ -39,13 +43,32 @@ export default function CollectionPage() {
       apiGet(`/api/opinion/studies/${study_id}/collection`).catch(() => null),
       apiGet(`/api/opinion/studies/${study_id}/sources`).catch(() => null),
       apiGet(`/api/opinion/facebook/panels`).catch(() => null),
-    ]).then(([sc, src, pl]) => {
+      apiGet(`/api/opinion/studies/${study_id}/analysis`).catch(() => null),
+    ]).then(([sc, src, pl, an]) => {
       setScope(sc);
       setAvailable(src?.available_platforms || []);
       setPanels(pl?.panels || []);
+      const kw = sc?.study?.analysis_json?.keywords || [];
+      if (kw.length) setKeywords(kw.join("، "));
+      if (an && an.total > 0) setAnalysis(an);
     }).finally(() => setLoading(false));
   };
   useEffect(() => { if (study_id) load(); /* eslint-disable-next-line */ }, [study_id]);
+
+  const runCollect = async () => {
+    const kws = keywords.split(/[,،\n]/).map((k) => k.trim()).filter(Boolean);
+    setCollecting(true); setCollectMsg("…حفظ الكلمات المفتاحية");
+    if (kws.length) await apiSend(`/api/opinion/studies/${study_id}/keywords`, "POST", { keywords: kws }).catch(() => null);
+    setCollectMsg("…جارٍ الجمع والتصنيف الحقيقي (أخبار Google + تيليجرام)");
+    const r = await apiSend(`/api/opinion/studies/${study_id}/collect`, "POST", {}).catch(() => null);
+    if (r && r.collected !== undefined) {
+      setCollectMsg(`✅ جُمِع ${r.collected} إشارة${r.note ? " — " + r.note : ""}`);
+      const an = await apiGet(`/api/opinion/studies/${study_id}/analysis`).catch(() => null);
+      setAnalysis(an && an.total > 0 ? an : null);
+      load();
+    } else setCollectMsg("⚠️ تعذّر الجمع (طبّق هجرة 022؟ / صلاحية)");
+    setCollecting(false);
+  };
 
   const selectedPlatforms: Record<string, any> = {};
   (scope?.sources || []).forEach((s: any) => { selectedPlatforms[s.platform] = s; });
@@ -91,14 +114,71 @@ export default function CollectionPage() {
         <Stat v={STATUS_AR[status] || status} l="الحالة" />
       </div>
 
-      {/* controls */}
+      {/* REAL collect + analyze */}
+      <div className="cbox" style={{ marginBottom: 14, border: "1px solid var(--accent2)" }}>
+        <h4 style={{ marginTop: 0 }}>🔎 اجمع وحلّل الرأي الآن (حقيقي)</h4>
+        <p className="muted" style={{ fontSize: 12, marginTop: 0 }}>يقرأ محتوى عاماً حقيقياً (أخبار Google + قنوات تيليجرام عامة) ويصنّفه: تأييد/معارضة، مشاعر، شكاوى، مطالب. فيسبوك يحتاج مزوّداً (Apify) غير مربوط — تُعرض صفحاته كـ«معلّقة» بلا تلفيق.</p>
+        <input value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="كلمات مفتاحية للبحث (افصل بفاصلة) — مثال: الكهرباء، انقطاع، خدمات"
+          style={{ width: "100%", marginBottom: 8 }} />
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <button className="btn" disabled={collecting} onClick={runCollect}>{collecting ? "…جارٍ" : "جمع وتحليل الآن"}</button>
+          {collectMsg && <span className="muted" style={{ fontSize: 12 }}>{collectMsg}</span>}
+        </div>
+      </div>
+
+      {/* REAL results */}
+      {analysis && analysis.total > 0 && (
+        <div className="cbox" style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <h4 style={{ margin: 0 }}>نتيجة الرأي المرصود</h4>
+            <span className="chip">{analysis.total} إشارة · الموقف الغالب: {analysis.dominant_position}</span>
+          </div>
+          {/* opinion split */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "10px 0" }}>
+            {Object.entries(analysis.opinion?.pct || {}).map(([k, v]: any) => (
+              <span key={k} className="chip" style={{ fontSize: 12 }}>
+                {({ support: "تأييد", oppose: "معارضة", neutral: "محايد", mixed: "منقسم", unclear: "غير واضح" } as any)[k] || k}: {v}%
+              </span>
+            ))}
+          </div>
+          {/* emotions + types */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Breakdown title="المشاعر" data={analysis.emotion?.pct} />
+            <Breakdown title="نوع المحتوى" data={analysis.content_type?.pct} map={{ complaint: "شكوى", demand: "مطلب", praise: "ثناء", question: "سؤال", opinion: "رأي", news: "خبر" }} />
+          </div>
+          {/* platform contribution */}
+          {analysis.platform_contribution && (
+            <div style={{ marginTop: 10 }}>
+              <b style={{ fontSize: 13 }}>مساهمة المنصّات</b>
+              {Object.entries(analysis.platform_contribution).map(([p, v]: any) => (
+                <div key={p} style={{ fontSize: 12, display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--line)", padding: "3px 0" }}>
+                  <span>{PLAT_AR[p] || p}</span><span className="muted">{v.signals} إشارة · {v.share}% · سلبي {v.negative_pct}%</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* evidence: complaints/demands with links */}
+          {analysis.complaints_demands?.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <b style={{ fontSize: 13 }}>شكاوى ومطالب (أدلّة)</b>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6, maxHeight: 260, overflowY: "auto" }}>
+                {analysis.complaints_demands.map((c: any, i: number) => (
+                  <div key={i} style={{ fontSize: 12, padding: "5px 8px", background: "var(--input)", borderRadius: 6 }}>
+                    {c.url ? <a href={c.url} target="_blank" rel="noreferrer" style={{ color: "var(--accent2)" }}>{c.text || "—"}</a> : (c.text || "—")}
+                    <span className="muted" style={{ fontSize: 10, marginInlineStart: 6 }}>· {PLAT_AR[c.platform] || c.platform}{c.emotion ? " · " + c.emotion : ""}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="muted" style={{ fontSize: 11, marginTop: 10 }}>{analysis.disclaimer}</p>
+        </div>
+      )}
+
+      {/* estimate controls (secondary) */}
       <div className="cbox" style={{ marginBottom: 14, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        {status !== "collecting"
-          ? <button className="btn" onClick={() => control("start")}>بدء الجمع</button>
-          : <button className="btn ghost" onClick={() => control("pause")}>إيقاف مؤقت</button>}
-        {status === "paused" && <button className="btn" onClick={() => control("resume")}>استئناف</button>}
-        <button className="btn ghost" onClick={() => control("stop")}>إيقاف</button>
-        <span className="muted" style={{ fontSize: 11 }}>التنفيذ الفعلي للجمع يُربط في Sprint 3؛ الأرقام أعلاه تقديرات قبل التفعيل (لا تُلفّق سجلّات مجموعة).</span>
+        <span className="muted" style={{ fontSize: 12 }}>الحالة: {STATUS_AR[status] || status} · تقدير: {est.records || 0} سجل ≈ ${(est.cost_usd || 0).toFixed(2)}</span>
+        <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => control("stop")}>إيقاف الحالة</button>
       </div>
 
       {/* platforms */}
@@ -176,4 +256,18 @@ export default function CollectionPage() {
 
 function Stat({ v, l }: { v: any; l: string }) {
   return <div className="cbox" style={{ padding: 12 }}><div style={{ fontSize: 22, fontWeight: 900 }}>{v}</div><div className="muted" style={{ fontSize: 11 }}>{l}</div></div>;
+}
+
+function Breakdown({ title, data, map }: { title: string; data?: Record<string, number>; map?: Record<string, string> }) {
+  const entries = Object.entries(data || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  return (
+    <div>
+      <b style={{ fontSize: 13 }}>{title}</b>
+      {entries.length === 0 ? <div className="muted" style={{ fontSize: 12 }}>—</div> : entries.map(([k, v]) => (
+        <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "2px 0" }}>
+          <span>{map?.[k] || k}</span><b>{v}%</b>
+        </div>
+      ))}
+    </div>
+  );
 }
