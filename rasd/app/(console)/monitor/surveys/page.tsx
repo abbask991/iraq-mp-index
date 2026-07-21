@@ -56,7 +56,8 @@ export default function SurveysPage() {
     setMsg("…");
     const r = await apiSend("/api/surveys", "POST", { title: title.trim(), survey_type: stype }).catch(() => null);
     if (r?.created) { setTitle(""); setMsg("✅ أُنشئ الاستطلاع"); setOpen(r.survey.id); load(); }
-    else setMsg("⚠️ تعذّر (صلاحية / تفعيل الوحدة)");
+    else if (r === null) setMsg("⚠️ لا تملك صلاحية أو الوحدة غير مفعّلة لباقتك");
+    else setMsg("⚠️ تعذّر الحفظ — تأكّد من تطبيق هجرة قاعدة البيانات 020 في Supabase");
   };
   const act = async (id: string, action: string) => {
     const r = await apiSend(`/api/surveys/${id}/${action}`, "POST", {}).catch(() => null);
