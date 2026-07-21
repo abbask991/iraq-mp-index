@@ -5,17 +5,12 @@
  * drag-and-drop builder, respondent flow, quotas and analytics come in 1B–1F.
  */
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiGet, apiSend } from "@/lib/api";
 import { PageHeader } from "@/components/ui";
 import Tabs from "@/components/ui/Tabs";
 import Link from "next/link";
 import FacebookPagePanel from "./FacebookPagePanel";
-
-const MODES = [
-  { k: "direct_survey", ar: "استطلاع مباشر" },
-  { k: "digital_opinion", ar: "رأي رقمي مرصود" },
-  { k: "hybrid", ar: "دراسة هجينة" },
-];
 
 const TYPES = [
   { k: "standard_survey", ar: "استطلاع قياسي" }, { k: "quick_poll", ar: "تصويت سريع" },
@@ -46,11 +41,11 @@ export default function SurveysPage() {
   const [loading, setLoading] = useState(true);
   const [locked, setLocked] = useState(false);
   const [title, setTitle] = useState("");
-  const [stype, setStype] = useState("standard_survey");
-  const [smode, setSmode] = useState("direct_survey");
+  const [stype] = useState("standard_survey");
   const [msg, setMsg] = useState("");
   const [open, setOpen] = useState<string | null>(null);
   const [tab, setTab] = useState("overview");
+  const router = useRouter();
 
   const load = () => {
     setLoading(true);
@@ -62,13 +57,16 @@ export default function SurveysPage() {
   };
   useEffect(() => { load(); }, []);
 
-  const create = async () => {
+  const createKind = async (mode: string) => {
     if (!title.trim()) { setMsg("⚠️ العنوان مطلوب"); return; }
     setMsg("…");
-    const r = await apiSend("/api/surveys", "POST", { title: title.trim(), survey_type: stype, study_mode: smode }).catch(() => null);
-    if (r?.created) { setTitle(""); setMsg("✅ أُنشئ الاستطلاع"); setOpen(r.survey.id); load(); }
-    else if (r === null) setMsg("⚠️ لا تملك صلاحية أو الوحدة غير مفعّلة لباقتك");
-    else setMsg("⚠️ تعذّر الحفظ — تأكّد من تطبيق هجرة قاعدة البيانات 020 في Supabase");
+    const r = await apiSend("/api/surveys", "POST", { title: title.trim(), study_mode: mode, survey_type: stype }).catch(() => null);
+    if (r?.created) {
+      setTitle(""); setMsg("");
+      if (mode === "direct_survey") { setOpen(r.survey.id); load(); }
+      else { router.push(`/monitor/surveys/${r.survey.id}/collection`); }  // social → straight to platform/page selection
+    } else if (r === null) setMsg("⚠️ لا تملك صلاحية أو الوحدة غير مفعّلة لباقتك");
+    else setMsg("⚠️ تعذّر الحفظ — طبّق هجرات قاعدة البيانات 020/021 في Supabase");
   };
   const act = async (id: string, action: string) => {
     const r = await apiSend(`/api/surveys/${id}/${action}`, "POST", {}).catch(() => null);
@@ -102,21 +100,22 @@ export default function SurveysPage() {
         </div>
       )}
 
-      {/* create */}
+      {/* create — pick the KIND of study */}
       <div className="cbox" style={{ marginBottom: 14 }}>
-        <h4 style={{ marginTop: 0 }}>➕ استطلاع جديد</h4>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <input placeholder="عنوان الدراسة" value={title} onChange={(e) => setTitle(e.target.value)} style={{ flex: 1, minWidth: 180 }} />
-          <select value={smode} onChange={(e) => setSmode(e.target.value)} style={{ width: 160 }} title="نمط الدراسة">
-            {MODES.map((m) => <option key={m.k} value={m.k}>{m.ar}</option>)}
-          </select>
-          <select value={stype} onChange={(e) => setStype(e.target.value)} style={{ width: 150 }}>
-            {TYPES.map((t) => <option key={t.k} value={t.k}>{t.ar}</option>)}
-          </select>
-          <button className="btn" onClick={create}>إنشاء</button>
-          {msg && <span className="muted" style={{ fontSize: 12 }}>{msg}</span>}
+        <h4 style={{ marginTop: 0 }}>➕ دراسة جديدة</h4>
+        <input placeholder="عنوان الدراسة" value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: "100%", marginBottom: 10 }} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 10 }}>
+          <button onClick={() => createKind("digital_opinion")} className="cbox" style={{ textAlign: "start", cursor: "pointer", border: "1px solid var(--accent2)", background: "var(--input)" }}>
+            <b style={{ fontSize: 14 }}>📊 قياس الرأي من السوشل ميديا</b>
+            <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>بلا استمارة ولا مشاركين — يقرأ منشورات وتعليقات فيسبوك/إكس… ويحوّلها لقياس رأي (تأييد/معارضة/غضب/شكاوى). تختار المنصّات والصفحات.</div>
+          </button>
+          <button onClick={() => createKind("direct_survey")} className="cbox" style={{ textAlign: "start", cursor: "pointer", background: "var(--input)" }}>
+            <b style={{ fontSize: 14 }}>📝 استبيان بأسئلة (رابط يُشارك بالسوشل)</b>
+            <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>تبني أسئلة، وتنشرها برابط تشاركه على فيسبوك/واتساب… والناس تجاوب. الجمهور من السوشل، لكن الإجابات مباشرة منهم.</div>
+          </button>
         </div>
-        {smode !== "direct_survey" && <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>الرأي الرقمي المرصود ليس عيّنة تمثيلية — يُعرض كإشارات رأي رقمي منفصلة عن الاستطلاع المباشر.</p>}
+        {msg && <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>{msg}</p>}
+        <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>فصل منهجي صارم: الرأي الرقمي المرصود ليس عيّنة تمثيلية، ولا يُخلط مع إجابات الاستبيان المباشر.</p>
       </div>
 
       {loading && <span className="muted" style={{ fontSize: 12 }}>…تحميل</span>}
