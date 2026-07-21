@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from app.common_auth import current_org
-from app.services import audit, permissions, workspaces
+from app.services import audit, org_users, orgs, permissions, usage_limits, workspaces
 
 router = APIRouter(prefix="/api/organization", tags=["organization"])
 
@@ -127,3 +127,111 @@ async def delete_proj(project_id: str, ctx: dict = Depends(permissions.require_o
 @router.get("/audit")
 async def audit_log(ctx: dict = Depends(permissions.require_org_permission("org.audit"))):
     return {"events": await audit.recent(ctx["org_id"], limit=200)}
+
+
+# ── users & roles (spec §4,21) ───────────────────────────────────────────────
+class UserAddReq(BaseModel):
+    email: str
+    role: str = "analyst"
+    mode: str = "password"          # password | invite
+    password: str | None = None
+
+
+class UserPatchReq(BaseModel):
+    role: str | None = None
+    status: str | None = None       # active | suspended
+
+
+class PasswordReq(BaseModel):
+    password: str | None = None
+    send_reset: bool = False
+
+
+def _valid_role(role: str) -> str:
+    return role if role in permissions.ORG_ROLES else "analyst"
+
+
+@router.get("/users")
+async def list_users(ctx: dict = Depends(permissions.require_org_permission("org.manage_users"))):
+    plan = (ctx.get("org") or {}).get("plan")
+    members = await org_users.list_members(ctx["org_id"])
+    cap = usage_limits.limit_for(plan, "users")
+    return {"users": members, "count": len(members), "max_users": (cap or None)}
+
+
+@router.post("/users")
+async def add_user(req: UserAddReq, ctx: dict = Depends(permissions.require_org_permission("org.manage_users"))):
+    org_id = ctx["org_id"]
+    email = req.email.strip().lower()
+    if not email:
+        return {"created": False, "error": "email required"}
+    if str(org_id).startswith("personal-"):
+        return {"created": False, "error": "org not provisioned (apply 013)"}
+    # enforce the package user cap
+    plan = (ctx.get("org") or {}).get("plan")
+    cap = usage_limits.limit_for(plan, "users")
+    if cap and await org_users.member_count(org_id) >= cap:
+        return {"created": False, "error": "max_users_reached", "max_users": cap, "upgrade_required": True}
+
+    role = _valid_role(req.role)
+    # resolve or create the auth user
+    user = await org_users.find_user_by_email(email)
+    invited = False
+    if not user:
+        if req.mode == "invite":
+            invited = await org_users.invite_user(email)
+            user = await org_users.find_user_by_email(email)
+            if not user:
+                return {"created": bool(invited), "invited": invited,
+                        "note": "دُعي بالبريد؛ يُربط بالمؤسسة عند قبوله (فعّل البريد في Supabase)"}
+        else:
+            if not req.password or len(req.password) < 6:
+                return {"created": False, "error": "password ≥ 6 chars required"}
+            user = await org_users.create_auth_user(email, req.password)
+            if not user:
+                return {"created": False, "error": "auth create failed (email may already exist)"}
+
+    ok = await orgs.add_member(org_id, user["id"], email, role) if user else False
+    if ok:
+        await audit.log(org_id, "user.add", actor_email=(ctx.get("user") or {}).get("email"),
+                        target=email, new={"role": role, "mode": req.mode})
+    return {"created": bool(ok), "invited": invited, "user_id": (user or {}).get("id"), "role": role}
+
+
+@router.patch("/users/{user_id}")
+async def patch_user(user_id: str, req: UserPatchReq,
+                     ctx: dict = Depends(permissions.require_org_permission("org.manage_users"))):
+    org_id = ctx["org_id"]
+    done = {}
+    if req.role is not None:
+        done["role"] = await org_users.set_role(org_id, user_id, _valid_role(req.role))
+    if req.status is not None:
+        done["status"] = await org_users.set_status(org_id, user_id, req.status)
+    await audit.log(org_id, "user.update", actor_email=(ctx.get("user") or {}).get("email"),
+                    target=user_id, new=req.dict(exclude_none=True))
+    return {"updated": any(done.values()), **done}
+
+
+@router.post("/users/{user_id}/password")
+async def reset_password(user_id: str, req: PasswordReq,
+                         ctx: dict = Depends(permissions.require_org_permission("org.manage_users"))):
+    if req.send_reset:
+        # find the member's email to send them a reset link
+        email = next((m.get("email") for m in await org_users.list_members(ctx["org_id"])
+                      if m.get("user_id") == user_id), None)
+        ok = await org_users.send_reset(email) if email else False
+        await audit.log(ctx["org_id"], "user.reset_link", actor_email=(ctx.get("user") or {}).get("email"), target=user_id)
+        return {"sent": ok}
+    if not req.password or len(req.password) < 6:
+        return {"changed": False, "error": "password ≥ 6 chars required"}
+    ok = await org_users.set_password(user_id, req.password)
+    await audit.log(ctx["org_id"], "user.set_password", actor_email=(ctx.get("user") or {}).get("email"), target=user_id)
+    return {"changed": ok}
+
+
+@router.delete("/users/{user_id}")
+async def remove_user(user_id: str, ctx: dict = Depends(permissions.require_org_permission("org.manage_users"))):
+    ok = await org_users.remove_member(ctx["org_id"], user_id)
+    if ok:
+        await audit.log(ctx["org_id"], "user.remove", actor_email=(ctx.get("user") or {}).get("email"), target=user_id)
+    return {"removed": ok}
