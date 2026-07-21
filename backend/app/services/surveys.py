@@ -13,6 +13,7 @@ VALID_TYPES = {
     "academic_research", "custom",
 }
 VALID_STATUS = {"draft", "ready", "scheduled", "active", "paused", "closed", "completed", "archived"}
+STUDY_MODES = {"direct_survey", "digital_opinion", "hybrid"}
 # allowed lifecycle transitions
 TRANSITIONS = {
     "draft": {"ready", "active", "archived"},
@@ -42,6 +43,12 @@ async def create_survey(org_id: str, data: dict, created_by: str | None = None) 
         "description": data.get("description") or None,
         "research_objective": data.get("research_objective") or None,
         "survey_type": data.get("survey_type") if data.get("survey_type") in VALID_TYPES else "standard_survey",
+        "study_mode": data.get("study_mode") if data.get("study_mode") in STUDY_MODES else "direct_survey",
+        "research_question": data.get("research_question") or None,
+        "geographic_scope": data.get("geographic_scope") or None,
+        "date_start": data.get("date_start") or None,
+        "date_end": data.get("date_end") or None,
+        "analysis_json": data.get("analysis_json") or {},
         "language": data.get("language") or "ar",
         "country": data.get("country") or None,
         "timezone": data.get("timezone") or "Asia/Baghdad",
@@ -93,7 +100,9 @@ async def update_survey(org_id: str, survey_id: str, patch: dict) -> bool:
         "title", "internal_name", "description", "research_objective", "survey_type",
         "language", "country", "timezone", "sampling_method", "population_description",
         "population_size", "desired_sample_size", "anonymity_mode", "access_mode",
-        "starts_at", "ends_at", "settings_json", "methodology_json")}
+        "starts_at", "ends_at", "settings_json", "methodology_json",
+        "study_mode", "research_question", "geographic_scope", "date_start", "date_end",
+        "analysis_json")}
     if not allowed:
         return False
     try:

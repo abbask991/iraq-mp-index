@@ -7,6 +7,14 @@
 import { useEffect, useState } from "react";
 import { apiGet, apiSend } from "@/lib/api";
 import { PageHeader } from "@/components/ui";
+import Tabs from "@/components/ui/Tabs";
+import FacebookPagePanel from "./FacebookPagePanel";
+
+const MODES = [
+  { k: "direct_survey", ar: "استطلاع مباشر" },
+  { k: "digital_opinion", ar: "رأي رقمي مرصود" },
+  { k: "hybrid", ar: "دراسة هجينة" },
+];
 
 const TYPES = [
   { k: "standard_survey", ar: "استطلاع قياسي" }, { k: "quick_poll", ar: "تصويت سريع" },
@@ -38,8 +46,10 @@ export default function SurveysPage() {
   const [locked, setLocked] = useState(false);
   const [title, setTitle] = useState("");
   const [stype, setStype] = useState("standard_survey");
+  const [smode, setSmode] = useState("direct_survey");
   const [msg, setMsg] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  const [tab, setTab] = useState("overview");
 
   const load = () => {
     setLoading(true);
@@ -54,7 +64,7 @@ export default function SurveysPage() {
   const create = async () => {
     if (!title.trim()) { setMsg("⚠️ العنوان مطلوب"); return; }
     setMsg("…");
-    const r = await apiSend("/api/surveys", "POST", { title: title.trim(), survey_type: stype }).catch(() => null);
+    const r = await apiSend("/api/surveys", "POST", { title: title.trim(), survey_type: stype, study_mode: smode }).catch(() => null);
     if (r?.created) { setTitle(""); setMsg("✅ أُنشئ الاستطلاع"); setOpen(r.survey.id); load(); }
     else if (r === null) setMsg("⚠️ لا تملك صلاحية أو الوحدة غير مفعّلة لباقتك");
     else setMsg("⚠️ تعذّر الحفظ — تأكّد من تطبيق هجرة قاعدة البيانات 020 في Supabase");
@@ -67,8 +77,16 @@ export default function SurveysPage() {
 
   return (
     <div>
-      <PageHeader title="الاستطلاعات والاستبيانات" sub="صمّم، انشر، اجمع، وحلّل — منصّة استطلاعات بحثية متعددة المستأجرين." />
+      <PageHeader title="الاستطلاعات وذكاء الرأي العام" sub="استطلاعات مباشرة + رأي رقمي مرصود عبر المنصّات + دراسات هجينة — مع فصل منهجي صارم." />
 
+      <Tabs tabs={[
+        { key: "overview", label: "الاستطلاعات والدراسات", icon: "clip" },
+        { key: "facebook", label: "لوحة صفحات فيسبوك", icon: "network" },
+      ]} value={tab} onChange={setTab} />
+
+      {tab === "facebook" && <FacebookPagePanel />}
+
+      {tab === "overview" && <>
       {locked && <div className="cbox" style={{ borderInlineStart: "4px solid #f59e0b" }}>وحدة الاستطلاعات غير مفعّلة لباقتك. راجع مشرف المنصّة.</div>}
 
       {/* summary */}
@@ -87,22 +105,27 @@ export default function SurveysPage() {
       <div className="cbox" style={{ marginBottom: 14 }}>
         <h4 style={{ marginTop: 0 }}>➕ استطلاع جديد</h4>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <input placeholder="عنوان الاستطلاع" value={title} onChange={(e) => setTitle(e.target.value)} style={{ flex: 1, minWidth: 200 }} />
-          <select value={stype} onChange={(e) => setStype(e.target.value)} style={{ width: 170 }}>
+          <input placeholder="عنوان الدراسة" value={title} onChange={(e) => setTitle(e.target.value)} style={{ flex: 1, minWidth: 180 }} />
+          <select value={smode} onChange={(e) => setSmode(e.target.value)} style={{ width: 160 }} title="نمط الدراسة">
+            {MODES.map((m) => <option key={m.k} value={m.k}>{m.ar}</option>)}
+          </select>
+          <select value={stype} onChange={(e) => setStype(e.target.value)} style={{ width: 150 }}>
             {TYPES.map((t) => <option key={t.k} value={t.k}>{t.ar}</option>)}
           </select>
           <button className="btn" onClick={create}>إنشاء</button>
           {msg && <span className="muted" style={{ fontSize: 12 }}>{msg}</span>}
         </div>
+        {smode !== "direct_survey" && <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>الرأي الرقمي المرصود ليس عيّنة تمثيلية — يُعرض كإشارات رأي رقمي منفصلة عن الاستطلاع المباشر.</p>}
       </div>
 
       {loading && <span className="muted" style={{ fontSize: 12 }}>…تحميل</span>}
-      {!loading && surveys.length === 0 && !locked && <p className="muted" style={{ fontSize: 12 }}>لا استطلاعات بعد — أنشئ أول واحد فوق.</p>}
+      {!loading && surveys.length === 0 && !locked && <p className="muted" style={{ fontSize: 12 }}>لا دراسات بعد — أنشئ أول واحدة فوق.</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {surveys.map((s) => (
           <SurveyCard key={s.id} s={s} open={open === s.id} onToggle={() => setOpen(open === s.id ? null : s.id)} onAct={act} />
         ))}
       </div>
+      </>}
     </div>
   );
 }

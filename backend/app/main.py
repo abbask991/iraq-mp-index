@@ -78,6 +78,8 @@ from app.routers import sources as sources_router  # noqa: E402
 app.include_router(sources_router.router)
 from app.routers import surveys as surveys_router  # noqa: E402
 app.include_router(surveys_router.router)
+from app.routers import opinion_studies as opinion_studies_router  # noqa: E402
+app.include_router(opinion_studies_router.router)
 from app.routers import indices as indices_router  # noqa: E402
 app.include_router(indices_router.router)
 
