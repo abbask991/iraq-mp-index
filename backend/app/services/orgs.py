@@ -19,6 +19,12 @@ from app.services import db
 WHITELABEL_BASE_DOMAIN = os.getenv("WHITELABEL_BASE_DOMAIN", "").strip().lower()
 
 VALID_PLANS = ("trial", "basic", "pro", "enterprise")
+# RBAC roles a membership may hold (spec §4) + legacy owner/admin/member.
+VALID_MEMBER_ROLES = (
+    "organization_owner", "organization_admin", "executive", "analyst",
+    "researcher", "reviewer", "report_viewer", "read_only",
+    "owner", "admin", "member",
+)
 # spec §3 org types + the legacy short values kept for backward-compat.
 VALID_ORG_TYPES = (
     "general", "government", "ministry", "security_institution", "embassy",
@@ -229,7 +235,8 @@ async def create_org(name: str, plan: str = "trial") -> dict | None:
 
 
 async def add_member(org_id: str, user_id: str, email: str | None, role: str = "member") -> bool:
-    role = role if role in ("owner", "admin", "member") else "member"
+    # accept the full RBAC role set (spec §4), not just the legacy owner/admin/member
+    role = role if role in VALID_MEMBER_ROLES else "member"
     try:
         if db.enabled():
             return bool(await db.insert("memberships",
