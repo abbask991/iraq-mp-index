@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { apiGet, apiSend } from "@/lib/api";
 import { PageHeader } from "@/components/ui";
 import Tabs from "@/components/ui/Tabs";
+import Link from "next/link";
 import FacebookPagePanel from "./FacebookPagePanel";
 
 const MODES = [
@@ -153,6 +154,7 @@ function SurveyCard({ s, open, onToggle, onAct }: { s: Survey; open: boolean; on
             : (s.status === "draft" || s.status === "ready" || s.status === "paused")
               ? <button className="btn" style={{ fontSize: 12 }} onClick={() => onAct(s.id, s.status === "paused" ? "publish" : "publish")}>نشر</button>
               : null}
+          <Link href={`/monitor/surveys/${s.id}/collection`} className="btn ghost" style={{ fontSize: 12 }}>الجمع والمصادر</Link>
           <button className="btn ghost" style={{ fontSize: 12 }} onClick={onToggle}>{open ? "إغلاق" : "الأسئلة"}</button>
         </div>
       </div>

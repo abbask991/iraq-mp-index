@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.common_auth import current_org
-from app.services import audit, facebook_pages, feature_access, permissions, source_access, studies, surveys
+from app.services import audit, collection, facebook_pages, feature_access, permissions, source_access, studies, surveys
 
 router = APIRouter(prefix="/api/opinion", tags=["opinion-studies"])
 
@@ -213,3 +213,29 @@ async def add_study_targets(study_id: str, req: AttachReq, ctx: dict = Depends(g
 async def remove_study_target(study_id: str, target_id: str, ctx: dict = Depends(gate("survey.edit"))):
     await _own_study(ctx, study_id)
     return {"removed": await studies.remove_target(ctx["org_id"], study_id, target_id)}
+
+
+# ── collection dashboard + cost estimation (spec §7,18) ──────────────────────
+@router.get("/studies/{study_id}/collection")
+async def collection_scope(study_id: str, ctx: dict = Depends(gate())):
+    await _own_study(ctx, study_id)
+    return await collection.collection_scope(ctx["org_id"], study_id)
+
+
+@router.get("/studies/{study_id}/estimate")
+async def collection_estimate(study_id: str, ctx: dict = Depends(gate())):
+    await _own_study(ctx, study_id)
+    return await collection.estimate_study(ctx["org_id"], study_id)
+
+
+@router.post("/studies/{study_id}/collection/{action}")
+async def collection_control(study_id: str, action: str, ctx: dict = Depends(gate("survey.manage_distribution"))):
+    await _own_study(ctx, study_id)
+    status = {"start": "collecting", "pause": "paused", "resume": "collecting", "stop": "stopped"}.get(action)
+    if not status:
+        raise HTTPException(400, "unknown action")
+    ok = await collection.set_status(ctx["org_id"], study_id, status)
+    if ok:
+        await audit.log(ctx["org_id"], f"study.collection_{action}", target=study_id, **_actor(ctx))
+    return {"ok": ok, "status": status,
+            "note": "التنفيذ الفعلي للجمع يُربط في المرحلة القادمة (Sprint 3)."}
